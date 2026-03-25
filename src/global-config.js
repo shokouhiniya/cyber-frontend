@@ -13,7 +13,7 @@ export const UI_CONFIG = {
   contacts: false,
   settings: false,
   account: true,
-  mobileOnly: true,
+  mobileOnly: false,
 }
 
 export const CONFIG = {
