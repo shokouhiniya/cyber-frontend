@@ -1,6 +1,7 @@
 'use client';
 
 import { merge } from 'es-toolkit';
+import { varAlpha } from 'minimal-shared/utils';
 import { useBoolean } from 'minimal-shared/hooks';
 
 import Box from '@mui/material/Box';
@@ -17,6 +18,7 @@ import { useSettingsContext } from 'src/components/settings';
 import { useMockedUser } from 'src/auth/hooks';
 
 import { NavMobile } from './nav-mobile';
+import { BottomNav } from './bottom-nav';
 import { VerticalDivider } from './content';
 import { NavVertical } from './nav-vertical';
 import { NavHorizontal } from './nav-horizontal';
@@ -159,11 +161,18 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
     return (
       <HeaderSection
         layoutQuery={layoutQuery}
-        disableElevation={isNavVertical}
+        disableOffset
+        disableElevation
         {...slotProps?.header}
         slots={{ ...headerSlots, ...slotProps?.header?.slots }}
         slotProps={merge(headerSlotProps, slotProps?.header?.slotProps ?? {})}
-        sx={slotProps?.header?.sx}
+        sx={[
+          (t) => ({
+            backdropFilter: 'blur(20px)',
+            backgroundColor: varAlpha(t.vars.palette.background.defaultChannel, 0.8),
+          }),
+          ...(Array.isArray(slotProps?.header?.sx) ? slotProps.header.sx : [slotProps?.header?.sx]),
+        ]}
       />
     );
   };
@@ -184,7 +193,7 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
     />
   );
 
-  const renderFooter = () => null;
+  const renderFooter = () => <BottomNav />;
 
   const renderMain = () => <MainSection {...slotProps?.main}>{children}</MainSection>;
 

@@ -7,7 +7,7 @@ import { GuestGuard } from 'src/auth/guard';
 export default function Layout({ children }) {
   return (
     <GuestGuard>
-      <AuthSplitLayout>{children}</AuthSplitLayout>
+      <AuthSplitLayout section={{ title: 'به ما بپیوندید' }}>{children}</AuthSplitLayout>
     </GuestGuard>
   );
 }

@@ -1,11 +1,11 @@
 import { CONFIG } from 'src/global-config';
 
-import { JwtSignInView } from 'src/auth/view/jwt';
+import { PostsView } from 'src/sections/cyberspace/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `ورود - ${CONFIG.appName}` };
+export const metadata = { title: `پست‌ها - ${CONFIG.appName}` };
 
 export default function Page() {
-  return <JwtSignInView />;
+  return <PostsView />;
 }
