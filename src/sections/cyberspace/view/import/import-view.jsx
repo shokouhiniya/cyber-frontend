@@ -8,11 +8,12 @@ import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
-import LinearProgress from '@mui/material/LinearProgress';
 import { alpha, useTheme } from '@mui/material/styles';
+import LinearProgress from '@mui/material/LinearProgress';
 
-import { DashboardContent } from 'src/layouts/dashboard';
 import axios from 'src/lib/axios';
+import { DashboardContent } from 'src/layouts/dashboard';
+
 import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------

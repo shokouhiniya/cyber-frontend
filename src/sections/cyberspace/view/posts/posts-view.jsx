@@ -4,9 +4,8 @@ import { useState } from 'react';
 
 import Stack from '@mui/material/Stack';
 
-import { DashboardContent } from 'src/layouts/dashboard';
-
 import { usePosts } from 'src/api/dashboard';
+import { DashboardContent } from 'src/layouts/dashboard';
 
 import { PostsList } from '../../posts/posts-list';
 import { PlatformSummary } from '../../posts/platform-summary';
