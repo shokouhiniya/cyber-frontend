@@ -1,37 +1,35 @@
-## 1.Prerequisites
+# Dashboard App (Frontend)
 
-- Node.js >=20 (Recommended)
+این پروژه فرانت‌اند داشبورد مانیتورینگ فضای مجازی است که با Next.js و Material-UI ساخته شده.
 
----
+## پیش‌نیازها
 
-## 2.Installation
+- Node.js >=20 (توصیه می‌شود)
 
-#### Using Yarn (Recommended)
+## نصب و اجرا
+
+### استفاده از Yarn (توصیه می‌شود)
 
 ```sh
 yarn install
 yarn dev
 ```
 
-#### Using Npm
+### استفاده از NPM
 
 ```sh
 npm i
 npm run dev
 ```
 
----
+## ساختار پروژه
 
-## 3.Mock Server
+- `/src/app` - صفحات و روت‌های Next.js
+- `/src/components` - کامپوننت‌های قابل استفاده مجدد
+- `/src/sections` - بخش‌های مختلف داشبورد
+- `/src/theme` - تنظیمات تم و استایل
+- `/public` - فایل‌های استاتیک
 
-By default we provide demo data from : `https://api-dev-minimal...`
+## توجه
 
-To set up your local server:
-
-**Guide:** [https://docs.minimals.cc/mock-server](https://docs.minimals.cc/mock-server).
-
-**Resource:** [Download](https://www.dropbox.com/sh/6ojn099upi105tf/AACpmlqrNUacwbBfVdtt2t6va?dl=0).
-
----
-
-**NOTE:** When copying folders remember to also copy hidden files like .env. This is important because .env files often contain environment variables that are crucial for the application to run correctly.
+هنگام کپی کردن پوشه‌ها، فایل‌های مخفی مانند `.env` را نیز کپی کنید. این فایل‌ها حاوی متغیرهای محیطی ضروری برای اجرای صحیح برنامه هستند.
