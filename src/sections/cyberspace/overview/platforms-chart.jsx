@@ -12,7 +12,7 @@ import { Iconify } from 'src/components/iconify';
 // ----------------------------------------------------------------------
 
 const SOURCE_CONFIG = {
-  Rapid: { name: 'توییتر (Rapid)', icon: 'ri:twitter-x-fill', color: '#1DA1F2' },
+  Rapid: { name: 'توییتر', icon: 'ri:twitter-x-fill', color: '#1DA1F2' },
   Lifeweb: { name: 'لایف‌وب', icon: 'solar:global-bold-duotone', color: '#0088cc' },
   Twitter: { name: 'توییتر', icon: 'ri:twitter-x-fill', color: '#000000' },
 };

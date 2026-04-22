@@ -86,9 +86,6 @@ export function GeoHeatmap({ loading }) {
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
               نقشه حرارتی جغرافیایی
             </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 10 }}>
-              Geospatial Heatmap
-            </Typography>
           </Box>
         </Stack>
       </Box>

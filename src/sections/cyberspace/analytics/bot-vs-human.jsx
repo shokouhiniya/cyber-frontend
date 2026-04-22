@@ -38,7 +38,6 @@ export function BotVsHuman() {
           </Box>
           <Box sx={{ flex: 1 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>تفکیک کاربران</Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 10 }}>Bot vs. Human Detection</Typography>
           </Box>
         </Stack>
       </Box>

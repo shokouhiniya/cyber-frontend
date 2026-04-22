@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 
 import axios, { endpoints } from 'src/lib/axios';
 
@@ -28,9 +28,9 @@ export function useEmotions() {
 
 // ----------------------------------------------------------------------
 
-export function usePosts({ limit = 20, offset = 0, emotion, keyword, username } = {}) {
+export function usePosts({ limit = 20, offset = 0, emotion, keyword, username, since } = {}) {
   return useQuery({
-    queryKey: ['posts', { limit, offset, emotion, keyword, username }],
+    queryKey: ['posts', { limit, offset, emotion, keyword, username, since }],
     queryFn: async () => {
       const params = new URLSearchParams();
       params.set('limit', String(limit));
@@ -38,10 +38,12 @@ export function usePosts({ limit = 20, offset = 0, emotion, keyword, username } 
       if (emotion) params.set('emotion', emotion);
       if (keyword) params.set('keyword', keyword);
       if (username) params.set('username', username);
+      if (since) params.set('since', since);
 
       const res = await axios.get(`${endpoints.posts}?${params.toString()}`);
       return res.data;
     },
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -112,6 +114,18 @@ export function useUserDistribution() {
     queryKey: ['user-distribution'],
     queryFn: async () => {
       const res = await axios.get(endpoints.userDistribution);
+      return res.data;
+    },
+  });
+}
+
+// ----------------------------------------------------------------------
+
+export function useCategories() {
+  return useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const res = await axios.get(endpoints.categories);
       return res.data;
     },
   });

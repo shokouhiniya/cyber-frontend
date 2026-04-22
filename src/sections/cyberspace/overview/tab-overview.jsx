@@ -9,9 +9,8 @@ import { AISummary } from './ai-summary';
 import { HotTopics } from './hot-topics';
 import { TrendChart } from './trend-chart';
 import { CrisisRadar } from './crisis-radar';
-import { PlatformsChart } from './platforms-chart';
-import { ImportantPosts } from './important-posts';
-import { ReputationGauge } from './reputation-gauge';
+import { ImportantPosts } from './important-posts';import { ReputationGauge } from './reputation-gauge';
+import { PoliticalSpectrum } from './political-spectrum';
 
 // ----------------------------------------------------------------------
 
@@ -43,7 +42,7 @@ export function TabOverview({ stats, emotionData, loading }) {
         }}
       >
         <TrendChart loading={loading} />
-        <PlatformsChart />
+        <PoliticalSpectrum loading={loading} />
         <HotTopics />
       </Box>
 

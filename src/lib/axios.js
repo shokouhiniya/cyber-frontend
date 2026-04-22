@@ -54,6 +54,9 @@ export const endpoints = {
   userDistribution: '/api/stats/user-distribution',
   emotions: '/api/emotions',
   posts: '/api/posts',
+  categories: '/api/posts/categories',
   profile: '/api/profile',
   influencers: '/api/influencers',
+  dataSources: '/api/data-sources',
+  testDataSource: (id) => `/api/data-sources/${id}/test`,
 };

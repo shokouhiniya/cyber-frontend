@@ -88,9 +88,6 @@ export function ReputationGauge({ loading }) {
               <Typography variant="h6" sx={{ fontWeight: 800 }}>
                 شاخص سلامت اعتبار
               </Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 10 }}>
-                Reputation Health Index
-              </Typography>
             </Box>
           </Stack>
 

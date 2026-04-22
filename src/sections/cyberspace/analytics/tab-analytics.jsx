@@ -5,6 +5,7 @@ import { BotVsHuman } from './bot-vs-human';
 import { EmotionChart } from './emotion-chart';
 import { NarrativeGap } from './narrative-gap';
 import { SemanticCloud } from './semantic-cloud';
+import { PlatformsChart } from '../overview/platforms-chart';
 
 // ----------------------------------------------------------------------
 
@@ -16,6 +17,7 @@ export function TabAnalytics({ emotionData, loading }) {
       <BotVsHuman />
       <NarrativeGap loading={loading} />
       <GeoHeatmap loading={loading} />
+      <PlatformsChart />
     </Stack>
   );
 }

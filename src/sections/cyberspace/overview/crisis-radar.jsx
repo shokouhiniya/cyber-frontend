@@ -152,9 +152,6 @@ export function CrisisRadar({ loading }) {
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                 رادار بحران
               </Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 10 }}>
-                Crisis Radar
-              </Typography>
             </Box>
           </Stack>
 
@@ -314,7 +311,7 @@ export function CrisisRadar({ loading }) {
             variant="caption"
             sx={{ color: 'text.secondary', fontWeight: 600, display: 'block', mb: 1.5, mt: 2 }}
           >
-            تغییرات ناگهانی (Spikes)
+            تغییرات ناگهانی
           </Typography>
           <Stack spacing={1}>
             {spikes.map((spike, index) => {

@@ -82,9 +82,6 @@ export function NarrativeGap({ loading }) {
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
               تحلیل شکاف روایت
             </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 10 }}>
-              Narrative Gap Analysis
-            </Typography>
           </Box>
         </Stack>
       </Box>

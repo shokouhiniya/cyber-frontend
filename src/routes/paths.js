@@ -48,5 +48,7 @@ export const paths = {
     recommendations: `${ROOTS.DASHBOARD}/recommendations`,
     reports: `${ROOTS.DASHBOARD}/reports`,
     profile: `${ROOTS.DASHBOARD}/profile`,
+    test: `${ROOTS.DASHBOARD}/test`,
+    mypages: `${ROOTS.DASHBOARD}/mypages`,
   },
 };

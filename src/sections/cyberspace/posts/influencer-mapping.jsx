@@ -97,9 +97,6 @@ export function InfluencerMapping({ data, loading }) {
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                 نقشه تأثیرگذاران
               </Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 10 }}>
-                Influencer Mapping
-              </Typography>
             </Box>
           </Stack>
 

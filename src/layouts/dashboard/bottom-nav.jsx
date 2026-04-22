@@ -15,10 +15,10 @@ import { Iconify } from 'src/components/iconify';
 
 const TABS = [
   { value: paths.dashboard.root, label: 'داشبورد', icon: 'solar:home-2-bold-duotone' },
+  { value: paths.dashboard.mypages, label: 'رسانه', icon: 'solar:shield-check-bold-duotone' },
   { value: paths.dashboard.posts, label: 'پست‌ها', icon: 'solar:chat-round-line-bold-duotone' },
   { value: paths.dashboard.analytics, label: 'تحلیل', icon: 'solar:graph-bold-duotone' },
   { value: paths.dashboard.recommendations, label: 'پیشنهادها', icon: 'solar:lightbulb-bolt-bold-duotone' },
-  { value: paths.dashboard.reports, label: 'گزارش‌ها', icon: 'solar:document-text-bold-duotone' },
 ];
 
 // ----------------------------------------------------------------------
