@@ -9,6 +9,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { Iconify } from 'src/components/iconify';
 
+import { WhatIfChat } from './whatif-chat';
+
 // ----------------------------------------------------------------------
 
 export function TabRecommendations({ loading }) {
@@ -293,6 +295,9 @@ export function TabRecommendations({ loading }) {
           </Box>
         </Card>
       ))}
+
+      {/* What-If Scenario Chatbot */}
+      <WhatIfChat />
     </Stack>
   );
 }

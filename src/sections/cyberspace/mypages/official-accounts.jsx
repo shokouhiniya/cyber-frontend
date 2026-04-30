@@ -12,7 +12,7 @@ import { Iconify } from 'src/components/iconify';
 const ACCOUNTS = [
   {
     platform: 'توییتر',
-    handle: '@dr_aghamiri',
+    handle: '@ghalibaf',
     icon: 'ri:twitter-x-fill',
     color: '#000000',
     followers: 125400,
@@ -22,7 +22,7 @@ const ACCOUNTS = [
   },
   {
     platform: 'تلگرام',
-    handle: 'dr_aghamiri_official',
+    handle: 'ghalibaf_official',
     icon: 'ic:baseline-telegram',
     color: '#0088cc',
     followers: 89200,
@@ -32,7 +32,7 @@ const ACCOUNTS = [
   },
   {
     platform: 'اینستاگرام',
-    handle: '@dr.aghamiri',
+    handle: '@ghalibaf',
     icon: 'mdi:instagram',
     color: '#E4405F',
     followers: 210800,
@@ -42,7 +42,7 @@ const ACCOUNTS = [
   },
   {
     platform: 'وب‌سایت',
-    handle: 'aghamiri.ir',
+    handle: 'ghalibaf.ir',
     icon: 'solar:global-bold-duotone',
     color: '#2196F3',
     followers: null,
@@ -52,7 +52,7 @@ const ACCOUNTS = [
   },
   {
     platform: 'روبیکا',
-    handle: 'dr_aghamiri',
+    handle: 'ghalibaf',
     icon: 'solar:chat-round-dots-bold-duotone',
     color: '#7C3AED',
     followers: 34500,
@@ -117,7 +117,7 @@ export function OfficialAccounts() {
       >
         {ACCOUNTS.map((account) => (
           <Box
-            key={account.handle}
+            key={account.platform}
             sx={{
               p: 2,
               borderRadius: 2,

@@ -147,7 +147,7 @@ export function TestView() {
                   <TextField
                     fullWidth
                     label="نام صفحه (Page Name)"
-                    placeholder="مثال: دکتر آقامیری"
+                    placeholder="مثال: قالیباف"
                     value={testInputs[source.id]?.pageName || ''}
                     onChange={(e) => handleInputChange(source.id, 'pageName', e.target.value)}
                     helperText="یا نام صفحه را برای جستجو وارد کنید"
