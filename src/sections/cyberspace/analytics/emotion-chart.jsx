@@ -10,34 +10,19 @@ import { Iconify } from 'src/components/iconify';
 // ----------------------------------------------------------------------
 
 const emotionConfig = {
-  ANGRY: {
-    color: '#FF6B6B',
-    darkColor: '#FF8787',
-    label: 'عصبانی',
-    icon: 'solar:emoji-funny-square-bold-duotone',
-    emoji: '😠',
-  },
-  HAPPY: {
-    color: '#51CF66',
-    darkColor: '#69DB7C',
-    label: 'شاد',
-    icon: 'solar:emoji-funny-circle-bold-duotone',
-    emoji: '😊',
-  },
-  HOPE: {
-    color: '#339AF0',
-    darkColor: '#4DABF7',
-    label: 'امیدوار',
-    icon: 'solar:star-bold-duotone',
-    emoji: '🤗',
-  },
-  OTHER: {
-    color: '#ADB5BD',
-    darkColor: '#CED4DA',
-    label: 'سایر',
-    icon: 'solar:question-circle-bold-duotone',
-    emoji: '😐',
-  },
+  worry: { color: '#FF6B6B', darkColor: '#FF8787', label: '\u0646\u06AF\u0631\u0627\u0646\u06CC', emoji: '\uD83D\uDE1F' },
+  concern: { color: '#FFA94D', darkColor: '#FFB86C', label: '\u062F\u063A\u062F\u063A\u0647', emoji: '\uD83D\uDE1E' },
+  caution: { color: '#FF922B', darkColor: '#FFA94D', label: '\u0627\u062D\u062A\u06CC\u0627\u0637', emoji: '\u26A0\uFE0F' },
+  frustration: { color: '#E03131', darkColor: '#FF6B6B', label: '\u062E\u0634\u0645', emoji: '\uD83D\uDE21' },
+  joy: { color: '#51CF66', darkColor: '#69DB7C', label: '\u0634\u0627\u062F\u06CC', emoji: '\uD83D\uDE0A' },
+  hope: { color: '#339AF0', darkColor: '#4DABF7', label: '\u0627\u0645\u06CC\u062F', emoji: '\uD83E\uDD17' },
+  optimism: { color: '#20C997', darkColor: '#38D9A9', label: '\u062E\u0648\u0634\u200C\u0628\u06CC\u0646\u06CC', emoji: '\uD83C\uDF1F' },
+  excitement: { color: '#845EF7', darkColor: '#9775FA', label: '\u0647\u06CC\u062C\u0627\u0646', emoji: '\uD83E\uDD29' },
+  pride: { color: '#5C7CFA', darkColor: '#748FFC', label: '\u0627\u0641\u062A\u062E\u0627\u0631', emoji: '\uD83D\uDCAA' },
+  interest: { color: '#74C0FC', darkColor: '#91D5FF', label: '\u0639\u0644\u0627\u0642\u0647', emoji: '\uD83E\uDDD0' },
+  surprise: { color: '#20C997', darkColor: '#38D9A9', label: '\u0634\u06AF\u0641\u062A\u06CC', emoji: '\uD83D\uDE32' },
+  neutral: { color: '#ADB5BD', darkColor: '#CED4DA', label: '\u062E\u0646\u062B\u06CC', emoji: '\uD83D\uDE10' },
+  OTHER: { color: '#ADB5BD', darkColor: '#CED4DA', label: '\u0633\u0627\u06CC\u0631', emoji: '\uD83D\uDE10' },
 };
 
 export function EmotionChart({ data, loading }) {

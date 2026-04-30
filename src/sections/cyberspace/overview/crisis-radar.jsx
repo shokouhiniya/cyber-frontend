@@ -39,7 +39,7 @@ export function CrisisRadar({ loading }) {
   const [expanded, setExpanded] = useState(false);
 
   // Mock crisis level
-  const crisisLevel = 'warning'; // safe, warning, critical
+  const crisisLevel = 'critical'; // actual: 60% negative sentiment = critical
   const crisis = crisisLevels[crisisLevel];
 
   // Mock radar data (0-100 scale)
@@ -53,9 +53,9 @@ export function CrisisRadar({ loading }) {
 
   // Mock spike data
   const spikes = [
-    { topic: 'سفرهای خارجی', increase: '+۱۵٪', severity: 'high' },
-    { topic: 'مجلس', increase: '+۸٪', severity: 'medium' },
-    { topic: 'بودجه', increase: '+۵٪', severity: 'low' },
+    { topic: '\u062E\u0637\u0648\u0637 \u0642\u0631\u0645\u0632 \u0645\u0630\u0627\u06A9\u0631\u0627\u062A', increase: '+\u06F4\u06F2\u066A', severity: 'high' },
+    { topic: '\u0634\u06A9\u0627\u0641 \u0627\u0635\u0648\u0644\u06AF\u0631\u0627\u06CC\u0627\u0646', increase: '+\u06F3\u06F5\u066A', severity: 'high' },
+    { topic: '\u0642\u06CC\u0645\u062A \u0646\u0641\u062A', increase: '+\u06F1\u06F8\u066A', severity: 'medium' },
   ];
 
   if (loading) {

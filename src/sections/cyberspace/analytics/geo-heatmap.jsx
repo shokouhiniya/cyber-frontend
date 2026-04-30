@@ -14,14 +14,14 @@ export function GeoHeatmap({ loading }) {
 
   // Mock data - provinces with activity levels
   const provinces = [
-    { name: 'تهران', intensity: 95, posts: 1250, sentiment: 'negative' },
-    { name: 'اصفهان', intensity: 72, posts: 680, sentiment: 'neutral' },
-    { name: 'خراسان رضوی', intensity: 68, posts: 590, sentiment: 'negative' },
-    { name: 'فارس', intensity: 55, posts: 420, sentiment: 'positive' },
-    { name: 'آذربایجان شرقی', intensity: 48, posts: 380, sentiment: 'neutral' },
-    { name: 'خوزستان', intensity: 42, posts: 310, sentiment: 'negative' },
-    { name: 'مازندران', intensity: 38, posts: 280, sentiment: 'positive' },
-    { name: 'گیلان', intensity: 32, posts: 220, sentiment: 'neutral' },
+    { name: '\u062A\u0647\u0631\u0627\u0646', intensity: 95, posts: 186, sentiment: 'negative' },
+    { name: '\u062E\u0631\u0627\u0633\u0627\u0646 \u0631\u0636\u0648\u06CC', intensity: 72, posts: 42, sentiment: 'positive' },
+    { name: '\u0627\u0635\u0641\u0647\u0627\u0646', intensity: 55, posts: 28, sentiment: 'negative' },
+    { name: '\u0641\u0627\u0631\u0633', intensity: 48, posts: 22, sentiment: 'neutral' },
+    { name: '\u0622\u0630\u0631\u0628\u0627\u06CC\u062C\u0627\u0646 \u0634\u0631\u0642\u06CC', intensity: 42, posts: 18, sentiment: 'negative' },
+    { name: '\u062E\u0648\u0632\u0633\u062A\u0627\u0646', intensity: 35, posts: 12, sentiment: 'negative' },
+    { name: '\u0645\u0627\u0632\u0646\u062F\u0631\u0627\u0646', intensity: 28, posts: 9, sentiment: 'neutral' },
+    { name: '\u06AF\u06CC\u0644\u0627\u0646', intensity: 22, posts: 7, sentiment: 'positive' },
   ];
 
   const getIntensityColor = (intensity) => {

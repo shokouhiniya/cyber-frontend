@@ -17,34 +17,32 @@ import { Iconify } from 'src/components/iconify';
 
 const narratives = [
   {
-    official: 'افتتاح پروژه',
-    officialPercent: 10,
+    official: '\u0628\u06CC\u0627\u0646\u06CC\u0647 \u062D\u0645\u0627\u06CC\u062A \u0627\u0632 \u0645\u0630\u0627\u06A9\u0631\u0627\u062A',
+    officialPercent: 35,
     public: [
       {
-        topic: 'هزینه پروژه',
-        percent: 45,
+        topic: '\u0639\u062F\u0645 \u0631\u0639\u0627\u06CC\u062A \u062E\u0637\u0648\u0637 \u0642\u0631\u0645\u0632',
+        percent: 42,
         sentiment: 'negative',
         traces: [
-          { platform: 'توییتر', user: '@econ_critic', followers: '۸۹k', text: 'هزینه واقعی این پروژه ۳ برابر بودجه اعلام‌شده است...', time: '۳ ساعت پیش', reposts: 1240 },
-          { platform: 'تلگرام', user: 'کانال تحلیل اقتصاد', followers: '۱۲۰k', text: 'گزارش محرمانه نشان می‌دهد بودجه پروژه از ابتدا غیرواقعی بوده', time: '۵ ساعت پیش', reposts: 890 },
-          { platform: 'خبرگزاری', user: 'ایسنا', followers: '—', text: 'نماینده مجلس: هزینه‌های پروژه باید شفاف‌سازی شود', time: '۱ روز پیش', reposts: 2100 },
+          { platform: '\u062A\u0644\u06AF\u0631\u0627\u0645', user: '\u0627\u0645\u06CC\u0631\u062D\u0633\u06CC\u0646 \u062B\u0627\u0628\u062A\u06CC', followers: '\u06F4\u06F5k', text: '\u0686\u0648\u0646 \u062F\u0631 \u0645\u062A\u0646 \u0646\u0627\u0645\u0647 \u062D\u0645\u0627\u06CC\u062A \u0627\u0632 \u062A\u06CC\u0645 \u0645\u0630\u0627\u06A9\u0631\u0647\u200C\u06A9\u0646\u0646\u062F\u0647 \u0628\u0647 \u0635\u0648\u0631\u062A \u0645\u0637\u0644\u0642 \u0622\u0645\u062F\u0647 \u0628\u0648\u062F \u0648 \u0646\u0647 \u0645\u0634\u0631\u0648\u0637 \u0628\u0647 \u0631\u0639\u0627\u06CC\u062A \u062E\u0637\u0648\u0637 \u0642\u0631\u0645\u0632', time: '\u06F5 \u0633\u0627\u0639\u062A \u067E\u06CC\u0634', reposts: 3420 },
+          { platform: '\u0628\u0644\u0647', user: '\u06AF\u06CC\u0632\u0645\u06CC\u0632', followers: '\u06F2\u06F9\u06F9k', text: '\u06F2\u06F6\u06F1 \u0646\u0645\u0627\u06CC\u0646\u062F\u0647 \u0628\u06CC\u0627\u0646\u06CC\u0647 \u062D\u0645\u0627\u06CC\u062A \u0627\u0645\u0636\u0627 \u06A9\u0631\u062F\u0646\u062F \u0627\u0645\u0627 \u06F7 \u0646\u0641\u0631 \u0627\u0645\u0636\u0627 \u0646\u06A9\u0631\u062F\u0646\u062F', time: '\u06F3 \u0633\u0627\u0639\u062A \u067E\u06CC\u0634', reposts: 2890 },
         ],
       },
       {
-        topic: 'زمان‌بندی',
-        percent: 30,
+        topic: '\u0634\u06A9\u0627\u0641 \u062F\u0631 \u062C\u0631\u06CC\u0627\u0646 \u0627\u0635\u0648\u0644\u06AF\u0631\u0627',
+        percent: 35,
+        sentiment: 'negative',
+        traces: [
+          { platform: '\u062A\u0644\u06AF\u0631\u0627\u0645', user: '\u0645\u0647\u0633\u062A\u0627\u0646', followers: '\u06F6\u06F9\u06F2', text: '\u0631\u0647\u0628\u0631\u0627\u0646 \u062C\u0628\u0647\u0647 \u067E\u0627\u06CC\u062F\u0627\u0631\u06CC \u0628\u0627 \u0645\u0635\u0627\u062D\u0628\u0647\u200C\u0647\u0627\u06CC \u0645\u062A\u0639\u062F\u062F \u0631\u0648\u0634 \u0645\u0630\u0627\u06A9\u0631\u0647 \u0642\u0627\u0644\u06CC\u0628\u0627\u0641 \u0631\u0627 \u0632\u06CC\u0631 \u0633\u0648\u0627\u0644 \u0628\u0631\u062F\u0646\u062F', time: '\u06F8 \u0633\u0627\u0639\u062A \u067E\u06CC\u0634', reposts: 1560 },
+        ],
+      },
+      {
+        topic: '\u0642\u06CC\u0645\u062A \u0646\u0641\u062A',
+        percent: 23,
         sentiment: 'neutral',
         traces: [
-          { platform: 'توییتر', user: '@project_watch', followers: '۴۵k', text: 'تأخیر ۸ ماهه در فاز دوم پروژه هنوز توضیح داده نشده', time: '۶ ساعت پیش', reposts: 560 },
-          { platform: 'اینستاگرام', user: '@news_daily', followers: '۲۳۰k', text: 'مقایسه زمان‌بندی اعلام‌شده با واقعیت اجرا', time: '۲ روز پیش', reposts: 340 },
-        ],
-      },
-      {
-        topic: 'کیفیت',
-        percent: 15,
-        sentiment: 'negative',
-        traces: [
-          { platform: 'تلگرام', user: 'انجمن مهندسین', followers: '۶۷k', text: 'استانداردهای ساخت در این پروژه رعایت نشده است', time: '۱ روز پیش', reposts: 780 },
+          { platform: '\u0631\u0648\u0628\u06CC\u06A9\u0627', user: '\u062E\u0628\u0631 \u0641\u0648\u0631\u06CC', followers: '\u06F1\u06F2\u06F0k', text: '\u0642\u0627\u0644\u06CC\u0628\u0627\u0641: \u0645\u06CC\u200C\u062A\u0648\u0627\u0646\u06CC\u0645 \u0627\u06CC\u0646 \u0632\u0645\u0627\u0646 \u062A\u0627 \u06F3\u06F0 \u0631\u0648\u0632 \u062A\u0645\u062F\u06CC\u062F \u06A9\u0646\u06CC\u0645 \u0648 \u0686\u0627\u0647 \u0646\u0641\u062A \u0631\u0627 \u067E\u062E\u0634 \u0632\u0646\u062F\u0647 \u06A9\u0646\u06CC\u0645', time: '\u06F2 \u0633\u0627\u0639\u062A \u067E\u06CC\u0634', reposts: 4200 },
         ],
       },
     ],
@@ -242,7 +240,7 @@ export function NarrativeGap({ loading }) {
                 <Stack direction="row" spacing={1}>
                   <Iconify icon="solar:lightbulb-bolt-bold" width={16} sx={{ color: theme.palette.info.main, flexShrink: 0, mt: 0.25 }} />
                   <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 10, lineHeight: 1.6 }}>
-                    پیام شما به درستی منتقل نشده است. مردم بیشتر درباره هزینه‌ها صحبت می‌کنند تا دستاورد پروژه.
+                    \u067E\u06CC\u0627\u0645 \u0631\u0633\u0645\u06CC \u062D\u0645\u0627\u06CC\u062A \u0627\u0632 \u0645\u0630\u0627\u06A9\u0631\u0627\u062A \u0628\u0647 \u062F\u0631\u0633\u062A\u06CC \u0645\u0646\u062A\u0642\u0644 \u0646\u0634\u062F\u0647. \u0645\u0631\u062F\u0645 \u0628\u06CC\u0634\u062A\u0631 \u062F\u0631\u0628\u0627\u0631\u0647 \u062E\u0637\u0648\u0637 \u0642\u0631\u0645\u0632 \u0648 \u0634\u06A9\u0627\u0641 \u062F\u0631\u0648\u0646\u06CC \u0627\u0635\u0648\u0644\u06AF\u0631\u0627\u06CC\u0627\u0646 \u0635\u062D\u0628\u062A \u0645\u06CC\u200C\u06A9\u0646\u0646\u062F.
                   </Typography>
                 </Stack>
               </Box>

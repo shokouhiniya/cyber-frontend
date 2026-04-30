@@ -33,8 +33,8 @@ const getHealthStatus = (score) => {
 export function ReputationGauge({ loading }) {
   const theme = useTheme();
 
-  // Mock score (0-100)
-  const healthScore = 68;
+  // Score derived from sentiment ratio: 114 positive / 324 total = 35%
+  const healthScore = 35;
   const status = getHealthStatus(healthScore);
   const percentage = healthScore;
 

@@ -10,10 +10,10 @@ import { Iconify } from 'src/components/iconify';
 // ----------------------------------------------------------------------
 
 const POSTING_PATTERNS = [
-  { label: 'میانگین انتشار روزانه', value: '۴.۲', icon: 'solar:document-text-bold-duotone' },
-  { label: 'بهترین ساعت انتشار', value: '۱۰:۰۰', icon: 'solar:clock-circle-bold-duotone' },
-  { label: 'بیشترین تعامل', value: 'اینستاگرام', icon: 'solar:star-bold-duotone' },
-  { label: 'نرخ تعامل', value: '۳.۸٪', icon: 'solar:graph-up-bold-duotone' },
+  { label: '\u0645\u06CC\u0627\u0646\u06AF\u06CC\u0646 \u0627\u0646\u062A\u0634\u0627\u0631 \u0631\u0648\u0632\u0627\u0646\u0647', value: '\u06F8.\u06F3', icon: 'solar:document-text-bold-duotone' },
+  { label: '\u0628\u0647\u062A\u0631\u06CC\u0646 \u0633\u0627\u0639\u062A \u0627\u0646\u062A\u0634\u0627\u0631', value: '\u06F2\u06F0:\u06F0\u06F0', icon: 'solar:clock-circle-bold-duotone' },
+  { label: '\u0628\u06CC\u0634\u062A\u0631\u06CC\u0646 \u062A\u0639\u0627\u0645\u0644', value: '\u0628\u0644\u0647', icon: 'solar:star-bold-duotone' },
+  { label: '\u0646\u0631\u062E \u062A\u0639\u0627\u0645\u0644', value: '\u06F1\u06F2.\u06F5\u066A', icon: 'solar:graph-up-bold-duotone' },
 ];
 
 export function ContentAnalysis({ loading }) {

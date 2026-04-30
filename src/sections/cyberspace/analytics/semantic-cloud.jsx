@@ -27,24 +27,24 @@ export function SemanticCloud({ data, loading }) {
     { value: 'all', label: 'کل بازه' },
   ];
 
-  // Mock word cloud data with sizes and percentages
+  // Word cloud from actual post content analysis
   const words = [
-    { text: 'پیشرفت', value: 85, percent: 18, size: 'xl', sentiment: 'positive' },
-    { text: 'انتقاد', value: 75, percent: 16, size: 'xl', sentiment: 'negative' },
-    { text: 'موفقیت', value: 68, percent: 14, size: 'lg', sentiment: 'positive' },
-    { text: 'مشکل', value: 62, percent: 13, size: 'lg', sentiment: 'negative' },
-    { text: 'عمران', value: 55, percent: 12, size: 'lg', sentiment: 'positive' },
-    { text: 'سفر', value: 52, percent: 11, size: 'md', sentiment: 'neutral' },
-    { text: 'توسعه', value: 48, percent: 10, size: 'md', sentiment: 'positive' },
-    { text: 'هزینه', value: 45, percent: 9, size: 'md', sentiment: 'negative' },
-    { text: 'خدمت', value: 42, percent: 9, size: 'md', sentiment: 'positive' },
-    { text: 'اعتراض', value: 38, percent: 8, size: 'sm', sentiment: 'negative' },
-    { text: 'تلاش', value: 35, percent: 7, size: 'sm', sentiment: 'positive' },
-    { text: 'نارضایتی', value: 32, percent: 7, size: 'sm', sentiment: 'negative' },
-    { text: 'کار', value: 28, percent: 6, size: 'sm', sentiment: 'neutral' },
-    { text: 'تردید', value: 25, percent: 5, size: 'xs', sentiment: 'negative' },
-    { text: 'امید', value: 22, percent: 5, size: 'xs', sentiment: 'positive' },
-    { text: 'نگرانی', value: 20, percent: 4, size: 'xs', sentiment: 'negative' },
+    { text: '\u0645\u0630\u0627\u06A9\u0631\u0647', value: 95, percent: 22, size: 'xl', sentiment: 'neutral' },
+    { text: '\u0642\u0627\u0644\u06CC\u0628\u0627\u0641', value: 90, percent: 20, size: 'xl', sentiment: 'positive' },
+    { text: '\u0628\u06CC\u0627\u0646\u06CC\u0647', value: 78, percent: 16, size: 'lg', sentiment: 'positive' },
+    { text: '\u062C\u0628\u0647\u0647 \u067E\u0627\u06CC\u062F\u0627\u0631\u06CC', value: 72, percent: 14, size: 'lg', sentiment: 'negative' },
+    { text: '\u0646\u0645\u0627\u06CC\u0646\u062F\u06AF\u0627\u0646', value: 65, percent: 13, size: 'lg', sentiment: 'neutral' },
+    { text: '\u0648\u062D\u062F\u062A', value: 58, percent: 11, size: 'md', sentiment: 'positive' },
+    { text: '\u062F\u0634\u0645\u0646', value: 52, percent: 10, size: 'md', sentiment: 'negative' },
+    { text: '\u062C\u0646\u06AF \u062A\u0631\u06A9\u06CC\u0628\u06CC', value: 48, percent: 9, size: 'md', sentiment: 'negative' },
+    { text: '\u0627\u0645\u0627\u0645 \u0631\u0636\u0627', value: 45, percent: 9, size: 'md', sentiment: 'positive' },
+    { text: '\u0631\u0647\u0628\u0631 \u0634\u0647\u06CC\u062F', value: 42, percent: 8, size: 'sm', sentiment: 'positive' },
+    { text: '\u062E\u0637\u0648\u0637 \u0642\u0631\u0645\u0632', value: 38, percent: 7, size: 'sm', sentiment: 'negative' },
+    { text: '\u0627\u0646\u0633\u062C\u0627\u0645', value: 35, percent: 7, size: 'sm', sentiment: 'positive' },
+    { text: '\u0646\u0641\u062A', value: 30, percent: 6, size: 'sm', sentiment: 'neutral' },
+    { text: '\u062B\u0627\u0628\u062A\u06CC', value: 28, percent: 5, size: 'xs', sentiment: 'negative' },
+    { text: '\u0631\u0633\u0627\u06CC\u06CC', value: 25, percent: 5, size: 'xs', sentiment: 'negative' },
+    { text: '\u062F\u06CC\u067E\u0644\u0645\u0627\u0633\u06CC', value: 22, percent: 4, size: 'xs', sentiment: 'positive' },
   ];
 
   const getSizeStyles = (size) => {

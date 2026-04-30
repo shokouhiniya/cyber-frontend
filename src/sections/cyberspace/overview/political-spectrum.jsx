@@ -13,10 +13,10 @@ const POSITIVE_COLOR = '#51CF66';
 const NEGATIVE_COLOR = '#FF6B6B';
 
 const BRACKETS = [
-  { label: 'برانداز سخت', positive: 120, negative: 340 },
-  { label: 'برانداز نرم', positive: 280, negative: 190 },
-  { label: 'اصلاح‌طلب', positive: 410, negative: 150 },
-  { label: 'اصولگرا', positive: 520, negative: 95 },
+  { label: '\u0628\u0631\u0627\u0646\u062F\u0627\u0632 \u0633\u062E\u062A', positive: 8, negative: 142 },
+  { label: '\u0628\u0631\u0627\u0646\u062F\u0627\u0632 \u0646\u0631\u0645', positive: 22, negative: 86 },
+  { label: '\u0627\u0635\u0644\u0627\u062D\u200C\u0637\u0644\u0628', positive: 45, negative: 38 },
+  { label: '\u0627\u0635\u0648\u0644\u06AF\u0631\u0627', positive: 156, negative: 24 },
 ];
 
 export function PoliticalSpectrum({ loading }) {

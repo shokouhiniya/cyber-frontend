@@ -11,15 +11,15 @@ import { SvgColor } from 'src/components/svg-color';
 // ----------------------------------------------------------------------
 
 const PLATFORMS = [
-  { name: 'توییتر', icon: 'ri:twitter-x-fill', color: '#000000', mockPosts: 1245, mockViews: 892000 },
-  { name: 'تلگرام', icon: 'ic:baseline-telegram', color: '#0088cc', mockPosts: 2380, mockViews: 1450000 },
-  { name: 'اینستاگرام', icon: 'mdi:instagram', color: '#E4405F', mockPosts: 876, mockViews: 2130000 },
-  { name: 'روبیکا', svg: '/assets/icons/social/rubika-mono.svg', color: '#6C3AED', mockPosts: 1360, mockViews: 980000 },
-  { name: 'بله', svg: '/assets/icons/social/bale-mono.svg', color: '#00B4D8', mockPosts: 911, mockViews: 620000 },
-  { name: 'ایتا', svg: '/assets/icons/social/eitaa-mono.svg', color: '#FF6F00', mockPosts: 269, mockViews: 185000 },
-  { name: 'وب و روزنامه', icon: 'solar:global-bold-duotone', color: '#4CAF50', mockPosts: 534, mockViews: 378000 },
-  { name: 'داخلی', icon: 'solar:shield-network-bold-duotone', color: '#7C3AED', mockPosts: 189, mockViews: 124000 },
-  { name: 'تلویزیون', icon: 'solar:tv-bold-duotone', color: '#78909C', comingSoon: true },
+  { name: 'تلگرام', icon: 'ic:baseline-telegram', color: '#0088cc', mockPosts: 50, mockViews: 65823144 },
+  { name: 'روبیکا', svg: '/assets/icons/social/rubika-mono.svg', color: '#6C3AED', mockPosts: 50, mockViews: 16977754 },
+  { name: 'بله', svg: '/assets/icons/social/bale-mono.svg', color: '#00B4D8', mockPosts: 50, mockViews: 3060402 },
+  { name: 'ایتا', svg: '/assets/icons/social/eitaa-mono.svg', color: '#FF6F00', mockPosts: 50, mockViews: 30 },
+  { name: 'خبرگزاری', icon: 'solar:document-text-bold', color: '#4CAF50', mockPosts: 50, mockViews: 114 },
+  { name: 'اینستاگرام', icon: 'mdi:instagram', color: '#E4405F', mockPosts: 29, mockViews: 14775764 },
+  { name: 'رسانه تصویری', icon: 'solar:videocamera-record-bold-duotone', color: '#FF5722', mockPosts: 21, mockViews: 15928381 },
+  { name: 'روزنامه', icon: 'solar:global-bold-duotone', color: '#78909C', mockPosts: 13, mockViews: 0 },
+  { name: 'فروم', icon: 'solar:chat-square-bold-duotone', color: '#795548', mockPosts: 11, mockViews: 1712440 },
 ];
 
 const formatNum = (n) => {
