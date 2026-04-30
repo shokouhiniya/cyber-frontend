@@ -1,5 +1,5 @@
 # Stage 1: Build Node.js package
-FROM hub.megan.ir/node:20
+FROM node:20
 
 #ENV http_proxy="http://172.20.1.224:5432"
 #ENV https_proxy="http://172.20.1.224:5432"
