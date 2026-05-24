@@ -17,7 +17,9 @@ export function ProfileView() {
         organization: profileRes.organization,
         avatar: profileRes.avatar,
         keywords: profileRes.keywords,
-        status: 'active',
+        primaryColor: profileRes.primaryColor,
+        tier: profileRes.tier,
+        officialChannels: profileRes.officialChannels || [],
         lastUpdate: profileRes.lastUpdate
           ? new Date(profileRes.lastUpdate).toLocaleDateString('fa-IR')
           : '',
@@ -26,7 +28,7 @@ export function ProfileView() {
 
   return (
     <DashboardContent>
-      <PageProfile profileData={profileData} loading={isLoading} />
+      <PageProfile profileData={profileData} rawProfile={profileRes ?? null} loading={isLoading} />
     </DashboardContent>
   );
 }

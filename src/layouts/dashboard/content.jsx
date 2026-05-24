@@ -34,7 +34,7 @@ export function DashboardContent({
           flex: '1 1 auto',
           flexDirection: 'column',
           pt: 'var(--layout-dashboard-content-pt)',
-          pb: 'var(--layout-dashboard-content-pb)',
+          pb: { xs: '120px', lg: 'var(--layout-dashboard-content-pb)' },
           [theme.breakpoints.up(layoutQuery)]: {
             px: 'var(--layout-dashboard-content-px)',
             ...(isNavHorizontal && { '--layout-dashboard-content-pt': '40px' }),

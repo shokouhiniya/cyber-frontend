@@ -5,35 +5,24 @@ import { varAlpha } from 'minimal-shared/utils';
 import { useBoolean } from 'minimal-shared/hooks';
 
 import Box from '@mui/material/Box';
-import Alert from '@mui/material/Alert';
 import { useTheme } from '@mui/material/styles';
 import { iconButtonClasses } from '@mui/material/IconButton';
-
-import { UI_CONFIG } from 'src/global-config';
-import { _contacts, _notifications } from 'src/_mock';
 
 import { Logo } from 'src/components/logo';
 import { useSettingsContext } from 'src/components/settings';
 
-import { useMockedUser } from 'src/auth/hooks';
+import { useAuthContext } from 'src/auth/hooks';
 
 import { NavMobile } from './nav-mobile';
 import { BottomNav } from './bottom-nav';
 import { VerticalDivider } from './content';
 import { NavVertical } from './nav-vertical';
 import { NavHorizontal } from './nav-horizontal';
-import { _account } from '../nav-config-account';
-import { Searchbar } from '../components/searchbar';
-import { _workspaces } from '../nav-config-workspace';
 import { MenuButton } from '../components/menu-button';
-import { AccountDrawer } from '../components/account-drawer';
-import { SettingsButton } from '../components/settings-button';
-import { LanguagePopover } from '../components/language-popover';
-import { ContactsPopover } from '../components/contacts-popover';
-import { WorkspacesPopover } from '../components/workspaces-popover';
+import { ProfileSwitcher } from '../components/profile-switcher';
+import { IngestRefreshButton } from '../components/ingest-refresh-button';
 import { navData as dashboardNavData } from '../nav-config-dashboard';
 import { dashboardLayoutVars, dashboardNavColorVars } from './css-vars';
-import { NotificationsDrawer } from '../components/notifications-drawer';
 import { MainSection , layoutClasses , HeaderSection , LayoutSection } from '../core';
 
 // ----------------------------------------------------------------------
@@ -41,7 +30,7 @@ import { MainSection , layoutClasses , HeaderSection , LayoutSection } from '../
 export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery = 'lg' }) {
   const theme = useTheme();
 
-  const { user } = useMockedUser();
+  const { user } = useAuthContext();
 
   const settings = useSettingsContext();
 
@@ -73,11 +62,6 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
     };
 
     const headerSlots = {
-      topArea: (
-        <Alert severity="info" sx={{ display: 'none', borderRadius: 0 }}>
-          This is an info Alert.
-        </Alert>
-      ),
       bottomArea: isNavHorizontal ? (
         <NavHorizontal
           data={navData}
@@ -115,45 +99,15 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
           {isNavHorizontal && (
             <VerticalDivider sx={{ [theme.breakpoints.up(layoutQuery)]: { display: 'flex' } }} />
           )}
-
-          {/** @slot Workspace popover */}
-          {UI_CONFIG.workspaces && (
-            <WorkspacesPopover
-              data={_workspaces}
-              sx={{ ...(isNavHorizontal && { color: 'var(--layout-nav-text-primary-color)' }) }}
-            />
-          )}
         </>
       ),
       rightArea: (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0, sm: 0.75 } }}>
-          {/** @slot Searchbar */}
-          {UI_CONFIG.searchbar && <Searchbar data={navData} />}
+          {/** @slot Ingest refresh */}
+          <IngestRefreshButton />
 
-          {/** @slot Language popover */}
-          {UI_CONFIG.localization && (
-            <LanguagePopover
-              data={[
-                { value: 'en', label: 'English', countryCode: 'GB' },
-                { value: 'fr', label: 'French', countryCode: 'FR' },
-                { value: 'vi', label: 'Vietnamese', countryCode: 'VN' },
-                { value: 'cn', label: 'Chinese', countryCode: 'CN' },
-                { value: 'ar', label: 'Arabic', countryCode: 'SA' },
-              ]}
-            />
-          )}
-
-          {/** @slot Notifications popover */}
-          {UI_CONFIG.notification && <NotificationsDrawer data={_notifications} />}
-
-          {/** @slot Contacts popover */}
-          {UI_CONFIG.contacts && <ContactsPopover data={_contacts} />}
-
-          {/** @slot Settings button */}
-          {UI_CONFIG.settings && <SettingsButton />}
-
-          {/** @slot Account drawer */}
-          {UI_CONFIG.account && <AccountDrawer data={_account} />}
+          {/** @slot Profile switcher */}
+          <ProfileSwitcher sx={{ mr: { xs: 0.5, sm: 1 } }} />
         </Box>
       ),
     };

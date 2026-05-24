@@ -1,109 +1,214 @@
+import { useState } from 'react';
+
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
+import Button from '@mui/material/Button';
+import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 import { alpha, useTheme } from '@mui/material/styles';
+import CircularProgress from '@mui/material/CircularProgress';
+
+import axios from 'src/lib/axios';
+import { useMacroContext } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
 
+import { useAuthContext } from 'src/auth/hooks';
+
 // ----------------------------------------------------------------------
 
-const CONTEXT_ITEMS = [
-  {
-    text: '\u0628\u06CC\u0627\u0646\u06CC\u0647 \u06F2\u06F6\u06F1 \u0646\u0645\u0627\u06CC\u0646\u062F\u0647 \u0645\u062C\u0644\u0633 \u062F\u0631 \u062D\u0645\u0627\u06CC\u062A \u0627\u0632 \u0642\u0627\u0644\u06CC\u0628\u0627\u0641 \u0648 \u0647\u06CC\u0626\u062A \u0645\u0630\u0627\u06A9\u0631\u0647\u200C\u06A9\u0646\u0646\u062F\u0647\u061B \u0641\u0636\u0627\u06CC \u0633\u06CC\u0627\u0633\u06CC \u0628\u0647 \u0634\u062F\u062A \u0642\u0637\u0628\u06CC \u0634\u062F\u0647',
-    icon: 'solar:flag-bold',
-    severity: 'high',
-  },
-  {
-    text: '\u062C\u0628\u0647\u0647 \u067E\u0627\u06CC\u062F\u0627\u0631\u06CC \u0628\u0627 \u06F7 \u0646\u0645\u0627\u06CC\u0646\u062F\u0647 \u0627\u0632 \u0627\u0645\u0636\u0627 \u062E\u0648\u062F\u062F\u0627\u0631\u06CC \u06A9\u0631\u062F\u0647\u061B \u0634\u06A9\u0627\u0641 \u062F\u0631\u0648\u0646 \u062C\u0631\u06CC\u0627\u0646 \u0627\u0635\u0648\u0644\u06AF\u0631\u0627 \u0622\u0634\u06A9\u0627\u0631 \u0634\u062F\u0647',
-    icon: 'solar:danger-triangle-bold',
-    severity: 'high',
-  },
-  {
-    text: '\u0645\u0648\u0636\u0648\u0639 \u0645\u0630\u0627\u06A9\u0631\u0627\u062A \u0647\u0633\u062A\u0647\u200C\u0627\u06CC \u0648 \u0642\u06CC\u0645\u062A \u0646\u0641\u062A \u062F\u0631 \u0635\u062F\u0631 \u0628\u062D\u062B\u200C\u0647\u0627\u06CC \u0631\u0633\u0627\u0646\u0647\u200C\u0627\u06CC \u0642\u0631\u0627\u0631 \u062F\u0627\u0631\u062F',
-    icon: 'solar:shield-warning-bold',
-    severity: 'medium',
-  },
-  {
-    text: '\u0641\u0636\u0627\u06CC \u0645\u062C\u0627\u0632\u06CC \u062F\u0627\u062E\u0644\u06CC (\u0628\u0644\u0647\u060C \u0631\u0648\u0628\u06CC\u06A9\u0627\u060C \u0627\u06CC\u062A\u0627) \u0628\u06CC\u0634\u062A\u0631\u06CC\u0646 \u062D\u062C\u0645 \u0627\u0646\u062A\u0634\u0627\u0631 \u0631\u0627 \u062F\u0627\u0631\u062F \u2014 \u062A\u0644\u06AF\u0631\u0627\u0645 \u0628\u0627 \u06F6\u06F5M \u0628\u0627\u0632\u062F\u06CC\u062F \u067E\u06CC\u0634\u062A\u0627\u0632 \u0627\u0633\u062A',
-    icon: 'solar:graph-up-bold',
-    severity: 'medium',
-  },
-  {
-    text: '\u0645\u06CC\u0644\u0627\u062F \u0627\u0645\u0627\u0645 \u0631\u0636\u0627 (\u0639) \u0641\u0631\u0635\u062A \u0631\u0648\u0627\u06CC\u062A\u200C\u0633\u0627\u0632\u06CC \u0645\u062B\u0628\u062A \u0628\u0631\u0627\u06CC \u0642\u0627\u0644\u06CC\u0628\u0627\u0641 \u0627\u06CC\u062C\u0627\u062F \u06A9\u0631\u062F\u0647',
-    icon: 'solar:star-bold',
-    severity: 'low',
-  },
-];
-
-const SEVERITY_CONFIG = {
-  high: { color: '#FF6B6B', label: 'حساس' },
-  medium: { color: '#FFA94D', label: 'قابل توجه' },
-  low: { color: '#51CF66', label: 'فرصت' },
+const SEVERITY = {
+  high:   { color: '#FF6B6B', label: 'بحرانی',     icon: 'solar:danger-triangle-bold-duotone' },
+  medium: { color: '#FFA94D', label: 'مهم',         icon: 'solar:shield-warning-bold-duotone' },
+  low:    { color: '#51CF66', label: 'قابل توجه',   icon: 'solar:info-circle-bold-duotone' },
 };
+
+function SectionLabel({ icon, label, color }) {
+  const theme = useTheme();
+  return (
+    <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 1 }}>
+      <Iconify icon={icon} width={14} sx={{ color: color || theme.palette.text.secondary }} />
+      <Typography variant="caption" sx={{ fontWeight: 700, fontSize: 10, color: color || 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        {label}
+      </Typography>
+    </Stack>
+  );
+}
+
+// ----------------------------------------------------------------------
 
 export function MacroContext() {
   const theme = useTheme();
+  const { user } = useAuthContext();
+  const { data, isLoading, refetch } = useMacroContext();
+  const [generating, setGenerating] = useState(false);
+
+  const isSuperAdmin = user?.role === 'super_admin';
+
+  const handleGenerate = async () => {
+    setGenerating(true);
+    try {
+      await axios.post('/api/admin/ingest/macro-context/generate');
+      await refetch();
+    } catch (e) {
+      console.error('Generate failed:', e);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const raw = data?.today || null;
+  const updatedAt = data?.updatedAt ? new Date(data.updatedAt).toLocaleString('fa-IR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : null;
+
+  // Try to parse JSON
+  let parsed = null;
+  if (raw) {
+    try { parsed = JSON.parse(raw); } catch { /* plain text fallback */ }
+  }
 
   return (
     <Card sx={{ borderRadius: 2.5, overflow: 'hidden', boxShadow: theme.shadows[2] }}>
-      <Box
-        sx={{
-          p: 2.5,
-          background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.08)} 0%, ${alpha(theme.palette.warning.main, 0.08)} 100%)`,
-        }}
-      >
-        <Stack direction="row" alignItems="center" spacing={1.5}>
-          <Box sx={{ width: 40, height: 40, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: alpha(theme.palette.primary.main, 0.16) }}>
-            <Iconify icon="solar:globe-bold-duotone" width={24} sx={{ color: theme.palette.primary.main }} />
-          </Box>
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>وضعیت کلان</Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              بستر سیاسی-اجتماعی حاکم بر فضای رصد
+      {/* Header */}
+      <Box sx={{ p: 2, background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.08)} 0%, ${alpha(theme.palette.warning.main, 0.07)} 100%)` }}>
+        <Stack direction="row" alignItems="center" justifyContent="space-between">
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Box sx={{ width: 36, height: 36, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: alpha(theme.palette.primary.main, 0.14) }}>
+              <Iconify icon="solar:globe-bold-duotone" width={22} sx={{ color: theme.palette.primary.main }} />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>وضعیت کلان</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 10 }}>بستر سیاسی-اجتماعی حاکم بر فضای رصد</Typography>
+            </Box>
+          </Stack>
+          {updatedAt && (
+            <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: 9 }}>
+              {updatedAt}
             </Typography>
-          </Box>
+          )}
+          {isSuperAdmin && (
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={handleGenerate}
+              disabled={generating}
+              startIcon={generating ? <CircularProgress size={12} /> : <Iconify icon="solar:refresh-bold" width={14} />}
+              sx={{ fontSize: 9, height: 26, minWidth: 0, px: 1 }}
+            >
+              {generating ? 'در حال تولید...' : 'بروزرسانی'}
+            </Button>
+          )}
         </Stack>
       </Box>
 
       <Box sx={{ p: 2 }}>
-        <Stack spacing={1.25}>
-          {CONTEXT_ITEMS.map((item, i) => {
-            const sev = SEVERITY_CONFIG[item.severity];
-            return (
-              <Stack
-                key={i}
-                direction="row"
-                alignItems="flex-start"
-                spacing={1.5}
-                sx={{
-                  p: 1.5,
-                  borderRadius: 1.5,
-                  bgcolor: alpha(sev.color, 0.04),
-                  border: `1px solid ${alpha(sev.color, 0.12)}`,
-                  borderRight: `3px solid ${sev.color}`,
-                }}
-              >
-                <Iconify icon={item.icon} width={18} sx={{ color: sev.color, mt: 0.25, flexShrink: 0 }} />
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="caption" sx={{ fontSize: 11, lineHeight: 1.7, color: 'text.primary' }}>
-                    {item.text}
+        {isLoading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+            <CircularProgress size={24} />
+          </Box>
+        )}
+
+        {!isLoading && !raw && (
+          <Box sx={{ py: 3, textAlign: 'center' }}>
+            <Iconify icon="solar:globe-bold-duotone" width={36} sx={{ color: 'text.disabled', mb: 1 }} />
+            <Typography variant="body2" color="text.secondary">گزارش وضعیت کلان هنوز تولید نشده است.</Typography>
+            <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.5 }}>
+              هر ۱۲ ساعت به‌صورت خودکار تولید می‌شود.
+            </Typography>
+          </Box>
+        )}
+
+        {/* JSON structured display */}
+        {!isLoading && parsed && (
+          <Stack spacing={2}>
+            {/* Events */}
+            {parsed.events?.length > 0 && (
+              <Box>
+                <SectionLabel icon="solar:calendar-bold-duotone" label="رویدادها" />
+                <Stack spacing={0.75}>
+                  {parsed.events.map((ev, i) => {
+                    const sev = SEVERITY[ev.severity] || SEVERITY.medium;
+                    return (
+                      <Stack key={i} direction="row" alignItems="flex-start" spacing={1}
+                        sx={{ p: 1.25, borderRadius: 1.5, bgcolor: alpha(sev.color, 0.05), borderRight: `3px solid ${sev.color}` }}>
+                        <Iconify icon={sev.icon} width={16} sx={{ color: sev.color, mt: 0.2, flexShrink: 0 }} />
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="caption" sx={{ fontWeight: 700, fontSize: 11, display: 'block' }}>{ev.title}</Typography>
+                          <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary', lineHeight: 1.5 }}>{ev.summary}</Typography>
+                          {ev.actor && (
+                            <Typography variant="caption" sx={{ fontSize: 9, color: 'text.disabled', display: 'block', mt: 0.25 }}>
+                              {ev.actor}
+                            </Typography>
+                          )}
+                        </Box>
+                        <Chip label={sev.label} size="small" sx={{ height: 18, fontSize: 8, fontWeight: 700, flexShrink: 0, bgcolor: alpha(sev.color, 0.12), color: sev.color }} />
+                      </Stack>
+                    );
+                  })}
+                </Stack>
+              </Box>
+            )}
+
+            {/* Tensions */}
+            {parsed.tensions && (
+              <>
+                <Divider sx={{ opacity: 0.4 }} />
+                <Box>
+                  <SectionLabel icon="solar:danger-bold-duotone" label="تنش‌ها" color={theme.palette.error.main} />
+                  <Stack spacing={0.5}>
+                    {[
+                      { key: 'domestic', label: 'داخلی',   icon: 'solar:home-bold',           color: '#868E96' },
+                      { key: 'foreign',  label: 'خارجی',   icon: 'solar:global-bold',          color: '#4DABF7' },
+                      { key: 'economic', label: 'اقتصادی', icon: 'solar:chart-bold',            color: '#FFA94D' },
+                    ].map(({ key, label, icon, color }) => parsed.tensions[key] ? (
+                      <Stack key={key} direction="row" alignItems="flex-start" spacing={1} sx={{ py: 0.5 }}>
+                        <Iconify icon={icon} width={13} sx={{ color, mt: 0.3, flexShrink: 0 }} />
+                        <Box>
+                          <Typography component="span" variant="caption" sx={{ fontWeight: 700, fontSize: 10, color }}>{label}: </Typography>
+                          <Typography component="span" variant="caption" sx={{ fontSize: 10, color: 'text.secondary' }}>{parsed.tensions[key]}</Typography>
+                        </Box>
+                      </Stack>
+                    ) : null)}
+                  </Stack>
+                </Box>
+              </>
+            )}
+
+            {/* Media atmosphere */}
+            {parsed.media_atmosphere && (
+              <>
+                <Divider sx={{ opacity: 0.4 }} />
+                <Box>
+                  <SectionLabel icon="solar:tv-bold-duotone" label="فضای رسانه" />
+                  <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary', lineHeight: 1.6 }}>
+                    {parsed.media_atmosphere}
                   </Typography>
                 </Box>
-                <Chip
-                  label={sev.label}
-                  size="small"
-                  sx={{
-                    height: 20, fontSize: 8, fontWeight: 700, flexShrink: 0,
-                    bgcolor: alpha(sev.color, 0.1),
-                    color: sev.color,
-                  }}
-                />
-              </Stack>
-            );
-          })}
-        </Stack>
+              </>
+            )}
+
+            {/* Forecast */}
+            {parsed.forecast && (
+              <>
+                <Divider sx={{ opacity: 0.4 }} />
+                <Box>
+                  <SectionLabel icon="solar:clock-circle-bold-duotone" label="پیش‌بینی ۴۸ ساعت" color={theme.palette.warning.main} />
+                  <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary', lineHeight: 1.6 }}>
+                    {parsed.forecast}
+                  </Typography>
+                </Box>
+              </>
+            )}
+          </Stack>
+        )}
+
+        {/* Plain text fallback */}
+        {!isLoading && raw && !parsed && (
+          <Typography variant="body2" sx={{ whiteSpace: 'pre-line', lineHeight: 2, fontSize: 11, color: 'text.primary', direction: 'rtl' }}>
+            {raw}
+          </Typography>
+        )}
       </Box>
     </Card>
   );

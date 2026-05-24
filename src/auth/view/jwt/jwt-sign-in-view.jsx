@@ -7,15 +7,12 @@ import { useBoolean } from 'minimal-shared/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 import Box from '@mui/material/Box';
-import Link from '@mui/material/Link';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 
-import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
-import { RouterLink } from 'src/routes/components';
 
 import { Iconify } from 'src/components/iconify';
 import { Form, Field } from 'src/components/hook-form';
@@ -28,10 +25,9 @@ import { signInWithPassword } from '../../context/jwt';
 // ----------------------------------------------------------------------
 
 export const SignInSchema = zod.object({
-  email: zod
+  username: zod
     .string()
-    .min(1, { message: 'ایمیل الزامی است' })
-    .email({ message: 'ایمیل معتبر وارد کنید' }),
+    .min(1, { message: 'نام کاربری الزامی است' }),
   password: zod
     .string()
     .min(1, { message: 'رمز عبور الزامی است' })
@@ -47,8 +43,8 @@ export function JwtSignInView() {
   const [errorMessage, setErrorMessage] = useState('');
 
   const defaultValues = {
-    email: 'admin@cyberspace.ir',
-    password: 'Admin@123',
+    username: '',
+    password: '',
   };
 
   const methods = useForm({
@@ -63,7 +59,7 @@ export function JwtSignInView() {
 
   const onSubmit = handleSubmit(async (data) => {
     try {
-      await signInWithPassword({ email: data.email, password: data.password });
+      await signInWithPassword({ username: data.username, password: data.password });
       await checkUserSession?.();
       router.refresh();
     } catch (error) {
@@ -76,22 +72,8 @@ export function JwtSignInView() {
     <>
       <FormHead
         title="ورود به حساب کاربری"
-        description={
-          <>
-            حساب کاربری ندارید؟{' '}
-            <Link component={RouterLink} href={paths.auth.jwt.signUp} variant="subtitle2">
-              ثبت‌نام کنید
-            </Link>
-          </>
-        }
         sx={{ textAlign: { xs: 'center', md: 'left' } }}
       />
-
-      <Alert severity="info" sx={{ mb: 3 }}>
-        ایمیل: <strong>{defaultValues.email}</strong>
-        {' / رمز: '}
-        <strong>{defaultValues.password}</strong>
-      </Alert>
 
       {!!errorMessage && (
         <Alert severity="error" sx={{ mb: 3 }}>
@@ -102,8 +84,8 @@ export function JwtSignInView() {
       <Form methods={methods} onSubmit={onSubmit}>
         <Box sx={{ gap: 3, display: 'flex', flexDirection: 'column' }}>
           <Field.Text
-            name="email"
-            label="ایمیل"
+            name="username"
+            label="نام کاربری"
             slotProps={{ inputLabel: { shrink: true } }}
           />
 

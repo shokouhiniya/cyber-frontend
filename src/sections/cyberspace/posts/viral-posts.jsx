@@ -10,53 +10,41 @@ import Button from '@mui/material/Button';
 import Collapse from '@mui/material/Collapse';
 import Typography from '@mui/material/Typography';
 import ButtonBase from '@mui/material/ButtonBase';
-import ButtonGroup from '@mui/material/ButtonGroup';
 import { alpha, useTheme } from '@mui/material/styles';
 import CircularProgress from '@mui/material/CircularProgress';
 
+import { useTopForwarded } from 'src/api/dashboard';
+
 import { Iconify } from 'src/components/iconify';
 
-import { PostCard, usePostDrawer, formatNum } from '../shared/post-card';
+import { PostCard, formatNum, usePostDrawer } from '../shared/post-card';
 
 // ----------------------------------------------------------------------
 
 const TIME_FILTERS = [
-  { value: '24h', label: '۲۴ ساعت' },
-  { value: '7d', label: 'هفته پیش' },
-  { value: '30d', label: 'ماه پیش' },
-  { value: 'all', label: 'کل بازه' },
+  { value: '24h', label: 'امروز',  hours: 24 },
+  { value: '7d',  label: '۷ روز',  hours: 24 * 7 },
+  { value: '30d', label: '۳۰ روز', hours: 24 * 30 },
+  { value: 'all', label: 'همه',    hours: null },
 ];
 
-function filterByTime(posts, tf) {
-  if (tf === 'all') return posts;
-  const ms = { '24h': 24 * 3600000, '7d': 7 * 86400000, '30d': 30 * 86400000 }[tf];
-  if (!ms) return posts;
-  const cutoff = Date.now() - ms;
-  return posts.filter((p) => p.publishedAt && new Date(p.publishedAt).getTime() >= cutoff);
+function getSince(hours) {
+  if (!hours) return undefined;
+  const d = new Date(Date.now() - hours * 3600_000);
+  d.setMinutes(0, 0, 0);
+  return d.toISOString();
 }
 
-export function ViralPosts({ data, loading }) {
+export function ViralPosts() {
   const theme = useTheme();
   const { openPost, PostDrawer } = usePostDrawer();
   const [sectionOpen, setSectionOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [timeFilter, setTimeFilter] = useState('all');
+  const [timeFilter, setTimeFilter] = useState('24h');
 
-  if (loading) {
-    return (
-      <Card sx={{ p: 2.5, display: 'flex', justifyContent: 'center', minHeight: 120, borderRadius: 2.5, boxShadow: theme.shadows[2] }}>
-        <CircularProgress />
-      </Card>
-    );
-  }
+  const { data: posts = [], isLoading } = useTopForwarded(20, timeFilter);
 
-  const timeFiltered = filterByTime(data, timeFilter);
-  const scored = timeFiltered
-    .filter((p) => (p.retweetCount || 0) > 0 || (p.viewCount || 0) > 0)
-    .map((post) => ({ ...post, viralScore: (post.retweetCount || 0) * 20 + (post.viewCount || 0) }))
-    .sort((a, b) => b.viralScore - a.viralScore);
-
-  const displayedPosts = expanded ? scored : scored.slice(0, 8);
+  const displayedPosts = expanded ? posts : posts.slice(0, 8);
 
   return (
     <>
@@ -80,13 +68,26 @@ export function ViralPosts({ data, loading }) {
 
         <Collapse in={sectionOpen} timeout={350}>
           <Box sx={{ p: 2, pt: 1.5 }}>
-            <ButtonGroup variant="outlined" size="small" fullWidth sx={{ mb: 2, '& .MuiButton-root': { fontSize: 9, fontWeight: 600, borderColor: alpha(theme.palette.primary.main, 0.16), color: 'text.secondary', '&.active': { bgcolor: alpha(theme.palette.primary.main, 0.12), borderColor: theme.palette.primary.main, color: theme.palette.primary.main, fontWeight: 700 } } }}>
+            {/* Timeframe chips */}
+            <Stack direction="row" spacing={0.75} sx={{ mb: 1.5 }}>
               {TIME_FILTERS.map((f) => (
-                <Button key={f.value} className={timeFilter === f.value ? 'active' : ''} onClick={(e) => { e.stopPropagation(); setTimeFilter(f.value); }}>{f.label}</Button>
+                <Chip
+                  key={f.value}
+                  size="small"
+                  label={f.label}
+                  onClick={(e) => { e.stopPropagation(); setTimeFilter(f.value); setExpanded(false); }}
+                  variant={timeFilter === f.value ? 'filled' : 'outlined'}
+                  color={timeFilter === f.value ? 'primary' : 'default'}
+                  sx={{ fontSize: 10, height: 22, cursor: 'pointer' }}
+                />
               ))}
-            </ButtonGroup>
+            </Stack>
 
-            {scored.length === 0 ? (
+            {isLoading ? (
+              <Box sx={{ py: 3, display: 'flex', justifyContent: 'center' }}>
+                <CircularProgress size={24} />
+              </Box>
+            ) : posts.length === 0 ? (
               <Box sx={{ py: 4, textAlign: 'center' }}>
                 <Iconify icon="solar:inbox-line-bold-duotone" width={48} sx={{ color: 'text.disabled', mb: 1 }} />
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>پستی یافت نشد</Typography>
@@ -109,10 +110,10 @@ export function ViralPosts({ data, loading }) {
                     />
                   ))}
                 </Stack>
-                {!expanded && scored.length > 8 && (
+                {!expanded && posts.length > 8 && (
                   <Box sx={{ textAlign: 'center', mt: 2 }}>
                     <Button variant="outlined" size="small" fullWidth onClick={() => setExpanded(true)} startIcon={<Iconify icon="solar:arrow-down-bold" width={16} />} sx={{ fontSize: 11, fontWeight: 600, borderRadius: 1.5 }}>
-                      {scored.length - 8} پست دیگر
+                      {posts.length - 8} پست دیگر
                     </Button>
                   </Box>
                 )}

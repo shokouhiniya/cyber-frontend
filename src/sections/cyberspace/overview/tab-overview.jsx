@@ -14,7 +14,7 @@ import { PoliticalSpectrum } from './political-spectrum';
 
 // ----------------------------------------------------------------------
 
-export function TabOverview({ stats, emotionData, loading }) {
+export function TabOverview({ stats, emotionData, loading, healthScore = null }) {
   const theme = useTheme();
   const router = useRouter();
 
@@ -24,29 +24,14 @@ export function TabOverview({ stats, emotionData, loading }) {
 
   return (
     <Stack spacing={2.5} sx={{ pb: 10 }}>
-      {/* Header: شاخص سلامت اعتبار */}
-      <ReputationGauge loading={loading} />
-
-      {/* Top Section: خلاصه AI */}
+      <ReputationGauge loading={loading} healthScore={healthScore} />
       <AISummary loading={loading} onActionClick={handleActionClick} />
-
-      {/* Crisis Radar */}
       <CrisisRadar loading={loading} />
-
-      {/* Middle Section: سه نمودار */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: '1fr',
-          gap: 1.5,
-        }}
-      >
+      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr', gap: 1.5 }}>
         <TrendChart loading={loading} />
         <PoliticalSpectrum loading={loading} />
         <HotTopics />
       </Box>
-
-      {/* Bottom Section: مهم‌ترین محتواها */}
       <ImportantPosts />
     </Stack>
   );

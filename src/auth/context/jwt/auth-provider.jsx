@@ -30,8 +30,10 @@ export function AuthProvider({ children }) {
         setState({ user: null, loading: false });
       }
     } catch (error) {
-      console.error(error);
+      // A 401 / expired token is expected — clear session silently
       setState({ user: null, loading: false });
+      sessionStorage.removeItem(JWT_STORAGE_KEY);
+      delete axios.defaults.headers.common.Authorization;
     }
   }, [setState]);
 

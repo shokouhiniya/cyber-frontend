@@ -28,14 +28,12 @@ const nextConfig = {
 
     return config;
   },
-  experimental: {
-    // With "next dev --turbopack"
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
+  // With "next dev --turbopack" — turbo moved out of experimental in Next.js 15+
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
       },
     },
   },

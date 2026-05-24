@@ -12,7 +12,7 @@ import { I18nProvider, LocalizationProvider } from 'src/locales';
 import { ProgressBar } from 'src/components/progress-bar';
 import { MotionLazy } from 'src/components/animate/motion-lazy';
 import { detectSettings } from 'src/components/settings/server';
-import { SettingsDrawer, defaultSettings, SettingsProvider } from 'src/components/settings';
+import { defaultSettings, SettingsProvider } from 'src/components/settings';
 
 import { AuthProvider } from 'src/auth/context/jwt';
 
@@ -81,7 +81,6 @@ export default async function RootLayout({ children }) {
                       <MotionLazy>
                         <ScreenSize>
                           <ProgressBar />
-                          <SettingsDrawer defaultSettings={defaultSettings} />
                           {children}
                         </ScreenSize>
                       </MotionLazy>

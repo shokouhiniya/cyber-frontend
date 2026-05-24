@@ -1,71 +1,26 @@
+'use client';
+
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
+import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { alpha, useTheme } from '@mui/material/styles';
 
+import { useProfile } from 'src/api/dashboard';
+
 import { Iconify } from 'src/components/iconify';
+
+import { PlatformIcon } from './platform-icon';
+import { platformById, getPlatformUrl } from './platform-config';
 
 // ----------------------------------------------------------------------
 
-const ACCOUNTS = [
-  {
-    platform: 'توییتر',
-    handle: '@ghalibaf',
-    icon: 'ri:twitter-x-fill',
-    color: '#000000',
-    followers: 125400,
-    posts: 3842,
-    verified: true,
-    active: true,
-  },
-  {
-    platform: 'تلگرام',
-    handle: 'ghalibaf_official',
-    icon: 'ic:baseline-telegram',
-    color: '#0088cc',
-    followers: 89200,
-    posts: 5120,
-    verified: true,
-    active: true,
-  },
-  {
-    platform: 'اینستاگرام',
-    handle: '@ghalibaf',
-    icon: 'mdi:instagram',
-    color: '#E4405F',
-    followers: 210800,
-    posts: 1456,
-    verified: true,
-    active: true,
-  },
-  {
-    platform: 'وب‌سایت',
-    handle: 'ghalibaf.ir',
-    icon: 'solar:global-bold-duotone',
-    color: '#2196F3',
-    followers: null,
-    posts: 328,
-    verified: false,
-    active: true,
-  },
-  {
-    platform: 'روبیکا',
-    handle: 'ghalibaf',
-    icon: 'solar:chat-round-dots-bold-duotone',
-    color: '#7C3AED',
-    followers: 34500,
-    posts: 890,
-    verified: false,
-    active: false,
-  },
-];
-
 const formatNum = (n) => {
-  if (!n) return '—';
-  if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  if (n == null) return '—';
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
   return n.toLocaleString('fa-IR');
 };
 
@@ -73,8 +28,36 @@ export function OfficialAccounts() {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
 
-  const totalFollowers = ACCOUNTS.reduce((sum, a) => sum + (a.followers || 0), 0);
-  const totalPosts = ACCOUNTS.reduce((sum, a) => sum + a.posts, 0);
+  const { data: profile, isLoading } = useProfile();
+  const channels = profile?.officialChannels ?? [];
+
+  const activeCount = channels.filter((c) => c.active !== false).length;
+  const totalFollowers = channels.reduce((s, c) => s + (c.followers || 0), 0);
+  const totalPosts = channels.reduce((s, c) => s + (c.posts || 0), 0);
+
+  if (isLoading) {
+    return (
+      <Card sx={{ p: 3, borderRadius: 2.5 }}>
+        <Typography color="text.secondary">در حال بارگذاری صفحات رسمی...</Typography>
+      </Card>
+    );
+  }
+
+  if (channels.length === 0) {
+    return (
+      <Card sx={{ p: 3, borderRadius: 2.5 }}>
+        <Stack alignItems="center" spacing={1} sx={{ py: 2 }}>
+          <Iconify icon="solar:shield-check-bold-duotone" width={40} sx={{ color: 'text.disabled' }} />
+          <Typography color="text.secondary" variant="body2">
+            هنوز صفحه رسمی تعریف نشده است.
+          </Typography>
+          <Typography color="text.disabled" variant="caption">
+            از پنل مدیریت → پروفایل‌ها → ویرایش، صفحات رسمی را اضافه کنید.
+          </Typography>
+        </Stack>
+      </Card>
+    );
+  }
 
   return (
     <Card sx={{ borderRadius: 2.5, overflow: 'hidden', boxShadow: theme.shadows[2] }}>
@@ -85,28 +68,28 @@ export function OfficialAccounts() {
           background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.08)} 0%, ${alpha(theme.palette.primary.main, 0.08)} 100%)`,
         }}
       >
-        <Stack direction="row" alignItems="center" justifyContent="space-between">
-          <Stack direction="row" alignItems="center" spacing={1.5}>
-            <Box
-              sx={{
-                width: 40, height: 40, borderRadius: 1.5,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                bgcolor: alpha(theme.palette.info.main, 0.16),
-              }}
-            >
-              <Iconify icon="solar:shield-check-bold-duotone" width={24} sx={{ color: theme.palette.info.main }} />
-            </Box>
-            <Box>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>صفحات رسمی</Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                {ACCOUNTS.filter((a) => a.active).length.toLocaleString('fa-IR')} حساب فعال · {formatNum(totalFollowers)} دنبال‌کننده · {formatNum(totalPosts)} انتشار
-              </Typography>
-            </Box>
-          </Stack>
+        <Stack direction="row" alignItems="center" spacing={1.5}>
+          <Box
+            sx={{
+              width: 40, height: 40, borderRadius: 1.5,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              bgcolor: alpha(theme.palette.info.main, 0.16),
+            }}
+          >
+            <Iconify icon="solar:shield-check-bold-duotone" width={24} sx={{ color: theme.palette.info.main }} />
+          </Box>
+          <Box>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>صفحات رسمی</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {activeCount.toLocaleString('fa-IR')} حساب فعال
+              {totalFollowers > 0 && ` · ${formatNum(totalFollowers)} دنبال‌کننده`}
+              {totalPosts > 0 && ` · ${formatNum(totalPosts)} انتشار`}
+            </Typography>
+          </Box>
         </Stack>
       </Box>
 
-      {/* Account cards */}
+      {/* Channel cards */}
       <Box
         sx={{
           p: 2,
@@ -115,81 +98,109 @@ export function OfficialAccounts() {
           gap: 1.5,
         }}
       >
-        {ACCOUNTS.map((account) => (
-          <Box
-            key={account.platform}
-            sx={{
-              p: 2,
-              borderRadius: 2,
-              bgcolor: alpha(account.color, isDark ? 0.08 : 0.04),
-              border: `1px solid ${alpha(account.color, isDark ? 0.24 : 0.12)}`,
-              opacity: account.active ? 1 : 0.5,
-              transition: 'all 0.2s ease',
-              '&:hover': {
-                bgcolor: alpha(account.color, isDark ? 0.14 : 0.08),
-                transform: 'translateY(-2px)',
-                boxShadow: theme.shadows[4],
-              },
-            }}
-          >
-            <Stack spacing={1.5}>
-              {/* Platform + status */}
-              <Stack direction="row" alignItems="center" justifyContent="space-between">
-                <Stack direction="row" alignItems="center" spacing={1}>
-                  <Box
-                    sx={{
-                      width: 32, height: 32, borderRadius: 1,
-                      bgcolor: alpha(account.color, 0.16),
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}
-                  >
-                    <Iconify icon={account.icon} width={18} sx={{ color: account.color }} />
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" sx={{ fontWeight: 700, fontSize: 12, display: 'block', lineHeight: 1.2 }}>
-                      {account.platform}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 10, direction: 'ltr', display: 'block' }}>
-                      {account.handle}
-                    </Typography>
-                  </Box>
-                </Stack>
-                <Stack direction="row" spacing={0.5}>
-                  {account.verified && (
-                    <Iconify icon="solar:verified-check-bold" width={16} sx={{ color: '#1DA1F2' }} />
-                  )}
-                  <Chip
-                    label={account.active ? 'فعال' : 'غیرفعال'}
-                    size="small"
-                    sx={{
-                      height: 20, fontSize: 9, fontWeight: 700,
-                      bgcolor: account.active ? alpha('#51CF66', 0.12) : alpha('#FF6B6B', 0.12),
-                      color: account.active ? '#51CF66' : '#FF6B6B',
-                    }}
-                  />
-                </Stack>
-              </Stack>
+        {channels.map((ch, idx) => {
+          const cfg = platformById[ch.platform] ?? {
+            label: ch.platform,
+            iconType: 'iconify',
+            icon: 'solar:global-bold-duotone',
+            color: '#607D8B',
+          };
+          const isActive = ch.active !== false;
+          const href = getPlatformUrl(ch);
 
-              {/* Stats */}
-              <Stack direction="row" spacing={2}>
-                {account.followers !== null && (
-                  <Box>
-                    <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: 9, display: 'block' }}>دنبال‌کننده</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 800, fontSize: 14, color: account.color }}>
-                      {formatNum(account.followers)}
-                    </Typography>
-                  </Box>
+          return (
+            <Box
+              key={idx}
+              component={href ? Link : 'div'}
+              href={href || undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              underline="none"
+              sx={{
+                p: 2,
+                borderRadius: 2,
+                bgcolor: alpha(cfg.color, isDark ? 0.08 : 0.04),
+                border: `1px solid ${alpha(cfg.color, isDark ? 0.24 : 0.12)}`,
+                opacity: isActive ? 1 : 0.5,
+                transition: 'all 0.2s ease',
+                cursor: href ? 'pointer' : 'default',
+                '&:hover': href
+                  ? {
+                      bgcolor: alpha(cfg.color, isDark ? 0.14 : 0.08),
+                      transform: 'translateY(-2px)',
+                      boxShadow: theme.shadows[4],
+                    }
+                  : undefined,
+              }}
+            >
+              <Stack spacing={1.5}>
+                {/* Platform + status */}
+                <Stack direction="row" alignItems="center" justifyContent="space-between">
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Box
+                      sx={{
+                        width: 32, height: 32, borderRadius: 1,
+                        bgcolor: alpha(cfg.color, 0.16),
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <PlatformIcon cfg={cfg} size={18} />
+                    </Box>
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 700, fontSize: 12, display: 'block', lineHeight: 1.2 }}>
+                        {cfg.label}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        noWrap
+                        sx={{ color: 'text.secondary', fontSize: 10, direction: 'ltr', display: 'block' }}
+                      >
+                        {ch.handle}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                  <Stack direction="row" spacing={0.5} alignItems="center" flexShrink={0}>
+                    {ch.verified && (
+                      <Iconify icon="solar:verified-check-bold" width={16} sx={{ color: '#1DA1F2' }} />
+                    )}
+                    <Chip
+                      label={isActive ? 'فعال' : 'غیرفعال'}
+                      size="small"
+                      sx={{
+                        height: 20, fontSize: 9, fontWeight: 700,
+                        bgcolor: isActive ? alpha('#51CF66', 0.12) : alpha('#FF6B6B', 0.12),
+                        color: isActive ? '#51CF66' : '#FF6B6B',
+                      }}
+                    />
+                  </Stack>
+                </Stack>
+
+                {/* Stats */}
+                {(ch.followers != null || ch.posts != null) && (
+                  <Stack direction="row" spacing={2}>
+                    {ch.followers != null && (
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: 9, display: 'block' }}>دنبال‌کننده</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 800, fontSize: 14, color: cfg.color }}>
+                          {formatNum(ch.followers)}
+                        </Typography>
+                      </Box>
+                    )}
+                    {ch.posts != null && (
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: 9, display: 'block' }}>انتشار</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 800, fontSize: 14, color: 'text.primary' }}>
+                          {formatNum(ch.posts)}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Stack>
                 )}
-                <Box>
-                  <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: 9, display: 'block' }}>انتشار</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 800, fontSize: 14, color: 'text.primary' }}>
-                    {formatNum(account.posts)}
-                  </Typography>
-                </Box>
               </Stack>
-            </Stack>
-          </Box>
-        ))}
+            </Box>
+          );
+        })}
       </Box>
     </Card>
   );

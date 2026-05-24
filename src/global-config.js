@@ -5,16 +5,8 @@ import packageJson from '../package.json';
 // ----------------------------------------------------------------------
 
 export const UI_CONFIG = {
-  workspaces: false,
-  helpLink: false,
-  localization: false,
-  notification: false,
-  searchbar: false,
-  contacts: false,
-  settings: false,
-  account: true,
   mobileOnly: true,
-}
+};
 
 export const CONFIG = {
   appName: 'داشبورد فضای مجازی',

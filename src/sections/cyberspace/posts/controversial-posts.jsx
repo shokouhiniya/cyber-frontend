@@ -10,9 +10,10 @@ import Button from '@mui/material/Button';
 import Collapse from '@mui/material/Collapse';
 import Typography from '@mui/material/Typography';
 import ButtonBase from '@mui/material/ButtonBase';
-import ButtonGroup from '@mui/material/ButtonGroup';
 import { alpha, useTheme } from '@mui/material/styles';
 import CircularProgress from '@mui/material/CircularProgress';
+
+import { useTopCommented } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -22,55 +23,35 @@ import { PostCard, usePostDrawer } from '../shared/post-card';
 
 const POSITIVE_COLOR = '#51CF66';
 const NEGATIVE_COLOR = '#FF6B6B';
-const POSITIVE_EMOTIONS = ['joy', 'hope', 'optimism', 'excitement', 'pride', 'interest', 'surprise'];
-const NEGATIVE_EMOTIONS = ['concern', 'worry', 'frustration', 'caution', 'fear', 'anger'];
 
 const TIME_FILTERS = [
-  { value: '24h', label: '۲۴ ساعت' },
-  { value: '7d', label: 'هفته پیش' },
-  { value: '30d', label: 'ماه پیش' },
-  { value: 'all', label: 'کل بازه' },
+  { value: '24h', label: 'امروز',  hours: 24 },
+  { value: '7d',  label: '۷ روز',  hours: 24 * 7 },
+  { value: '30d', label: '۳۰ روز', hours: 24 * 30 },
+  { value: 'all', label: 'همه',    hours: null },
 ];
 
-function classifyPost(post) {
-  const emotion = (post.emotion || '').toLowerCase();
-  if (POSITIVE_EMOTIONS.includes(emotion)) return 'positive';
-  if (NEGATIVE_EMOTIONS.includes(emotion)) return 'negative';
-  return 'neutral';
+function getSince(hours) {
+  if (!hours) return undefined;
+  const d = new Date(Date.now() - hours * 3600_000);
+  d.setMinutes(0, 0, 0);
+  return d.toISOString();
 }
 
-function filterByTime(posts, tf) {
-  if (tf === 'all') return posts;
-  const ms = { '24h': 24 * 3600000, '7d': 7 * 86400000, '30d': 30 * 86400000 }[tf];
-  if (!ms) return posts;
-  const cutoff = Date.now() - ms;
-  return posts.filter((p) => p.publishedAt && new Date(p.publishedAt).getTime() >= cutoff);
-}
-
-export function ControversialPosts({ data, loading }) {
+export function ControversialPosts() {
   const theme = useTheme();
   const { openPost, PostDrawer } = usePostDrawer();
   const [sectionOpen, setSectionOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [timeFilter, setTimeFilter] = useState('all');
+  const [timeFilter, setTimeFilter] = useState('24h');
 
-  if (loading) {
-    return (
-      <Card sx={{ p: 2.5, display: 'flex', justifyContent: 'center', minHeight: 120, borderRadius: 2.5, boxShadow: theme.shadows[2] }}>
-        <CircularProgress />
-      </Card>
-    );
-  }
+  const { data: posts = [], isLoading } = useTopCommented(20, timeFilter);
 
-  const timeFiltered = filterByTime(data, timeFilter);
-  const scored = timeFiltered
-    .map((post) => {
-      const direction = classifyPost(post);
-      const comments = post.replyCount || 0;
-      return { ...post, impact: comments, direction };
-    })
-    .filter((p) => p.direction !== 'neutral' && p.impact > 0)
-    .sort((a, b) => b.impact - a.impact);
+  const scored = posts.map((post) => {
+    const s = (post.sentiment || '').toLowerCase();
+    const direction = s === 'positive' ? 'positive' : s === 'negative' ? 'negative' : 'neutral';
+    return { ...post, direction };
+  });
 
   const displayedPosts = expanded ? scored : scored.slice(0, 8);
 
@@ -87,7 +68,7 @@ export function ControversialPosts({ data, loading }) {
               </Box>
               <Box>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>پربحث‌ترین پست‌ها</Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>پست‌هایی با بیشترین تأثیر بر احساسات کلی</Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>پست‌هایی با بیشترین کامنت و بحث</Typography>
               </Box>
             </Stack>
             <Iconify icon={sectionOpen ? 'solar:alt-arrow-up-bold' : 'solar:alt-arrow-down-bold'} width={20} sx={{ color: 'text.secondary' }} />
@@ -96,13 +77,26 @@ export function ControversialPosts({ data, loading }) {
 
         <Collapse in={sectionOpen} timeout={350}>
           <Box sx={{ p: 2, pt: 1.5 }}>
-            <ButtonGroup variant="outlined" size="small" fullWidth sx={{ mb: 2, '& .MuiButton-root': { fontSize: 9, fontWeight: 600, borderColor: alpha(theme.palette.primary.main, 0.16), color: 'text.secondary', '&.active': { bgcolor: alpha(theme.palette.primary.main, 0.12), borderColor: theme.palette.primary.main, color: theme.palette.primary.main, fontWeight: 700 } } }}>
+            {/* Timeframe chips */}
+            <Stack direction="row" spacing={0.75} sx={{ mb: 1.5 }}>
               {TIME_FILTERS.map((f) => (
-                <Button key={f.value} className={timeFilter === f.value ? 'active' : ''} onClick={(e) => { e.stopPropagation(); setTimeFilter(f.value); }}>{f.label}</Button>
+                <Chip
+                  key={f.value}
+                  size="small"
+                  label={f.label}
+                  onClick={(e) => { e.stopPropagation(); setTimeFilter(f.value); setExpanded(false); }}
+                  variant={timeFilter === f.value ? 'filled' : 'outlined'}
+                  color={timeFilter === f.value ? 'primary' : 'default'}
+                  sx={{ fontSize: 10, height: 22, cursor: 'pointer' }}
+                />
               ))}
-            </ButtonGroup>
+            </Stack>
 
-            {scored.length === 0 ? (
+            {isLoading ? (
+              <Box sx={{ py: 3, display: 'flex', justifyContent: 'center' }}>
+                <CircularProgress size={24} />
+              </Box>
+            ) : scored.length === 0 ? (
               <Box sx={{ py: 4, textAlign: 'center' }}>
                 <Iconify icon="solar:inbox-line-bold-duotone" width={48} sx={{ color: 'text.disabled', mb: 1 }} />
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>پستی یافت نشد</Typography>
@@ -110,9 +104,11 @@ export function ControversialPosts({ data, loading }) {
             ) : (
               <>
                 <Stack spacing={1.5}>
-                  {displayedPosts.map((post, index) => {
+                  {displayedPosts.map((post) => {
                     const isPositive = post.direction === 'positive';
-                    const accentColor = isPositive ? POSITIVE_COLOR : NEGATIVE_COLOR;
+                    const isNegative = post.direction === 'negative';
+                    const accentColor = isPositive ? POSITIVE_COLOR : isNegative ? NEGATIVE_COLOR : alpha('#868E96', 0.5);
+                    const label = isPositive ? 'مثبت' : isNegative ? 'منفی' : 'خنثی';
                     return (
                       <PostCard
                         key={post.id}
@@ -120,12 +116,20 @@ export function ControversialPosts({ data, loading }) {
                         onClick={() => openPost(post)}
                         accentColor={accentColor}
                         badge={
-                          <Chip
-                            icon={<Iconify icon={isPositive ? 'solar:arrow-up-bold' : 'solar:arrow-down-bold'} width={10} />}
-                            label={isPositive ? 'مثبت' : 'منفی'}
-                            size="small"
-                            sx={{ height: 20, fontSize: 8, fontWeight: 700, bgcolor: alpha(accentColor, 0.12), color: accentColor, '& .MuiChip-icon': { color: accentColor } }}
-                          />
+                          <Stack direction="row" spacing={0.5}>
+                            <Chip
+                              icon={<Iconify icon={isPositive ? 'solar:arrow-up-bold' : isNegative ? 'solar:arrow-down-bold' : 'solar:minus-circle-bold'} width={10} />}
+                              label={label}
+                              size="small"
+                              sx={{ height: 20, fontSize: 8, fontWeight: 700, bgcolor: alpha(accentColor, 0.12), color: accentColor, '& .MuiChip-icon': { color: accentColor } }}
+                            />
+                            <Chip
+                              icon={<Iconify icon="solar:chat-round-bold" width={10} />}
+                              label={`${post.replyCount} کامنت`}
+                              size="small"
+                              sx={{ height: 20, fontSize: 8, fontWeight: 700, bgcolor: alpha(theme.palette.info.main, 0.1), color: theme.palette.info.main, '& .MuiChip-icon': { color: theme.palette.info.main } }}
+                            />
+                          </Stack>
                         }
                       />
                     );

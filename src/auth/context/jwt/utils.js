@@ -55,16 +55,13 @@ export function tokenExpired(exp) {
   const currentTime = Date.now();
   const timeLeft = exp * 1000 - currentTime;
 
-  setTimeout(() => {
-    try {
-      alert('Token expired!');
+  // Only schedule auto-logout if expiry is within a reasonable window (< 24h)
+  if (timeLeft > 0 && timeLeft < 24 * 60 * 60 * 1000) {
+    setTimeout(() => {
       sessionStorage.removeItem(JWT_STORAGE_KEY);
       window.location.href = paths.auth.jwt.signIn;
-    } catch (error) {
-      console.error('Error during token expiration:', error);
-      throw error;
-    }
-  }, timeLeft);
+    }, timeLeft);
+  }
 }
 
 // ----------------------------------------------------------------------

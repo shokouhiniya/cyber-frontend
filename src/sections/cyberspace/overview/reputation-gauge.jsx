@@ -30,13 +30,14 @@ const getHealthStatus = (score) => {
   };
 };
 
-export function ReputationGauge({ loading }) {
+  // Score is derived from the stats API (positive / total).
+  // Passed as a prop; defaults to null when not yet available.
+export function ReputationGauge({ loading, healthScore = null }) {
   const theme = useTheme();
 
-  // Score derived from sentiment ratio: 114 positive / 324 total = 35%
-  const healthScore = 35;
-  const status = getHealthStatus(healthScore);
-  const percentage = healthScore;
+  const score = healthScore ?? 0;
+  const status = getHealthStatus(score);
+  const percentage = score;
 
   if (loading) {
     return (
@@ -147,7 +148,7 @@ export function ReputationGauge({ loading }) {
                   backgroundClip: 'text',
                 }}
               >
-                {healthScore}
+                {healthScore ?? '—'}
               </Typography>
               <Typography
                 variant="caption"
