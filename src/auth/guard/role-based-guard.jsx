@@ -1,47 +1,27 @@
 'use client';
 
-import { m } from 'framer-motion';
+import { useEffect } from 'react';
 
-import Container from '@mui/material/Container';
-import Typography from '@mui/material/Typography';
-
-import { ForbiddenIllustration } from 'src/assets/illustrations';
-
-import { varBounce, MotionContainer } from 'src/components/animate';
+import { paths } from 'src/routes/paths';
+import { useRouter } from 'src/routes/hooks';
 
 // ----------------------------------------------------------------------
 
 /**
- * NOTE:
- * This component is for reference only.
- * You can customize the logic and conditions to better suit your application's requirements.
+ * Redirects to the dashboard root when the current user's role is not in
+ * allowedRoles. Silent redirect — no error page shown.
  */
+export function RoleBasedGuard({ children, currentRole, allowedRoles }) {
+  const router = useRouter();
+  const denied = currentRole && allowedRoles && !allowedRoles.includes(currentRole);
 
-export function RoleBasedGuard({ sx, children, hasContent, currentRole, allowedRoles }) {
-  if (currentRole && allowedRoles && !allowedRoles.includes(currentRole)) {
-    return hasContent ? (
-      <Container
-        component={MotionContainer}
-        sx={[{ textAlign: 'center' }, ...(Array.isArray(sx) ? sx : [sx])]}
-      >
-        <m.div variants={varBounce('in')}>
-          <Typography variant="h3" sx={{ mb: 2 }}>
-            Permission denied
-          </Typography>
-        </m.div>
+  useEffect(() => {
+    if (denied) {
+      router.replace(paths.dashboard.root);
+    }
+  }, [denied, router]);
 
-        <m.div variants={varBounce('in')}>
-          <Typography sx={{ color: 'text.secondary' }}>
-            You do not have permission to access this page.
-          </Typography>
-        </m.div>
+  if (denied) return null;
 
-        <m.div variants={varBounce('in')}>
-          <ForbiddenIllustration sx={{ my: { xs: 5, sm: 10 } }} />
-        </m.div>
-      </Container>
-    ) : null;
-  }
-
-  return <> {children} </>;
+  return <>{children}</>;
 }

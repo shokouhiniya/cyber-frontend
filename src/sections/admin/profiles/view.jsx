@@ -102,7 +102,7 @@ function ProfileCard({ p, onEdit, onArchive, onDelete }) {
 
   // Poll the latest run every 3s while running
   useEffect(() => {
-    if (!polling) return;
+    if (!polling) return undefined;
     const interval = setInterval(async () => {
       try {
         const res = await axios.get(endpoints.admin.ingestLatestRun(p.id));

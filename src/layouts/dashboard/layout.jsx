@@ -20,9 +20,9 @@ import { NavVertical } from './nav-vertical';
 import { NavHorizontal } from './nav-horizontal';
 import { MenuButton } from '../components/menu-button';
 import { ProfileSwitcher } from '../components/profile-switcher';
-import { IngestRefreshButton } from '../components/ingest-refresh-button';
 import { navData as dashboardNavData } from '../nav-config-dashboard';
 import { dashboardLayoutVars, dashboardNavColorVars } from './css-vars';
+import { IngestRefreshButton } from '../components/ingest-refresh-button';
 import { MainSection , layoutClasses , HeaderSection , LayoutSection } from '../core';
 
 // ----------------------------------------------------------------------
@@ -38,13 +38,29 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
 
   const { value: open, onFalse: onClose, onTrue: onOpen } = useBoolean();
 
-  const navData = slotProps?.nav?.data ?? dashboardNavData;
+  const rawNavData = slotProps?.nav?.data ?? dashboardNavData;
+
+  // Filter out entire groups whose every item is restricted to a role the
+  // current user doesn't have. This removes the "مدیریت" subheader entirely
+  // for non-super_admin users rather than leaving an empty heading.
+  const navData = rawNavData
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) =>
+        !item.allowedRoles || item.allowedRoles.includes(user?.role)
+      ),
+    }))
+    .filter((group) => group.items.length > 0);
 
   const isNavMini = settings.state.navLayout === 'mini';
   const isNavHorizontal = settings.state.navLayout === 'horizontal';
   const isNavVertical = isNavMini || settings.state.navLayout === 'vertical';
 
-  const canDisplayItemByRole = (allowedRoles) => !allowedRoles?.includes(user?.role);
+  // Returns true = hide the item. allowedRoles is the list of roles that CAN see it.
+  const canDisplayItemByRole = (allowedRoles) => {
+    if (!allowedRoles) return false; // no restriction → always show
+    return !allowedRoles.includes(user?.role);
+  };
 
   const renderHeader = () => {
     const headerSlotProps = {

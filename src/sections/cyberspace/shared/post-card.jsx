@@ -311,7 +311,6 @@ function normalise(post) {
     jdate: post.jdate || null,
     // video-specific
     platform: post.platform || null,
-    topic: post.topic || null,
   };
 }
 

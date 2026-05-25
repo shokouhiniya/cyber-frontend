@@ -1,144 +1,213 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
-import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
-import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import ToggleButton from '@mui/material/ToggleButton';
+import { alpha, useTheme } from '@mui/material/styles';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
-import { useAuditLog, useAdminUsers, useAdminProfiles } from 'src/api/admin';
+import { useAdminUsers, useActivityFeed } from 'src/api/admin';
+
+import { Iconify } from 'src/components/iconify';
 
 import { AdminPageHeader } from '../shared/page-header';
 
 // ----------------------------------------------------------------------
 
-export function AdminAuditLogView() {
-  const [filters, setFilters] = useState({ limit: 50, offset: 0 });
+const CATEGORIES = [
+  { value: null,      label: 'همه',         icon: 'solar:list-bold-duotone' },
+  { value: 'ingest',  label: 'جمع‌آوری',    icon: 'solar:cloud-download-bold-duotone' },
+  { value: 'admin',   label: 'عملیات مدیر', icon: 'solar:shield-user-bold-duotone' },
+];
 
-  const { data: entries, isLoading } = useAuditLog(filters);
-  const { data: profiles = [] } = useAdminProfiles();
+const STATUS_CONFIG = {
+  completed: { color: 'success', icon: 'solar:check-circle-bold', label: 'موفق' },
+  failed:    { color: 'error',   icon: 'solar:danger-triangle-bold', label: 'خطا' },
+  running:   { color: 'info',    icon: 'solar:refresh-bold', label: 'در حال اجرا' },
+};
+
+const CATEGORY_CONFIG = {
+  ingest: { color: '#0088cc', icon: 'solar:cloud-download-bold-duotone', label: 'جمع‌آوری' },
+  admin:  { color: '#8E33FF', icon: 'solar:shield-user-bold-duotone', label: 'مدیریت' },
+};
+
+// ----------------------------------------------------------------------
+
+export function AdminAuditLogView() {
+  const theme = useTheme();
+  const [category, setCategory] = useState(null);
+
+  const { data: items = [], isLoading } = useActivityFeed(category);
   const { data: users = [] } = useAdminUsers();
 
-  const profileById = useMemo(() => Object.fromEntries(profiles.map((p) => [p.id, p])), [profiles]);
-  const userById = useMemo(() => Object.fromEntries(users.map((u) => [u.id, u])), [users]);
+  const userById = Object.fromEntries((users || []).map((u) => [u.id, u]));
 
-  const rows = entries?.data ?? [];
-  const total = entries?.pagination?.total ?? 0;
-  const hasMore = entries?.pagination?.hasMore;
+  const resolveActor = (item) => {
+    if (item.actorId && userById[item.actorId]) return userById[item.actorId].name;
+    if (item.actor === 'سیستم (زمان‌بندی)') return 'زمان‌بندی خودکار';
+    return item.actor || '—';
+  };
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
       <AdminPageHeader
-        title="ثبت رویدادهای مدیریتی"
-        subtitle="هر تغییر در پنل ادمین اینجا با جزئیات ذخیره می‌شود (credential ها مخفی‌اند)."
+        title="لاگ مدیریتی"
+        subtitle="تاریخچه عملیات سیستم: جمع‌آوری داده، پردازش هوش مصنوعی و اقدامات مدیریتی"
       />
 
-      <Card sx={{ p: 2, mb: 2 }}>
-        <Stack direction="row" spacing={2} flexWrap="wrap">
-          <TextField
-            label="عملیات"
-            placeholder="profiles.post, users.patch..."
-            size="small"
-            value={filters.action || ''}
-            onChange={(e) => setFilters((f) => ({ ...f, action: e.target.value, offset: 0 }))}
-          />
-          <TextField
-            label="از تاریخ"
-            type="date"
-            size="small"
-            slotProps={{ inputLabel: { shrink: true } }}
-            value={filters.from || ''}
-            onChange={(e) => setFilters((f) => ({ ...f, from: e.target.value, offset: 0 }))}
-          />
-          <TextField
-            label="تا تاریخ"
-            type="date"
-            size="small"
-            slotProps={{ inputLabel: { shrink: true } }}
-            value={filters.to || ''}
-            onChange={(e) => setFilters((f) => ({ ...f, to: e.target.value, offset: 0 }))}
-          />
-          <Button onClick={() => setFilters({ limit: 50, offset: 0 })}>پاک کردن</Button>
-        </Stack>
+      {/* Category filter */}
+      <Card sx={{ p: 1.5, mb: 2 }}>
+        <ToggleButtonGroup
+          value={category}
+          exclusive
+          onChange={(_, v) => setCategory(v)}
+          size="small"
+          sx={{ gap: 0.5 }}
+        >
+          {CATEGORIES.map((cat) => (
+            <ToggleButton
+              key={cat.value ?? 'all'}
+              value={cat.value}
+              sx={{
+                px: 1.5, py: 0.5, borderRadius: '8px !important',
+                border: 'none !important',
+                fontSize: 11, fontWeight: 600,
+                '&.Mui-selected': {
+                  bgcolor: alpha(theme.palette.primary.main, 0.12),
+                  color: theme.palette.primary.main,
+                },
+              }}
+            >
+              <Iconify icon={cat.icon} width={14} sx={{ mr: 0.5 }} />
+              {cat.label}
+            </ToggleButton>
+          ))}
+        </ToggleButtonGroup>
       </Card>
 
+      {/* Activity list */}
       {isLoading ? (
         <Card sx={{ p: 3 }}>در حال بارگذاری...</Card>
-      ) : rows.length === 0 ? (
-        <Card sx={{ p: 3 }}>رویدادی یافت نشد.</Card>
+      ) : items.length === 0 ? (
+        <Card sx={{ p: 3, textAlign: 'center' }}>
+          <Iconify icon="solar:document-text-bold-duotone" width={36} sx={{ color: 'text.disabled', mb: 1 }} />
+          <Typography variant="body2" color="text.secondary">رویدادی یافت نشد.</Typography>
+        </Card>
       ) : (
         <Stack spacing={1}>
-          {rows.map((row) => (
-            <Card key={row.id} sx={{ p: 2 }}>
-              <Stack direction="row" alignItems="flex-start" spacing={2}>
-                <Chip
-                  label={row.action}
-                  size="small"
-                  color="primary"
-                  variant="outlined"
-                  sx={{ fontFamily: 'monospace', flexShrink: 0 }}
-                />
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                    {new Date(row.createdAt).toLocaleString('fa-IR')}
-                    {row.userId && userById[row.userId] && ` — ${userById[row.userId].name}`}
-                    {row.profileId && profileById[row.profileId] && ` • پروفایل: ${profileById[row.profileId].name}`}
-                  </Typography>
-                  {row.entityType && (
-                    <Typography variant="body2" sx={{ mt: 0.5 }}>
-                      <strong>{row.entityType}</strong>
-                      {row.entityId && <> → {row.entityId}</>}
-                    </Typography>
-                  )}
+          {items.map((item) => {
+            const catConfig = CATEGORY_CONFIG[item.category] || CATEGORY_CONFIG.admin;
+            const statusConfig = STATUS_CONFIG[item.status] || STATUS_CONFIG.completed;
+            const actor = resolveActor(item);
+            const time = new Date(item.timestamp).toLocaleString('fa-IR', {
+              month: 'short', day: 'numeric',
+              hour: '2-digit', minute: '2-digit',
+              timeZone: 'Asia/Tehran',
+            });
+
+            return (
+              <Card
+                key={item.id}
+                sx={{
+                  p: 1.5,
+                  borderRight: `3px solid ${item.status === 'failed' ? theme.palette.error.main : catConfig.color}`,
+                  opacity: item.status === 'running' ? 0.7 : 1,
+                }}
+              >
+                <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                  {/* Category icon */}
                   <Box
-                    component="pre"
                     sx={{
-                      mt: 1,
-                      p: 1,
-                      bgcolor: (t) => t.palette.grey[100],
-                      borderRadius: 1,
-                      fontFamily: 'monospace',
-                      fontSize: 11,
-                      maxHeight: 200,
-                      overflow: 'auto',
-                      whiteSpace: 'pre-wrap',
+                      width: 32, height: 32, borderRadius: 1,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      bgcolor: alpha(catConfig.color, 0.1),
+                      flexShrink: 0, mt: 0.25,
                     }}
                   >
-                    {JSON.stringify(row.diff, null, 2)}
+                    <Iconify icon={catConfig.icon} width={16} sx={{ color: catConfig.color }} />
                   </Box>
-                </Box>
-              </Stack>
-            </Card>
-          ))}
 
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 2 }}>
-            <Typography variant="caption" color="text.secondary">
-              {rows.length} از {total}
-            </Typography>
-            <Stack direction="row" spacing={1}>
-              <Button
-                size="small"
-                disabled={!filters.offset}
-                onClick={() =>
-                  setFilters((f) => ({ ...f, offset: Math.max(0, (f.offset || 0) - (f.limit || 50)) }))
-                }
-              >
-                قبلی
-              </Button>
-              <Button
-                size="small"
-                disabled={!hasMore}
-                onClick={() => setFilters((f) => ({ ...f, offset: (f.offset || 0) + (f.limit || 50) }))}
-              >
-                بعدی
-              </Button>
-            </Stack>
-          </Stack>
+                  {/* Content */}
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    {/* Top row: summary + status */}
+                    <Stack direction="row" alignItems="center" spacing={0.75} flexWrap="wrap">
+                      <Typography variant="body2" sx={{ fontWeight: 600, fontSize: 12 }}>
+                        {item.summary}
+                      </Typography>
+                      <Chip
+                        size="small"
+                        icon={<Iconify icon={statusConfig.icon} width={10} />}
+                        label={statusConfig.label}
+                        color={statusConfig.color}
+                        variant="outlined"
+                        sx={{ height: 18, fontSize: 9, fontWeight: 700 }}
+                      />
+                    </Stack>
+
+                    {/* Meta row */}
+                    <Stack direction="row" spacing={1.5} sx={{ mt: 0.5 }} flexWrap="wrap">
+                      {/* Time */}
+                      <Stack direction="row" alignItems="center" spacing={0.5}>
+                        <Iconify icon="solar:clock-circle-bold" width={11} sx={{ color: 'text.disabled' }} />
+                        <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10 }}>
+                          {time}
+                        </Typography>
+                      </Stack>
+
+                      {/* Actor */}
+                      <Stack direction="row" alignItems="center" spacing={0.5}>
+                        <Iconify icon="solar:user-bold" width={11} sx={{ color: 'text.disabled' }} />
+                        <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10 }}>
+                          {actor}
+                        </Typography>
+                      </Stack>
+
+                      {/* Profile */}
+                      {item.profileName && (
+                        <Stack direction="row" alignItems="center" spacing={0.5}>
+                          <Iconify icon="solar:user-id-bold" width={11} sx={{ color: 'text.disabled' }} />
+                          <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10 }}>
+                            {item.profileName}
+                          </Typography>
+                        </Stack>
+                      )}
+
+                      {/* Duration (ingest only) */}
+                      {item.duration != null && (
+                        <Stack direction="row" alignItems="center" spacing={0.5}>
+                          <Iconify icon="solar:stopwatch-bold" width={11} sx={{ color: 'text.disabled' }} />
+                          <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10 }}>
+                            {item.duration < 60 ? `${item.duration} ثانیه` : `${Math.round(item.duration / 60)} دقیقه`}
+                          </Typography>
+                        </Stack>
+                      )}
+                    </Stack>
+
+                    {/* Error message (if failed) */}
+                    {item.error && (
+                      <Box
+                        sx={{
+                          mt: 0.75, p: 0.75, borderRadius: 0.75,
+                          bgcolor: alpha(theme.palette.error.main, 0.06),
+                          border: `1px solid ${alpha(theme.palette.error.main, 0.12)}`,
+                        }}
+                      >
+                        <Typography variant="caption" sx={{ fontSize: 10, color: 'error.dark', lineHeight: 1.5 }}>
+                          {item.error}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </Stack>
+              </Card>
+            );
+          })}
         </Stack>
       )}
     </Container>

@@ -235,6 +235,16 @@ export function useAuditLog(filters = {}) {
   });
 }
 
+export function useActivityFeed(category) {
+  const params = category ? `?category=${category}&limit=100` : '?limit=100';
+  return useQuery({
+    queryKey: ['admin', 'activity-feed', category],
+    queryFn: async () =>
+      (await axios.get(`${endpoints.admin.auditLog}/activity-feed${params}`)).data,
+    staleTime: 30_000,
+  });
+}
+
 // --------------------------------------------------------------------
 // Usage
 // --------------------------------------------------------------------
@@ -248,37 +258,10 @@ function buildQs(filters) {
   return qs ? `?${qs}` : '';
 }
 
-export function useUsageSummary(filters = {}) {
-  return useQuery({
-    queryKey: ['admin', 'usage', 'summary', filters],
-    queryFn: async () =>
-      (await axios.get(`${endpoints.admin.usageSummary}${buildQs(filters)}`)).data,
-  });
-}
-
-export function useUsageProfilesRanking(filters = {}) {
-  return useQuery({
-    queryKey: ['admin', 'usage', 'profiles-ranking', filters],
-    queryFn: async () =>
-      (await axios.get(`${endpoints.admin.usageProfilesRanking}${buildQs(filters)}`)).data,
-  });
-}
-
-export function useUsageFeaturesRanking(filters = {}) {
-  return useQuery({
-    queryKey: ['admin', 'usage', 'features-ranking', filters],
-    queryFn: async () =>
-      (await axios.get(`${endpoints.admin.usageFeaturesRanking}${buildQs(filters)}`)).data,
-  });
-}
-
-export function useUsageDaily(filters = {}) {
-  return useQuery({
-    queryKey: ['admin', 'usage', 'daily', filters],
-    queryFn: async () =>
-      (await axios.get(`${endpoints.admin.usageDaily}${buildQs(filters)}`)).data,
-  });
-}
+export function useUsageSummary() { return { data: null }; }
+export function useUsageProfilesRanking() { return { data: [] }; }
+export function useUsageFeaturesRanking() { return { data: [] }; }
+export function useUsageDaily() { return { data: [] }; }
 
 // --------------------------------------------------------------------
 // Usage event beacon

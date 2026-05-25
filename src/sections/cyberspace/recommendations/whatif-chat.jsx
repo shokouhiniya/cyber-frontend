@@ -18,6 +18,11 @@ import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
 
+// Set to false when the feature is ready to ship
+const DISABLED = true;
+
+const UNDER_DEV_MSG = 'این قابلیت در دست توسعه است.';
+
 const RISK_COLORS = {
   low:      '#51CF66',
   medium:   '#FFA94D',
@@ -48,8 +53,13 @@ export function WhatIfChat() {
 
     setMessages((prev) => [...prev, { role: 'user', text: msg }]);
     setInput('');
-    setIsTyping(true);
 
+    if (DISABLED) {
+      setMessages((prev) => [...prev, { role: 'ai', text: UNDER_DEV_MSG, analysis: null }]);
+      return;
+    }
+
+    setIsTyping(true);
     try {
       const orgId = profile?.promticIdentifier?.external_id;
       const params = orgId ? `?org_id=${orgId}` : '';
@@ -76,7 +86,7 @@ export function WhatIfChat() {
           } : null,
         }]);
       }
-    } catch (err) {
+    } catch {
       setMessages((prev) => [...prev, {
         role: 'ai',
         text: 'خطا در ارتباط با سرور. لطفاً دوباره تلاش کنید.',
@@ -95,17 +105,30 @@ export function WhatIfChat() {
   };
 
   return (
-    <Card sx={{ borderRadius: 2.5, overflow: 'hidden', boxShadow: theme.shadows[2] }}>
+    <Card
+      sx={{
+        borderRadius: 2.5,
+        overflow: 'hidden',
+        boxShadow: theme.shadows[2],
+        ...(DISABLED && {
+          filter: 'grayscale(0.35)',
+          bgcolor: alpha(theme.palette.grey[100], 0.6),
+        }),
+      }}
+    >
       {/* Header */}
-      <Box sx={{ p: 2.5, background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.08)} 0%, ${alpha('#845EF7', 0.08)} 100%)` }}>
+      <Box sx={{ p: 2.5, background: `linear-gradient(135deg, ${alpha(theme.palette.grey[400], 0.10)} 0%, ${alpha(theme.palette.grey[500], 0.10)} 100%)` }}>
         <Stack direction="row" alignItems="center" spacing={1.5}>
-          <Box sx={{ width: 40, height: 40, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: alpha('#845EF7', 0.16) }}>
-            <Iconify icon="solar:chat-round-dots-bold-duotone" width={24} sx={{ color: '#845EF7' }} />
+          <Box sx={{ width: 40, height: 40, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: alpha(theme.palette.grey[500], 0.16) }}>
+            <Iconify icon="solar:chat-round-dots-bold-duotone" width={24} sx={{ color: 'text.secondary' }} />
           </Box>
           <Box>
             <Stack direction="row" alignItems="center" spacing={1}>
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>شبیه‌ساز سناریو</Typography>
-              <Chip label="AI" size="small" sx={{ height: 20, fontSize: 9, fontWeight: 800, bgcolor: alpha('#845EF7', 0.12), color: '#845EF7' }} />
+              {DISABLED
+                ? <Chip label="در دست توسعه" size="small" sx={{ height: 20, fontSize: 9, fontWeight: 700, bgcolor: alpha(theme.palette.grey[500], 0.12), color: 'text.disabled' }} />
+                : <Chip label="AI" size="small" sx={{ height: 20, fontSize: 9, fontWeight: 800, bgcolor: alpha('#845EF7', 0.12), color: '#845EF7' }} />
+              }
             </Stack>
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
               سناریوهای آینده را تست کنید و واکنش احتمالی افکار عمومی را ببینید
@@ -126,17 +149,18 @@ export function WhatIfChat() {
               {starters.map((scenario) => (
                 <Box
                   key={scenario}
+                  dir="rtl"
                   onClick={() => handleSend(scenario)}
                   sx={{
                     p: 1.25, borderRadius: 1.5, cursor: 'pointer',
-                    direction: 'rtl', textAlign: 'right',
-                    bgcolor: alpha('#845EF7', 0.04),
-                    border: `1px solid ${alpha('#845EF7', 0.12)}`,
+                    textAlign: 'right',
+                    bgcolor: alpha(theme.palette.grey[500], 0.04),
+                    border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
                     transition: 'all 0.2s',
-                    '&:hover': { bgcolor: alpha('#845EF7', 0.08), borderColor: alpha('#845EF7', 0.24) },
+                    '&:hover': { bgcolor: alpha(theme.palette.grey[500], 0.08), borderColor: alpha(theme.palette.grey[500], 0.24) },
                   }}
                 >
-                  <Typography variant="caption" sx={{ fontSize: 11, color: 'text.primary', direction: 'rtl', textAlign: 'right', display: 'block' }}>
+                  <Typography variant="caption" sx={{ fontSize: 11, color: 'text.primary', display: 'block', textAlign: 'right' }}>
                     {scenario}
                   </Typography>
                 </Box>
@@ -150,14 +174,14 @@ export function WhatIfChat() {
             <Box key={i}>
               {msg.role === 'user' ? (
                 <Stack direction="row" justifyContent="flex-end">
-                  <Box sx={{ maxWidth: '85%', p: 1.5, borderRadius: '12px 12px 4px 12px', bgcolor: theme.palette.primary.main, color: '#fff' }}>
+                  <Box sx={{ maxWidth: '85%', p: 1.5, borderRadius: '12px 12px 4px 12px', bgcolor: theme.palette.grey[400], color: '#fff' }}>
                     <Typography variant="body2" sx={{ fontSize: 12, lineHeight: 1.7 }}>{msg.text}</Typography>
                   </Box>
                 </Stack>
               ) : (
                 <Stack direction="row" justifyContent="flex-start" spacing={1}>
-                  <Box sx={{ width: 28, height: 28, borderRadius: 1, bgcolor: alpha('#845EF7', 0.12), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.5 }}>
-                    <Iconify icon="solar:cpu-bolt-bold" width={16} sx={{ color: '#845EF7' }} />
+                  <Box sx={{ width: 28, height: 28, borderRadius: 1, bgcolor: alpha(theme.palette.grey[500], 0.16), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.5 }}>
+                    <Iconify icon="solar:cpu-bolt-bold" width={16} sx={{ color: 'text.secondary' }} />
                   </Box>
                   <Box sx={{ maxWidth: '90%' }}>
                     <Box sx={{ p: 1.5, borderRadius: '12px 12px 12px 4px', bgcolor: alpha(theme.palette.grey[500], isDark ? 0.12 : 0.08) }}>
@@ -166,7 +190,6 @@ export function WhatIfChat() {
 
                     {msg.analysis && (
                       <Box sx={{ mt: 1, p: 1.5, borderRadius: 2, bgcolor: alpha('#845EF7', 0.04), border: `1px solid ${alpha('#845EF7', 0.12)}` }}>
-                        {/* Risk + metrics */}
                         <Stack direction="row" spacing={0.75} sx={{ mb: 1.5, flexWrap: 'wrap', gap: 0.5 }}>
                           <Chip label={`ریسک: ${msg.analysis.riskLevel}`} size="small"
                             sx={{ height: 22, fontSize: 9, fontWeight: 700, bgcolor: alpha(msg.analysis.riskColor, 0.12), color: msg.analysis.riskColor, border: `1px solid ${alpha(msg.analysis.riskColor, 0.24)}` }} />
@@ -175,8 +198,6 @@ export function WhatIfChat() {
                           <Chip label={`حجم: ${msg.analysis.expectedMentions}`} size="small"
                             sx={{ height: 22, fontSize: 9, fontWeight: 700, bgcolor: alpha(theme.palette.info.main, 0.1), color: theme.palette.info.main }} />
                         </Stack>
-
-                        {/* Sentiment bar */}
                         <Stack direction="row" spacing={0.25} sx={{ mb: 0.5, borderRadius: 1, overflow: 'hidden' }}>
                           <Box sx={{ flex: msg.analysis.breakdown.positive, height: 6, bgcolor: '#51CF66' }} />
                           <Box sx={{ flex: msg.analysis.breakdown.neutral, height: 6, bgcolor: '#ADB5BD' }} />
@@ -187,14 +208,10 @@ export function WhatIfChat() {
                           <Typography variant="caption" sx={{ fontSize: 8, color: '#ADB5BD', fontWeight: 700 }}>{msg.analysis.breakdown.neutral}٪ خنثی</Typography>
                           <Typography variant="caption" sx={{ fontSize: 8, color: '#FF6B6B', fontWeight: 700 }}>{msg.analysis.breakdown.negative}٪ منفی</Typography>
                         </Stack>
-
-                        {/* Peak time */}
                         <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 1.25 }}>
                           <Iconify icon="solar:clock-circle-bold" width={12} sx={{ color: 'text.disabled' }} />
                           <Typography variant="caption" sx={{ fontSize: 9, color: 'text.secondary' }}>اوج واکنش: {msg.analysis.peakTime}</Typography>
                         </Stack>
-
-                        {/* Key risks */}
                         {msg.analysis.keyRisks?.length > 0 && (
                           <Box sx={{ mb: 1.25 }}>
                             <Typography variant="caption" sx={{ fontSize: 10, fontWeight: 700, display: 'block', mb: 0.5, color: '#FF6B6B' }}>ریسک‌های کلیدی:</Typography>
@@ -208,8 +225,6 @@ export function WhatIfChat() {
                             </Stack>
                           </Box>
                         )}
-
-                        {/* Recommendations */}
                         {msg.analysis.recommendations?.length > 0 && (
                           <Box sx={{ mb: msg.analysis.suggestedResponse ? 1.25 : 0 }}>
                             <Typography variant="caption" sx={{ fontSize: 10, fontWeight: 700, display: 'block', mb: 0.5 }}>توصیه‌ها:</Typography>
@@ -223,8 +238,6 @@ export function WhatIfChat() {
                             </Stack>
                           </Box>
                         )}
-
-                        {/* Suggested response */}
                         {msg.analysis.suggestedResponse && (
                           <Box sx={{ p: 1, borderRadius: 1, bgcolor: alpha('#51CF66', 0.06), border: `1px solid ${alpha('#51CF66', 0.16)}` }}>
                             <Typography variant="caption" sx={{ fontSize: 9, fontWeight: 700, color: '#51CF66', display: 'block', mb: 0.25 }}>پیشنهاد واکنش:</Typography>
@@ -274,8 +287,8 @@ export function WhatIfChat() {
                 borderRadius: 2, fontSize: 13,
                 bgcolor: alpha(theme.palette.grey[500], isDark ? 0.08 : 0.04),
                 '& fieldset': { borderColor: alpha(theme.palette.grey[500], 0.12) },
-                '&:hover fieldset': { borderColor: alpha('#845EF7', 0.3) },
-                '&.Mui-focused fieldset': { borderColor: '#845EF7' },
+                '&:hover fieldset': { borderColor: alpha(theme.palette.grey[500], 0.3) },
+                '&.Mui-focused fieldset': { borderColor: theme.palette.grey[500] },
               },
             }}
           />
@@ -284,9 +297,9 @@ export function WhatIfChat() {
             disabled={!input.trim() || isTyping}
             sx={{
               width: 40, height: 40, borderRadius: 2,
-              bgcolor: input.trim() && !isTyping ? '#845EF7' : alpha(theme.palette.grey[500], 0.12),
+              bgcolor: input.trim() && !isTyping ? theme.palette.grey[500] : alpha(theme.palette.grey[500], 0.12),
               color: input.trim() && !isTyping ? '#fff' : 'text.disabled',
-              '&:hover': { bgcolor: input.trim() && !isTyping ? alpha('#845EF7', 0.85) : undefined },
+              '&:hover': { bgcolor: input.trim() && !isTyping ? theme.palette.grey[600] : undefined },
               '&.Mui-disabled': { bgcolor: alpha(theme.palette.grey[500], 0.08), color: 'text.disabled' },
             }}
           >

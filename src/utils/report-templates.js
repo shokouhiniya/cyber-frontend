@@ -152,7 +152,7 @@ export function buildReportHtml(period, data) {
     } catch { /* already a string */ }
     // Strip any remaining JSON/English artifacts
     gapText = gapText
-      .replace(/[{}\[\]"]/g, '')
+      .replace(/[{}[\]"]/g, '')
       .replace(/\b[a-zA-Z_]+\b\s*:/g, '') // strip English keys like "object:"
       .replace(/\b(object|null|undefined|true|false|Object)\b/gi, '')
       .replace(/,\s*/g, '، ')

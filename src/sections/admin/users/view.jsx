@@ -34,11 +34,19 @@ export function AdminUsersView() {
 
   const profileById = useMemo(() => {
     const map = {};
-    profiles.forEach((p) => {
-      map[p.id] = p;
-    });
+    profiles.forEach((p) => { map[p.id] = p; });
     return map;
   }, [profiles]);
+
+  // Sort by family name (sortName field, or last word of name as fallback)
+  const sorted = useMemo(() => {
+    const getSortKey = (u) => {
+      if (u.sortName) return u.sortName;
+      const parts = (u.name || '').trim().split(/\s+/);
+      return parts[parts.length - 1] || '';
+    };
+    return [...users].sort((a, b) => getSortKey(a).localeCompare(getSortKey(b), 'fa'));
+  }, [users]);
 
   const [editing, setEditing] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -71,7 +79,7 @@ export function AdminUsersView() {
         <Card sx={{ p: 3 }}>کاربری یافت نشد.</Card>
       ) : (
         <Stack spacing={1.5}>
-          {users.map((u) => (
+          {sorted.map((u) => (
             <Card key={u.id} sx={{ p: 2 }}>
               <Stack direction="row" spacing={2} alignItems="center">
                 <Box sx={{ flex: 1, minWidth: 0 }}>

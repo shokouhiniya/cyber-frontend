@@ -22,6 +22,7 @@ export const paths = {
     recommendations: `${ROOTS.DASHBOARD}/recommendations`,
     reports: `${ROOTS.DASHBOARD}/reports`,
     profile: `${ROOTS.DASHBOARD}/profile`,
+    guide: `${ROOTS.DASHBOARD}/guide`,
     mypages: `${ROOTS.DASHBOARD}/mypages`,
     admin: {
       root: `${ROOTS.DASHBOARD}/admin`,
@@ -30,7 +31,7 @@ export const paths = {
       dataSources: `${ROOTS.DASHBOARD}/admin/data-sources`,
       globalContext: `${ROOTS.DASHBOARD}/admin/global-context`,
       auditLog: `${ROOTS.DASHBOARD}/admin/audit-log`,
-      usage: `${ROOTS.DASHBOARD}/admin/usage`,
+      docs: `${ROOTS.DASHBOARD}/admin/docs`,
     },
   },
 };
