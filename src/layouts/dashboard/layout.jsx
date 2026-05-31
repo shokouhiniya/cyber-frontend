@@ -6,11 +6,12 @@ import { useBoolean } from 'minimal-shared/hooks';
 
 import Box from '@mui/material/Box';
 import Tooltip from '@mui/material/Tooltip';
-import IconButton from '@mui/material/IconButton';
 import { useTheme, useColorScheme } from '@mui/material/styles';
-import { iconButtonClasses } from '@mui/material/IconButton';
+import IconButton, { iconButtonClasses } from '@mui/material/IconButton';
 
 import { usePathname } from 'src/routes/hooks';
+
+import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
 
 import { Logo } from 'src/components/logo';
 import { Iconify } from 'src/components/iconify';
@@ -29,7 +30,6 @@ import { navData as dashboardNavData } from '../nav-config-dashboard';
 import { dashboardLayoutVars, dashboardNavColorVars } from './css-vars';
 import { IngestRefreshButton } from '../components/ingest-refresh-button';
 import { MainSection , layoutClasses , HeaderSection , LayoutSection } from '../core';
-import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
 
 // ----------------------------------------------------------------------
 

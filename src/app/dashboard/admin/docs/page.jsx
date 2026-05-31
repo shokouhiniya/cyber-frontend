@@ -13,10 +13,9 @@ import Typography from '@mui/material/Typography';
 import { alpha, useTheme } from '@mui/material/styles';
 
 import { CONFIG } from 'src/global-config';
+import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
 
 import { Iconify } from 'src/components/iconify';
-
-import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
 
 // ----------------------------------------------------------------------
 

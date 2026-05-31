@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
+import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -12,36 +12,35 @@ import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Select from '@mui/material/Select';
+import Slider from '@mui/material/Slider';
 import Tooltip from '@mui/material/Tooltip';
 import TableRow from '@mui/material/TableRow';
 import MenuItem from '@mui/material/MenuItem';
+import ListItem from '@mui/material/ListItem';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import Container from '@mui/material/Container';
-import IconButton from '@mui/material/IconButton';
 import InputBase from '@mui/material/InputBase';
-import ListItem from '@mui/material/ListItem';
+import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import FormControl from '@mui/material/FormControl';
 import DialogTitle from '@mui/material/DialogTitle';
+import ToggleButton from '@mui/material/ToggleButton';
+import { alpha, useTheme } from '@mui/material/styles';
 import DialogContent from '@mui/material/DialogContent';
 import ListItemButton from '@mui/material/ListItemButton';
 import TableContainer from '@mui/material/TableContainer';
-import Slider from '@mui/material/Slider';
-import ToggleButton from '@mui/material/ToggleButton';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-import { alpha, useTheme } from '@mui/material/styles';
 import LinearProgress from '@mui/material/LinearProgress';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { CONFIG } from 'src/global-config';
 import axios, { endpoints } from 'src/lib/axios';
-import { useAdminProfiles, useDeleteProfile, useArchiveProfile } from 'src/api/admin';
-import { useProfileUsage } from 'src/api/admin';
+import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
+import { useProfileUsage , useAdminProfiles, useDeleteProfile, useArchiveProfile } from 'src/api/admin';
 
 import { Iconify } from 'src/components/iconify';
 
-import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
 import { AdminPageHeader } from '../shared/page-header';
 import { ProfileFormDialog } from './profile-form-dialog';
 
@@ -285,7 +284,7 @@ function IngestActionDialog({ profileId, profileName, open, onClose, onStart }) 
     aparat: 'آپارات', forum: 'فروم', eitaa: 'ایتا',
   };
 
-  const SORT_OPTIONS = [
+  const SAMPLE_SORT_OPTIONS = [
     { value: 'engagement', label: 'بیشترین تعامل (پیش‌فرض)' },
     { value: 'recent', label: 'جدیدترین پست‌ها' },
     { value: 'negative_first', label: 'منفی‌ترین پست‌ها اول' },
@@ -492,7 +491,7 @@ function IngestActionDialog({ profileId, profileName, open, onClose, onStart }) 
                 ترتیب انتخاب پست‌ها
               </Typography>
               <Stack spacing={0.5}>
-                {SORT_OPTIONS.map((o) => (
+                {SAMPLE_SORT_OPTIONS.map((o) => (
                   <Stack key={o.value} direction="row" alignItems="center" spacing={1}
                     sx={{ px: 1.25, py: 0.6, borderRadius: 1.25, border: '1px solid', borderColor: sortBy === o.value ? 'primary.main' : 'divider', bgcolor: sortBy === o.value ? 'primary.lighter' : 'transparent', cursor: 'pointer' }}
                     onClick={() => setSortBy(o.value)}>

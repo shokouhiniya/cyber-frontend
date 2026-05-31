@@ -17,6 +17,7 @@ import Typography from '@mui/material/Typography';
 import FormControl from '@mui/material/FormControl';
 import { alpha, useTheme } from '@mui/material/styles';
 
+import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
 import {
   useAdminProfiles,
   useAdminDataSources,
@@ -26,7 +27,6 @@ import {
 
 import { Iconify } from 'src/components/iconify';
 
-import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
 import { EightTagSearchPanel } from './search-panel';
 import { AdminPageHeader } from '../shared/page-header';
 import { DataSourceFormDialog } from './data-source-form-dialog';

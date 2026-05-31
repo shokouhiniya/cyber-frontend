@@ -11,7 +11,7 @@
  *   const { desktopMode, toggleDesktopMode } = useAdminDesktopMode();
  */
 
-import { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import { useMemo, useState, useContext, useCallback, createContext } from 'react';
 
 const STORAGE_KEY = 'admin_desktop_mode';
 

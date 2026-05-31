@@ -9,8 +9,9 @@ import BottomNavigationAction from '@mui/material/BottomNavigationAction';
 import { paths } from 'src/routes/paths';
 import { useRouter, usePathname } from 'src/routes/hooks';
 
-import { Iconify } from 'src/components/iconify';
 import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
+
+import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
 

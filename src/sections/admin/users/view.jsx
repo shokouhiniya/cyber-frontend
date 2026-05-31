@@ -18,11 +18,11 @@ import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import TableContainer from '@mui/material/TableContainer';
 
+import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
 import { useAdminUsers, useAdminProfiles, useDeactivateUser } from 'src/api/admin';
 
 import { Iconify } from 'src/components/iconify';
 
-import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
 import { UserFormDialog } from './user-form-dialog';
 import { AdminPageHeader } from '../shared/page-header';
 import { ResetPasswordDialog } from './reset-password-dialog';

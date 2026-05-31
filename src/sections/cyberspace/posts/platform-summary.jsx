@@ -11,9 +11,9 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useSourceStats } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
+import { SvgColor } from 'src/components/svg-color';
 import { InfoTooltip } from 'src/components/info-tooltip';
 import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
-import { SvgColor } from 'src/components/svg-color';
 // ----------------------------------------------------------------------
 // Same 4-row layout as the منابع section in /data-sources/ search panel
 

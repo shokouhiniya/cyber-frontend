@@ -1,7 +1,6 @@
 import Stack from '@mui/material/Stack';
 
-import { useHashtags } from 'src/api/dashboard';
-import { useHiddenWidgets } from 'src/api/dashboard';
+import { useHashtags , useHiddenWidgets } from 'src/api/dashboard';
 
 import { BotVsHuman } from './bot-vs-human';
 import { EmotionChart } from './emotion-chart';

@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import Box from '@mui/material/Box';
+import Tab from '@mui/material/Tab';
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
-import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
@@ -16,30 +16,30 @@ import Divider from '@mui/material/Divider';
 import MenuItem from '@mui/material/MenuItem';
 import Container from '@mui/material/Container';
 import TextField from '@mui/material/TextField';
-import { alpha, useTheme } from '@mui/material/styles';
 import IconButton from '@mui/material/IconButton';
 import InputLabel from '@mui/material/InputLabel';
 import Typography from '@mui/material/Typography';
 import FormControl from '@mui/material/FormControl';
 import DialogTitle from '@mui/material/DialogTitle';
+import { alpha, useTheme } from '@mui/material/styles';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 
+import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
 import {
   useGlobalContext,
-  useDeleteGlobalContext,
-  useUpsertGlobalContext,
   useAdminProfiles,
   useUpdateProfile,
   useIngestSettings,
   useSaveIngestSettings,
+  useDeleteGlobalContext,
+  useUpsertGlobalContext,
 } from 'src/api/admin';
 
 import { Iconify } from 'src/components/iconify';
 
 import { MacroRawContent, parseMacroValue } from 'src/sections/cyberspace/shared/macro-parsed-content';
 
-import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
 import { AdminPageHeader } from '../shared/page-header';
 
 // ----------------------------------------------------------------------

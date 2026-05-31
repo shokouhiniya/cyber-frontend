@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
-import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
@@ -21,20 +20,18 @@ import InputLabel from '@mui/material/InputLabel';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import FormControl from '@mui/material/FormControl';
-import Autocomplete from '@mui/material/Autocomplete';
 import DialogTitle from '@mui/material/DialogTitle';
+import Autocomplete from '@mui/material/Autocomplete';
+import { alpha, useTheme } from '@mui/material/styles';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-import { alpha, useTheme } from '@mui/material/styles';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
-import { paths } from 'src/routes/paths';
-
-import { useAdminUsers, useCreateProfile, useUpdateProfile, useUpdateUser } from 'src/api/admin';
+import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
+import { useAdminUsers, useUpdateUser, useCreateProfile, useUpdateProfile } from 'src/api/admin';
 
 import { Iconify } from 'src/components/iconify';
 
-import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
 import { ChannelsEditor, ChannelsGridEditor } from './channels-editor';
 
 // ----------------------------------------------------------------------
