@@ -17,6 +17,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useProfile, usePromisePerception } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
+import { InfoTooltip } from 'src/components/info-tooltip';
+import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 
 // ----------------------------------------------------------------------
 
@@ -75,6 +77,7 @@ export function PromiseTracker() {
             </Box>
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>رصد وعده‌ها</Typography>
+              <InfoTooltip title={WIDGET_TOOLTIPS.promiseTracker} />
               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                 {promises.length === 0
                   ? 'وعده عمومی ثبت‌شده‌ای وجود ندارد'

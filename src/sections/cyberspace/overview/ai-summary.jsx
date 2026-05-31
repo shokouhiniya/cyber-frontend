@@ -11,6 +11,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useAiContent } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
+import { InfoTooltip } from 'src/components/info-tooltip';
+import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 
 // ----------------------------------------------------------------------
 
@@ -58,6 +60,7 @@ export function AISummary({ loading, onActionClick }) {
             </Box>
             <Box sx={{ flex: 1 }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>خلاصه هوش مصنوعی</Typography>
+              <InfoTooltip title={WIDGET_TOOLTIPS.aiSummary} />
               <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 10 }}>تحلیل ۲۴ ساعت گذشته</Typography>
             </Box>
           </Stack>

@@ -10,6 +10,7 @@ import { paths } from 'src/routes/paths';
 import { useRouter, usePathname } from 'src/routes/hooks';
 
 import { Iconify } from 'src/components/iconify';
+import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
 
 // ----------------------------------------------------------------------
 
@@ -44,12 +45,17 @@ export function BottomNav() {
   const theme = useTheme();
   const router = useRouter();
   const pathname = usePathname();
+  const { desktopMode } = useAdminDesktopMode();
 
+  const isAdminPage = pathname?.includes('/admin/');
   const currentTab = resolveTab(pathname);
 
   const handleChange = (_event, newValue) => {
     router.push(newValue);
   };
+
+  // Hide on desktop mode when on admin pages
+  if (desktopMode && isAdminPage) return null;
 
   return (
     <Paper

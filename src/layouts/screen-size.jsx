@@ -8,28 +8,65 @@ import { Scrollbar } from 'src/components/scrollbar';
 
 import { UI_CONFIG } from '../global-config';
 
+const DESKTOP_MODE_KEY = 'admin_desktop_mode';
+
 function ScreenSize({ children }) {
   const [isDesktopSize, setIsDesktopSize] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
+  const [adminDesktopMode, setAdminDesktopMode] = useState(false);
+  const [isAdminPage, setIsAdminPage] = useState(false);
 
-  // todo: remove this for revert desktop size
   useEffect(() => {
     setHasMounted(true);
+
     if (typeof document !== 'undefined' && document.querySelector) {
       const bodySize = document.querySelector('body')?.getBoundingClientRect();
       setIsDesktopSize(bodySize?.width > 600);
     }
+
+    // Read desktop mode preference from localStorage
+    try {
+      setAdminDesktopMode(localStorage.getItem(DESKTOP_MODE_KEY) === 'true');
+    } catch { /* ignore */ }
+
+    // Check if current page is an admin page
+    setIsAdminPage(window.location.pathname.includes('/admin/'));
+
+    // Listen for storage changes (when toggle is clicked — same tab via dispatchEvent)
+    const onStorage = (e) => {
+      if (e.key === DESKTOP_MODE_KEY) {
+        setAdminDesktopMode(e.newValue === 'true');
+      }
+    };
+    window.addEventListener('storage', onStorage);
+
+    // Poll pathname for Next.js soft navigations (popstate doesn't fire for them)
+    let lastPath = window.location.pathname;
+    const pathInterval = setInterval(() => {
+      const current = window.location.pathname;
+      if (current !== lastPath) {
+        lastPath = current;
+        setIsAdminPage(current.includes('/admin/'));
+      }
+    }, 300);
+
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      clearInterval(pathInterval);
+    };
   }, []);
 
   if (!hasMounted) {
-    // Avoid rendering layout differences until after hydration
     return null;
   }
+
+  // Bypass the mobile frame when desktop mode is active on admin pages
+  const forceMobileFrame = isDesktopSize && UI_CONFIG.mobileOnly && !(adminDesktopMode && isAdminPage);
 
   return (
     <Box
       sx={
-        isDesktopSize && UI_CONFIG.mobileOnly
+        forceMobileFrame
           ? {
               height: '100dvh',
               width: 500,

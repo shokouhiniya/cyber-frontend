@@ -12,6 +12,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useTopPosts } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
+import { InfoTooltip } from 'src/components/info-tooltip';
+import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 
 import { PostCard, usePostDrawer } from '../shared/post-card';
 
@@ -43,6 +45,7 @@ export function ImportantPosts() {
             <Stack direction="row" alignItems="center" spacing={1}>
               <Iconify icon="solar:star-bold-duotone" width={20} sx={{ color: theme.palette.warning.main }} />
               <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>پربازدیدترین محتواها</Typography>
+              <InfoTooltip title={WIDGET_TOOLTIPS.importantPosts} />
             </Stack>
             <Iconify icon={sectionOpen ? 'solar:alt-arrow-up-bold' : 'solar:alt-arrow-down-bold'} width={18} sx={{ color: 'text.secondary' }} />
           </Stack>

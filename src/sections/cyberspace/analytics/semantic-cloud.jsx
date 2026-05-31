@@ -13,6 +13,8 @@ import { alpha, useTheme } from '@mui/material/styles';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { Iconify } from 'src/components/iconify';
+import { InfoTooltip } from 'src/components/info-tooltip';
+import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 
 // ----------------------------------------------------------------------
 
@@ -64,23 +66,13 @@ export function SemanticCloud({ words = [], loading }) {
 
   return (
     <Card sx={{ borderRadius: 2.5, overflow: 'hidden', boxShadow: theme.shadows[2] }}>
-      <Box
-        sx={{
-          p: 2,
-          background: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.08)} 0%, ${alpha(theme.palette.error.main, 0.08)} 100%)`,
-        }}
-      >
-        <Stack direction="row" alignItems="center" spacing={1.5}>
-          <Box sx={{ width: 40, height: 40, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: alpha(theme.palette.success.main, 0.16) }}>
-            <Iconify icon="solar:cloud-bold-duotone" width={24} sx={{ color: theme.palette.success.main }} />
-          </Box>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>ابر واژگان هوشمند</Typography>
-          </Box>
-        </Stack>
-      </Box>
-
       <Box sx={{ p: 2 }}>
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+          <Iconify icon="solar:cloud-bold-duotone" width={20} sx={{ color: theme.palette.success.main }} />
+          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>ابر واژگان هوشمند</Typography>
+          <InfoTooltip title={WIDGET_TOOLTIPS.semanticCloud} />
+        </Stack>
+
         <ButtonGroup
           variant="outlined"
           size="small"
@@ -101,41 +93,41 @@ export function SemanticCloud({ words = [], loading }) {
           ))}
         </ButtonGroup>
 
-        <Box
-          sx={{
-            minHeight: 200, display: 'flex', flexWrap: 'wrap', gap: 1,
-            justifyContent: 'center', alignItems: 'center', p: 2,
-            bgcolor: alpha(theme.palette.grey[500], 0.04), borderRadius: 2,
-          }}
-        >
-          {words.length === 0 ? (
-            <Stack alignItems="center" spacing={1}>
-              <Iconify icon="solar:cloud-bold-duotone" width={36} sx={{ color: 'text.disabled' }} />
-              <Typography variant="body2" color="text.secondary">داده‌ای موجود نیست.</Typography>
-            </Stack>
-          ) : (
-            words.map((word, index) => {
+        {words.length === 0 ? (
+          <Stack alignItems="center" spacing={1} sx={{ py: 3 }}>
+            <Iconify icon="solar:cloud-bold-duotone" width={36} sx={{ color: 'text.disabled' }} />
+            <Typography variant="body2" color="text.secondary">داده‌ای موجود نیست.</Typography>
+          </Stack>
+        ) : (
+          <Stack direction="row" flexWrap="wrap" gap={1}>
+            {words.map((word, index) => {
               const colors = getSentimentColor(word.sentiment, theme);
               return (
                 <Chip
                   key={index}
                   label={
                     <Stack direction="row" alignItems="center" spacing={0.5}>
-                      <span>{word.text}</span>
-                      <Box component="span" sx={{ fontSize: '0.75em', opacity: 0.7, fontWeight: 600 }}>{word.percent}%</Box>
+                      <Typography sx={{ ...getSizeStyles(word.size), height: 'auto', px: 0, fontWeight: 700, color: colors.text }}>
+                        {word.text}
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.75em', opacity: 0.7, fontWeight: 600, color: colors.text }}>
+                        {word.percent}%
+                      </Typography>
                     </Stack>
                   }
                   sx={{
-                    ...getSizeStyles(word.size),
-                    bgcolor: colors.bg, border: `1px solid ${colors.border}`, color: colors.text,
-                    fontWeight: 700, transition: 'all 0.2s ease',
+                    height: getSizeStyles(word.size).height,
+                    px: getSizeStyles(word.size).px,
+                    bgcolor: colors.bg,
+                    border: `1px solid ${colors.border}`,
+                    transition: 'all 0.2s ease',
                     '&:hover': { transform: 'scale(1.05)', boxShadow: `0 4px 12px ${colors.border}` },
                   }}
                 />
               );
-            })
-          )}
-        </Box>
+            })}
+          </Stack>
+        )}
 
         <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: 10, display: 'block', textAlign: 'center', mt: 1.5 }}>
           اندازه هر واژه نشان‌دهنده تکرار آن در محتواست

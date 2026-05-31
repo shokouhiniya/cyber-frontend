@@ -11,6 +11,8 @@ import { alpha, useTheme } from '@mui/material/styles';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { Iconify } from 'src/components/iconify';
+import { InfoTooltip } from 'src/components/info-tooltip';
+import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 
 import { PostCard, usePostDrawer } from '../shared/post-card';
 
@@ -51,6 +53,7 @@ export function OfficialTimeline({ loading, posts = [] }) {
               </Box>
               <Box>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>تایم‌لاین یکپارچه</Typography>
+                <InfoTooltip title={WIDGET_TOOLTIPS.officialTimeline} />
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   {posts.length.toLocaleString('fa-IR')} انتشار از صفحات رسمی
                 </Typography>

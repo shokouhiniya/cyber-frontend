@@ -16,6 +16,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useTopCommented } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
+import { InfoTooltip } from 'src/components/info-tooltip';
+import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 
 import { PostCard, usePostDrawer } from '../shared/post-card';
 
@@ -68,6 +70,7 @@ export function ControversialPosts() {
               </Box>
               <Box>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>پربحث‌ترین پست‌ها</Typography>
+                <InfoTooltip title={WIDGET_TOOLTIPS.controversialPosts} />
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>پست‌هایی با بیشترین کامنت و بحث</Typography>
               </Box>
             </Stack>

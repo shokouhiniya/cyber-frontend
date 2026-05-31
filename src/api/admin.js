@@ -200,6 +200,21 @@ export function useGlobalContext() {
   });
 }
 
+export function useIngestSettings() {
+  return useQuery({
+    queryKey: ['admin', 'ingest-settings'],
+    queryFn: async () => (await axios.get(endpoints.admin.ingestSettings)).data,
+  });
+}
+
+export function useSaveIngestSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body) => (await axios.put(endpoints.admin.ingestSettings, body)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'ingest-settings'] }),
+  });
+}
+
 export function useUpsertGlobalContext() {
   const qc = useQueryClient();
   return useMutation({
@@ -254,14 +269,38 @@ function buildQs(filters) {
   Object.entries(filters || {}).forEach(([k, v]) => {
     if (v !== undefined && v !== null && v !== '') p.set(k, String(v));
   });
-  const qs = p.toString();
-  return qs ? `?${qs}` : '';
+  return p.toString();
 }
 
-export function useUsageSummary() { return { data: null }; }
-export function useUsageProfilesRanking() { return { data: [] }; }
-export function useUsageFeaturesRanking() { return { data: [] }; }
-export function useUsageDaily() { return { data: [] }; }
+export function useUsageSummary(filters) {
+  return useQuery({
+    queryKey: ['admin', 'usage', 'summary', filters],
+    queryFn: async () => (await axios.get(endpoints.adminUsage.summary(buildQs(filters)))).data,
+  });
+}
+
+export function useUsageFeaturesRanking(filters) {
+  return useQuery({
+    queryKey: ['admin', 'usage', 'features', filters],
+    queryFn: async () => (await axios.get(endpoints.adminUsage.featuresRanking(buildQs(filters)))).data,
+  });
+}
+
+export function useUsageDaily(filters) {
+  return useQuery({
+    queryKey: ['admin', 'usage', 'daily', filters],
+    queryFn: async () => (await axios.get(endpoints.adminUsage.daily(buildQs(filters)))).data,
+  });
+}
+
+/** Per-user usage breakdown for a specific profile. */
+export function useProfileUsage(profileId, filters) {
+  return useQuery({
+    queryKey: ['admin', 'usage', 'by-profile', profileId, filters],
+    queryFn: async () => (await axios.get(endpoints.adminUsage.byProfile(profileId, buildQs(filters)))).data,
+    enabled: !!profileId,
+  });
+}
 
 // --------------------------------------------------------------------
 // Usage event beacon

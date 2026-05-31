@@ -75,6 +75,12 @@ export function useProfile() {
   });
 }
 
+/** Returns the set of hidden widget keys for the current profile. */
+export function useHiddenWidgets() {
+  const { data: profile } = useProfile();
+  return new Set(profile?.hiddenWidgets || []);
+}
+
 // ----------------------------------------------------------------------
 
 export function useInfluencers(limit = 10) {

@@ -8,6 +8,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useUserDistribution } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
+import { InfoTooltip } from 'src/components/info-tooltip';
+import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 
 // ----------------------------------------------------------------------
 
@@ -38,6 +40,7 @@ export function BotVsHuman() {
           </Box>
           <Box sx={{ flex: 1 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>تفکیک کاربران</Typography>
+            <InfoTooltip title={WIDGET_TOOLTIPS.botVsHuman} />
           </Box>
         </Stack>
       </Box>

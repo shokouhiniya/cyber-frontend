@@ -11,6 +11,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useAiContent } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
+import { InfoTooltip } from 'src/components/info-tooltip';
+import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 
 // ----------------------------------------------------------------------
 
@@ -87,6 +89,7 @@ export function NarrativeGap({ loading }) {
           </Box>
           <Box sx={{ flex: 1 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>تحلیل شکاف روایت</Typography>
+            <InfoTooltip title={WIDGET_TOOLTIPS.narrativeGap} />
           </Box>
         </Stack>
       </Box>

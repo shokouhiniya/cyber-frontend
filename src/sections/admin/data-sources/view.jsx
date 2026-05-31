@@ -26,6 +26,7 @@ import {
 
 import { Iconify } from 'src/components/iconify';
 
+import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
 import { EightTagSearchPanel } from './search-panel';
 import { AdminPageHeader } from '../shared/page-header';
 import { DataSourceFormDialog } from './data-source-form-dialog';
@@ -34,6 +35,7 @@ import { DataSourceFormDialog } from './data-source-form-dialog';
 
 export function AdminDataSourcesView() {
   const theme = useTheme();
+  const { desktopMode } = useAdminDesktopMode();
   const { data: profiles = [] } = useAdminProfiles();
   const { data: sources = [], isLoading } = useAdminDataSources();
 
@@ -58,7 +60,7 @@ export function AdminDataSourcesView() {
   const openEdit = (ds) => { setEditing(ds); setFormOpen(true); };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth={desktopMode ? 'xl' : 'lg'} sx={{ py: 4 }}>
       <AdminPageHeader
         title="پیکربندی ۸تگ"
         subtitle="مدیریت اتصال، فیلترهای جستجو و آزمایش زنده برای هر پروفایل"
@@ -69,7 +71,7 @@ export function AdminDataSourcesView() {
         }
       />
 
-      {/* ── Connection status card ── */}
+      {/* ── Connection status card + profile picker: side-by-side on desktop ── */}
       {isLoading ? (
         <Card sx={{ p: 3, mb: 2 }}>در حال بارگذاری...</Card>
       ) : !eightTagSource ? (
@@ -83,7 +85,9 @@ export function AdminDataSourcesView() {
           </Button>
         </Card>
       ) : (
-        <Card sx={{ mb: 2, overflow: 'hidden' }}>
+        <Box sx={desktopMode ? { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 2 } : {}}>
+          {/* Connection card */}
+          <Card sx={{ overflow: 'hidden', ...(desktopMode ? {} : { mb: 2 }) }}>
           {/* Header bar */}
           <Box
             sx={{
@@ -171,14 +175,12 @@ export function AdminDataSourcesView() {
             )}
           </Stack>
         </Card>
-      )}
-
-      {/* ── Profile picker ── */}
-      {eightTagSource && (
-        <Card sx={{ p: 2, mb: 2 }}>
-          <Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap">
-            <Stack direction="row" alignItems="center" spacing={1} sx={{ flexShrink: 0 }}>
-              <Iconify icon="solar:user-bold-duotone" width={20} sx={{ color: 'primary.main' }} />
+        {/* Profile picker — second column on desktop, below on mobile */}
+        {eightTagSource && (
+          <Card sx={{ p: 2, ...(desktopMode ? {} : { mb: 2 }) }}>
+            <Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap">
+              <Stack direction="row" alignItems="center" spacing={1} sx={{ flexShrink: 0 }}>
+                <Iconify icon="solar:user-bold-duotone" width={20} sx={{ color: 'primary.main' }} />
               <Typography variant="subtitle2" fontWeight={700}>
                 جستجو برای پروفایل
               </Typography>
@@ -231,6 +233,8 @@ export function AdminDataSourcesView() {
             )}
           </Stack>
         </Card>
+        )}
+        </Box>
       )}
 
       {/* ── Search panel (always visible when source exists) ── */}

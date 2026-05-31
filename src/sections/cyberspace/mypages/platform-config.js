@@ -73,7 +73,6 @@ export const PLATFORMS = [
 ];
 
 export const platformById = Object.fromEntries(PLATFORMS.map((p) => [p.id, p]));
-
 export function getPlatformUrl(channel) {
   if (channel.url) return channel.url;
   const cfg = platformById[channel.platform];

@@ -8,6 +8,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useAiContent } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
+import { InfoTooltip } from 'src/components/info-tooltip';
+import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 
 // ----------------------------------------------------------------------
 
@@ -40,6 +42,7 @@ export function PoliticalSpectrum({ loading }) {
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2.5 }}>
           <Iconify icon="solar:scale-bold-duotone" width={20} sx={{ color: theme.palette.primary.main }} />
           <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>طیف سیاسی</Typography>
+          <InfoTooltip title={WIDGET_TOOLTIPS.politicalSpectrum} />
         </Stack>
 
         {/* Chart area */}

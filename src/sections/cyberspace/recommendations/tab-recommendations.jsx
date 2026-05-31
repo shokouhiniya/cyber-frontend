@@ -9,6 +9,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useAiContent } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
+import { InfoTooltip } from 'src/components/info-tooltip';
+import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 
 import { WhatIfChat } from './whatif-chat';
 
@@ -56,6 +58,7 @@ export function TabRecommendations({ loading }) {
           </Box>
           <Box sx={{ flex: 1 }}>
             <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5 }}>پیشنهادات واکنش هوشمند</Typography>
+            <InfoTooltip title={WIDGET_TOOLTIPS.recommendations} />
             <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 11 }}>بر اساس تحلیل داده‌های لحظه‌ای و الگوهای رفتاری</Typography>
           </Box>
         </Stack>

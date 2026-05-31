@@ -14,6 +14,8 @@ import axios from 'src/lib/axios';
 import { useMacroContext } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
+import { InfoTooltip } from 'src/components/info-tooltip';
+import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 
 import { useAuthContext } from 'src/auth/hooks';
 
@@ -59,6 +61,7 @@ export function MacroContext() {
             </Box>
             <Box>
               <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>وضعیت کلان</Typography>
+              <InfoTooltip title={WIDGET_TOOLTIPS.macroContext} />
               <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 10 }}>بستر سیاسی-اجتماعی حاکم بر فضای رصد</Typography>
             </Box>
           </Stack>

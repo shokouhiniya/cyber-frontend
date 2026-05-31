@@ -16,6 +16,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useTopForwarded } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
+import { InfoTooltip } from 'src/components/info-tooltip';
+import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 
 import { PostCard, formatNum, usePostDrawer } from '../shared/post-card';
 
@@ -59,6 +61,7 @@ export function ViralPosts() {
               </Box>
               <Box>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>پرتکرارترین پست‌ها</Typography>
+                <InfoTooltip title={WIDGET_TOOLTIPS.viralPosts} />
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>بیشترین بازنشر و پوشش رسانه‌ای</Typography>
               </Box>
             </Stack>

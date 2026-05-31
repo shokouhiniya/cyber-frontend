@@ -115,6 +115,7 @@ export const endpoints = {
     dataSourceSearch: (id) => `/api/admin/data-sources/${id}/search`,
     globalContext: '/api/admin/global-context',
     globalContextKey: (key) => `/api/admin/global-context/${key}`,
+    ingestSettings: '/api/admin/global-context/ingest-settings',
     auditLog: '/api/admin/audit-log',
     ingestRunNow: (id) => `/api/admin/ingest/profiles/${id}/run`,
     ingestRuns: (id) => `/api/admin/ingest/profiles/${id}/runs`,
@@ -122,4 +123,10 @@ export const endpoints = {
     ingestTrend: (id, hours) => `/api/admin/ingest/profiles/${id}/trend${hours ? `?hours=${hours}` : ''}`,
   },
   usageEvents: '/api/usage/events',
+  adminUsage: {
+    summary:          (qs) => `/api/admin/usage/summary${qs ? `?${qs}` : ''}`,
+    featuresRanking:  (qs) => `/api/admin/usage/features-ranking${qs ? `?${qs}` : ''}`,
+    daily:            (qs) => `/api/admin/usage/daily${qs ? `?${qs}` : ''}`,
+    byProfile:        (profileId, qs) => `/api/admin/usage/by-profile/${profileId}${qs ? `?${qs}` : ''}`,
+  },
 };

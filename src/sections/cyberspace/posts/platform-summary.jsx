@@ -11,6 +11,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useSourceStats } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
+import { InfoTooltip } from 'src/components/info-tooltip';
+import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 import { SvgColor } from 'src/components/svg-color';
 // ----------------------------------------------------------------------
 // Same 4-row layout as the منابع section in /data-sources/ search panel
@@ -122,6 +124,7 @@ export function PlatformSummary({ onPlatformFilter, activePlatform }) {
           <Stack direction="row" alignItems="center" spacing={1}>
             <Iconify icon="solar:widget-5-bold-duotone" width={20} sx={{ color: theme.palette.primary.main }} />
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>خلاصه پلتفرم‌ها</Typography>
+            <InfoTooltip title={WIDGET_TOOLTIPS.platformSummary} />
             {!isLoading && totalPosts > 0 && (
               <Chip
                 size="small"

@@ -70,8 +70,10 @@ export function buildReportHtml(period, data) {
   const negPct = emotionTotal > 0 ? Math.round((negCount / emotionTotal) * 100) : 0;
   const neuPct = 100 - posPct - negPct;
 
-  // Health score
-  const healthScore = emotionTotal > 0 ? Math.round((posCount / emotionTotal) * 100) : null;
+  // Health score — net sentiment balance (same formula as the dashboard)
+  const healthScore = emotionTotal > 0
+    ? Math.min(100, Math.max(0, Math.round(50 + ((posCount - negCount) / emotionTotal) * 50)))
+    : null;
 
   // Crisis
   const crisis = crisisMetrics || {};

@@ -11,6 +11,8 @@ import { alpha, useTheme } from '@mui/material/styles';
 import { useProfile } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
+import { InfoTooltip } from 'src/components/info-tooltip';
+import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 
 import { PlatformIcon } from './platform-icon';
 import { platformById, getPlatformUrl } from './platform-config';
@@ -80,6 +82,7 @@ export function OfficialAccounts() {
           </Box>
           <Box>
             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>صفحات رسمی</Typography>
+            <InfoTooltip title={WIDGET_TOOLTIPS.officialAccounts} />
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
               {activeCount.toLocaleString('fa-IR')} حساب فعال
               {totalFollowers > 0 && ` · ${formatNum(totalFollowers)} دنبال‌کننده`}

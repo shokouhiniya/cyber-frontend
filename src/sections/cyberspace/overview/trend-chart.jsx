@@ -12,6 +12,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useProfile, useTrendData } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
+import { InfoTooltip } from 'src/components/info-tooltip';
+import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 
 // ----------------------------------------------------------------------
 
@@ -76,6 +78,7 @@ export function TrendChart({ loading: parentLoading }) {
           <Stack direction="row" alignItems="center" spacing={1}>
             <Iconify icon="solar:chart-2-bold-duotone" width={20} sx={{ color: theme.palette.primary.main }} />
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>روند احساسات</Typography>
+            <InfoTooltip title={WIDGET_TOOLTIPS.trendChart} />
           </Stack>
         </Stack>
 

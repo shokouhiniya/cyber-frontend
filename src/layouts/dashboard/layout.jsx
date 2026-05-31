@@ -5,10 +5,15 @@ import { varAlpha } from 'minimal-shared/utils';
 import { useBoolean } from 'minimal-shared/hooks';
 
 import Box from '@mui/material/Box';
-import { useTheme } from '@mui/material/styles';
+import Tooltip from '@mui/material/Tooltip';
+import IconButton from '@mui/material/IconButton';
+import { useTheme, useColorScheme } from '@mui/material/styles';
 import { iconButtonClasses } from '@mui/material/IconButton';
 
+import { usePathname } from 'src/routes/hooks';
+
 import { Logo } from 'src/components/logo';
+import { Iconify } from 'src/components/iconify';
 import { useSettingsContext } from 'src/components/settings';
 
 import { useAuthContext } from 'src/auth/hooks';
@@ -24,15 +29,25 @@ import { navData as dashboardNavData } from '../nav-config-dashboard';
 import { dashboardLayoutVars, dashboardNavColorVars } from './css-vars';
 import { IngestRefreshButton } from '../components/ingest-refresh-button';
 import { MainSection , layoutClasses , HeaderSection , LayoutSection } from '../core';
+import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
 
 // ----------------------------------------------------------------------
 
 export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery = 'lg' }) {
   const theme = useTheme();
-
+  const pathname = usePathname();
+  const { mode, setMode } = useColorScheme();
   const { user } = useAuthContext();
-
   const settings = useSettingsContext();
+  const { desktopMode, toggleDesktopMode } = useAdminDesktopMode();
+
+  const isDark = mode === 'dark';
+  const isAdminPage = pathname?.includes('/admin/');
+  const showDesktopToggle = isAdminPage && user?.role === 'super_admin';
+
+  // When desktop mode is active, use 'xs' as the breakpoint so sidebar
+  // always shows and bottom nav always hides, regardless of screen width.
+  const effectiveLayoutQuery = desktopMode && isAdminPage ? 'xs' : layoutQuery;
 
   const navVars = dashboardNavColorVars(theme, settings.state.navColor, settings.state.navLayout);
 
@@ -67,10 +82,10 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
       container: {
         maxWidth: false,
         sx: {
-          ...(isNavVertical && { px: { [layoutQuery]: 5 } }),
+          ...(isNavVertical && { px: { [effectiveLayoutQuery]: 5 } }),
           ...(isNavHorizontal && {
             bgcolor: 'var(--layout-nav-bg)',
-            height: { [layoutQuery]: 'var(--layout-nav-horizontal-height)' },
+            height: { [effectiveLayoutQuery]: 'var(--layout-nav-horizontal-height)' },
             [`& .${iconButtonClasses.root}`]: { color: 'var(--layout-nav-text-secondary-color)' },
           }),
         },
@@ -81,7 +96,7 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
       bottomArea: isNavHorizontal ? (
         <NavHorizontal
           data={navData}
-          layoutQuery={layoutQuery}
+          layoutQuery={effectiveLayoutQuery}
           cssVars={navVars.section}
           checkPermissions={canDisplayItemByRole}
         />
@@ -91,7 +106,7 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
           {/** @slot Nav mobile */}
           <MenuButton
             onClick={onOpen}
-            sx={{ mr: 1, ml: -1, [theme.breakpoints.up(layoutQuery)]: { display: 'none' } }}
+            sx={{ mr: 1, ml: -1, [theme.breakpoints.up(effectiveLayoutQuery)]: { display: 'none' } }}
           />
           <NavMobile
             data={navData}
@@ -106,14 +121,14 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
             <Logo
               sx={{
                 display: 'none',
-                [theme.breakpoints.up(layoutQuery)]: { display: 'inline-flex' },
+                [theme.breakpoints.up(effectiveLayoutQuery)]: { display: 'inline-flex' },
               }}
             />
           )}
 
           {/** @slot Divider */}
           {isNavHorizontal && (
-            <VerticalDivider sx={{ [theme.breakpoints.up(layoutQuery)]: { display: 'flex' } }} />
+            <VerticalDivider sx={{ [theme.breakpoints.up(effectiveLayoutQuery)]: { display: 'flex' } }} />
           )}
         </>
       ),
@@ -121,6 +136,51 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0, sm: 0.75 } }}>
           {/** @slot Ingest refresh */}
           <IngestRefreshButton />
+
+          {/** @slot Desktop mode toggle — admin pages only */}
+          {showDesktopToggle && (
+            <Tooltip title={desktopMode ? 'بازگشت به نمای موبایل' : 'نمای دسکتاپ'}>
+              <IconButton
+                onClick={toggleDesktopMode}
+                size="small"
+                sx={{
+                  color: desktopMode ? 'primary.main' : 'text.secondary',
+                  bgcolor: desktopMode ? 'primary.lighter' : 'transparent',
+                  border: '1px solid',
+                  borderColor: desktopMode ? 'primary.light' : 'divider',
+                  borderRadius: 1,
+                  width: 34,
+                  height: 34,
+                }}
+              >
+                <Iconify
+                  icon={desktopMode ? 'solar:monitor-bold' : 'solar:monitor-line-duotone'}
+                  width={18}
+                />
+              </IconButton>
+            </Tooltip>
+          )}
+
+          {/** @slot Dark mode toggle */}
+          <Tooltip title={isDark ? 'حالت روشن' : 'حالت تاریک'}>
+            <IconButton
+              onClick={() => setMode(isDark ? 'light' : 'dark')}
+              size="small"
+              sx={{
+                color: 'text.secondary',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1,
+                width: 34,
+                height: 34,
+              }}
+            >
+              <Iconify
+                icon={isDark ? 'solar:sun-bold' : 'solar:moon-bold'}
+                width={18}
+              />
+            </IconButton>
+          </Tooltip>
 
           {/** @slot Profile switcher */}
           <ProfileSwitcher sx={{ mr: { xs: 0.5, sm: 1 } }} />
@@ -130,7 +190,7 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
 
     return (
       <HeaderSection
-        layoutQuery={layoutQuery}
+        layoutQuery={effectiveLayoutQuery}
         disableOffset
         disableElevation
         {...slotProps?.header}
@@ -151,7 +211,7 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
     <NavVertical
       data={navData}
       isNavMini={isNavMini}
-      layoutQuery={layoutQuery}
+      layoutQuery={effectiveLayoutQuery}
       cssVars={navVars.section}
       checkPermissions={canDisplayItemByRole}
       onToggleNav={() =>
@@ -188,7 +248,7 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
       sx={[
         {
           [`& .${layoutClasses.sidebarContainer}`]: {
-            [theme.breakpoints.up(layoutQuery)]: {
+            [theme.breakpoints.up(effectiveLayoutQuery)]: {
               pl: isNavMini ? 'var(--layout-nav-mini-width)' : 'var(--layout-nav-vertical-width)',
               transition: theme.transitions.create(['padding-left'], {
                 easing: 'var(--layout-transition-easing)',

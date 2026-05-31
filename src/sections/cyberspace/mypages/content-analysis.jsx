@@ -10,6 +10,8 @@ import { alpha, useTheme } from '@mui/material/styles';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { Iconify } from 'src/components/iconify';
+import { InfoTooltip } from 'src/components/info-tooltip';
+import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 import { SvgColor } from 'src/components/svg-color';
 
 // ----------------------------------------------------------------------
@@ -120,6 +122,7 @@ export function ContentAnalysis({ loading, posts = [] }) {
             </Box>
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>تحلیل محتوای منتشرشده</Typography>
+              <InfoTooltip title={WIDGET_TOOLTIPS.contentAnalysis} />
               <Typography variant="caption" sx={{ color: 'text.secondary' }}>الگوهای انتشار صفحات رسمی</Typography>
             </Box>
           </Stack>
@@ -146,6 +149,7 @@ export function ContentAnalysis({ loading, posts = [] }) {
             </Box>
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>تحلیل محتوای منتشرشده</Typography>
+              <InfoTooltip title={WIDGET_TOOLTIPS.contentAnalysis} />
               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                 {totalPosts.toLocaleString('fa-IR')} پست · {formatNum(totalViews)} بازدید
               </Typography>

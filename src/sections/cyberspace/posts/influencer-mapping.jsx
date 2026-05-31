@@ -13,6 +13,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useInfluencerMap } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
+import { InfoTooltip } from 'src/components/info-tooltip';
+import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 
 // ----------------------------------------------------------------------
 
@@ -149,6 +151,7 @@ export function InfluencerMapping() {
           </Box>
           <Box>
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>نقشه تأثیرگذاران</Typography>
+            <InfoTooltip title={WIDGET_TOOLTIPS.influencerMapping} />
             {!isLoading && hasData && (
               <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 10 }}>
                 {supporters.length} موافق · {critics.length} مخالف · {formatNum(totalReach)} بازدید

@@ -9,6 +9,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useHashtags } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
+import { InfoTooltip } from 'src/components/info-tooltip';
+import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 
 // ----------------------------------------------------------------------
 
@@ -30,6 +32,7 @@ export function HotTopics() {
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
           <Iconify icon="solar:fire-bold-duotone" width={20} sx={{ color: theme.palette.error.main }} />
           <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>هشتگ‌های داغ</Typography>
+          <InfoTooltip title={WIDGET_TOOLTIPS.hotTopics} />
         </Stack>
 
         <Stack direction="row" flexWrap="wrap" gap={1}>

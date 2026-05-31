@@ -6,24 +6,26 @@ import { alpha, useTheme } from '@mui/material/styles';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { Iconify } from 'src/components/iconify';
+import { InfoTooltip } from 'src/components/info-tooltip';
+import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 
 // ----------------------------------------------------------------------
 
 const getHealthStatus = (score) => {
-  if (score >= 70) return { 
-    label: 'عالی', 
+  if (score >= 65) return { 
+    label: 'مطلوب', 
     color: '#00AB55', 
     icon: 'solar:shield-check-bold-duotone',
     gradient: ['#00AB55', '#007B55']
   };
-  if (score >= 40) return { 
+  if (score >= 45) return { 
     label: 'متوسط', 
     color: '#FFAB00', 
     icon: 'solar:shield-warning-bold-duotone',
     gradient: ['#FFAB00', '#B76E00']
   };
   return { 
-    label: 'بحرانی', 
+    label: 'نامطلوب', 
     color: '#FF5630', 
     icon: 'solar:shield-cross-bold-duotone',
     gradient: ['#FF5630', '#B71D18']
@@ -90,6 +92,7 @@ export function ReputationGauge({ loading, healthScore = null }) {
                 شاخص سلامت اعتبار
               </Typography>
             </Box>
+            <InfoTooltip title={WIDGET_TOOLTIPS.reputationGauge} />
           </Stack>
 
           {/* Gauge Chart - Smaller */}

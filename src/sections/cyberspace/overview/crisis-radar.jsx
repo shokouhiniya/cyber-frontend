@@ -8,6 +8,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useCrisisMetrics } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
+import { InfoTooltip } from 'src/components/info-tooltip';
+import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 
 // ----------------------------------------------------------------------
 
@@ -126,6 +128,7 @@ export function CrisisRadar({ loading: parentLoading }) {
             <Iconify icon={crisis.icon} width={22} sx={{ color: crisis.color }} />
           </Box>
           <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>رادار بحران</Typography>
+          <InfoTooltip title={WIDGET_TOOLTIPS.crisisRadar} />
         </Stack>
 
         <Box sx={{ px: 1.5, py: 0.5, borderRadius: 1.5, bgcolor: alpha(crisis.color, 0.14), border: `1px solid ${alpha(crisis.color, 0.24)}` }}>

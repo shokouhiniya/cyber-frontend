@@ -16,6 +16,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useTopPosts } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
+import { InfoTooltip } from 'src/components/info-tooltip';
+import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 
 import { PostCard, formatNum, usePostDrawer } from '../shared/post-card';
 
@@ -60,6 +62,7 @@ export function MostViewedPosts() {
               </Box>
               <Box>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>پربازدیدترین پست‌ها</Typography>
+                <InfoTooltip title={WIDGET_TOOLTIPS.mostViewedPosts} />
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>بیشترین بازدید در بازه انتخابی</Typography>
               </Box>
             </Stack>

@@ -1,20 +1,12 @@
 'use client';
 
 import Box from '@mui/material/Box';
+import { useColorScheme } from '@mui/material/styles';
 
 import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
 
-/**
- * Renders either an Iconify icon or a local SVG image depending on
- * the platform config's `iconType` field.
- *
- * Props:
- *   cfg   — platform config object from platformById
- *   size  — icon size in px (default 18)
- *   sx    — MUI sx prop forwarded to the wrapper Box
- */
 export function PlatformIcon({ cfg, size = 18, sx }) {
   if (!cfg) return null;
 
@@ -29,5 +21,9 @@ export function PlatformIcon({ cfg, size = 18, sx }) {
     );
   }
 
-  return <Iconify icon={cfg.icon} width={size} sx={{ color: cfg.color, ...sx }} />;
+  // Twitter/X has a black icon (#000000) that's invisible in dark mode — use white instead
+  const { mode } = useColorScheme();
+  const iconColor = cfg.color === '#000000' && mode === 'dark' ? '#FFFFFF' : cfg.color;
+
+  return <Iconify icon={cfg.icon} width={size} sx={{ color: iconColor, ...sx }} />;
 }

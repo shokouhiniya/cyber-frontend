@@ -45,7 +45,7 @@ export const navData = [
       { title: 'پروفایل‌ها', path: paths.dashboard.admin.profiles, icon: ICONS.user, ...SUPER_ADMIN_ONLY },
       { title: 'کاربران', path: paths.dashboard.admin.users, icon: ICONS.user, ...SUPER_ADMIN_ONLY },
       { title: 'منابع داده', path: paths.dashboard.admin.dataSources, icon: ICONS.file, ...SUPER_ADMIN_ONLY },
-      { title: 'متغیرهای عمومی', path: paths.dashboard.admin.globalContext, icon: ICONS.blog, ...SUPER_ADMIN_ONLY },
+      { title: 'تنظیمات', path: paths.dashboard.admin.globalContext, icon: ICONS.blog, ...SUPER_ADMIN_ONLY },
       { title: 'لاگ مدیریتی', path: paths.dashboard.admin.auditLog, icon: ICONS.file, ...SUPER_ADMIN_ONLY },
       { title: 'مستندات فنی', path: paths.dashboard.admin.docs, icon: ICONS.file, ...SUPER_ADMIN_ONLY },
     ],

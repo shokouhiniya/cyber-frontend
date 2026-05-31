@@ -9,6 +9,7 @@ import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Select from '@mui/material/Select';
 import Switch from '@mui/material/Switch';
+import Tooltip from '@mui/material/Tooltip';
 import { alpha } from '@mui/material/styles';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
@@ -269,6 +270,132 @@ export function ChannelsEditor({ value = [], onChange }) {
         onClose={() => setDialogOpen(false)}
         onSave={handleSave}
         initial={editingIdx !== null ? value[editingIdx] : null}
+      />
+    </Box>
+  );
+}
+
+// ----------------------------------------------------------------------
+/**
+ * Desktop grid variant — shows all platforms as always-visible cards.
+ * Grayed out = not configured. Colored = configured.
+ * Click a card to add/edit that platform's channel.
+ */
+export function ChannelsGridEditor({ value = [], onChange }) {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingPlatformId, setEditingPlatformId] = useState(null);
+
+  // Find existing channel for a platform (first match)
+  const channelFor = (platformId) => value.find((ch) => ch.platform === platformId) ?? null;
+  const idxFor = (platformId) => value.findIndex((ch) => ch.platform === platformId);
+
+  const openPlatform = (platformId) => {
+    setEditingPlatformId(platformId);
+    setDialogOpen(true);
+  };
+
+  const handleSave = (ch) => {
+    const idx = idxFor(ch.platform);
+    if (idx >= 0) {
+      const next = [...value];
+      next[idx] = ch;
+      onChange(next);
+    } else {
+      onChange([...value, ch]);
+    }
+  };
+
+  const remove = (platformId) => {
+    onChange(value.filter((ch) => ch.platform !== platformId));
+  };
+
+  const toggle = (platformId) => {
+    const idx = idxFor(platformId);
+    if (idx < 0) return;
+    const next = [...value];
+    next[idx] = { ...next[idx], active: !next[idx].active };
+    onChange(next);
+  };
+
+  const editingChannel = editingPlatformId ? channelFor(editingPlatformId) : null;
+  const editingInitial = editingChannel
+    ? editingChannel
+    : editingPlatformId
+      ? { ...EMPTY_CHANNEL, platform: editingPlatformId }
+      : null;
+
+  return (
+    <Box>
+      <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>صفحات رسمی</Typography>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1 }}>
+        {PLATFORMS.map((cfg) => {
+          const ch = channelFor(cfg.id);
+          const configured = !!ch;
+          const isActive = ch?.active !== false;
+
+          return (
+            <Card
+              key={cfg.id}
+              variant="outlined"
+              onClick={() => openPlatform(cfg.id)}
+              sx={{
+                p: 1.5, cursor: 'pointer', position: 'relative',
+                transition: 'all 0.15s',
+                opacity: configured && !isActive ? 0.5 : 1,
+                bgcolor: configured ? alpha(cfg.color, 0.05) : 'background.paper',
+                borderColor: configured ? alpha(cfg.color, 0.35) : 'divider',
+                filter: configured ? 'none' : 'grayscale(1)',
+                '&:hover': {
+                  borderColor: cfg.color,
+                  bgcolor: alpha(cfg.color, 0.08),
+                  filter: 'none',
+                  transform: 'translateY(-1px)',
+                  boxShadow: `0 4px 12px ${alpha(cfg.color, 0.15)}`,
+                },
+              }}
+            >
+              <Stack alignItems="center" spacing={0.75}>
+                <Box sx={{ width: 36, height: 36, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: configured ? alpha(cfg.color, 0.15) : alpha('#607D8B', 0.08) }}>
+                  <PlatformIcon cfg={cfg} size={22} />
+                </Box>
+                <Typography variant="caption" fontWeight={700} sx={{ fontSize: 10, textAlign: 'center', color: configured ? 'text.primary' : 'text.disabled' }}>
+                  {cfg.label}
+                </Typography>
+                {configured ? (
+                  <Typography variant="caption" noWrap sx={{ fontSize: 9, color: cfg.color, maxWidth: '100%', direction: 'ltr', textAlign: 'center' }}>
+                    {ch.handle}
+                  </Typography>
+                ) : (
+                  <Typography variant="caption" sx={{ fontSize: 9, color: 'text.disabled' }}>تنظیم نشده</Typography>
+                )}
+              </Stack>
+
+              {/* Configured badge + quick actions */}
+              {configured && (
+                <Stack direction="row" spacing={0.25} sx={{ position: 'absolute', top: 4, left: 4 }}
+                  onClick={(e) => e.stopPropagation()}>
+                  <Tooltip title={isActive ? 'غیرفعال کردن' : 'فعال کردن'}>
+                    <IconButton size="small" onClick={() => toggle(cfg.id)} sx={{ width: 18, height: 18, p: 0 }}>
+                      <Iconify icon={isActive ? 'solar:check-circle-bold' : 'solar:close-circle-bold'} width={14} sx={{ color: isActive ? 'success.main' : 'text.disabled' }} />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="حذف">
+                    <IconButton size="small" onClick={() => remove(cfg.id)} sx={{ width: 18, height: 18, p: 0 }}>
+                      <Iconify icon="solar:close-circle-bold" width={14} sx={{ color: 'error.light' }} />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
+              )}
+            </Card>
+          );
+        })}
+      </Box>
+
+      <ChannelDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onSave={handleSave}
+        initial={editingInitial}
       />
     </Box>
   );
