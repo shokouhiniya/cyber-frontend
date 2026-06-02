@@ -73,6 +73,15 @@ export function useDeleteProfile() {
   });
 }
 
+export function useBatchImportProfiles() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (profiles) =>
+      (await axios.post(endpoints.admin.profileBatchImport, { profiles })).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'profiles'] }),
+  });
+}
+
 // --------------------------------------------------------------------
 // Users
 // --------------------------------------------------------------------

@@ -102,6 +102,8 @@ export const endpoints = {
     accessibleProfiles: '/api/admin/accessible-profiles',
     profiles: '/api/admin/profiles',
     profile: (id) => `/api/admin/profiles/${id}`,
+    profileSampleCsv: '/api/admin/profiles/sample-csv',
+    profileBatchImport: '/api/admin/profiles/batch-import',
     users: '/api/admin/users',
     user: (id) => `/api/admin/users/${id}`,
     userResetPassword: (id) => `/api/admin/users/${id}/reset-password`,

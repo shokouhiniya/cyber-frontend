@@ -43,6 +43,7 @@ import { Iconify } from 'src/components/iconify';
 
 import { AdminPageHeader } from '../shared/page-header';
 import { ProfileFormDialog } from './profile-form-dialog';
+import { BatchImportDialog } from './batch-import-dialog';
 
 // ----------------------------------------------------------------------
 
@@ -1131,6 +1132,7 @@ export function AdminProfilesView() {
 
   const [editing, setEditing] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [batchImportOpen, setBatchImportOpen] = useState(false);
   const [sortKey, setSortKey] = useState('name_asc');
   const [search, setSearch] = useState('');
   const [filterTier, setFilterTier] = useState('');
@@ -1170,9 +1172,19 @@ export function AdminProfilesView() {
         title="مدیریت پروفایل‌ها"
         subtitle="هر پروفایل نماینده یک کلاینت / تحلیل‌شونده در سیستم است."
         action={
-          <Button variant="contained" startIcon={<Iconify icon="eva:plus-fill" />} onClick={openNew}>
-            پروفایل جدید
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<Iconify icon="solar:import-bold-duotone" width={16} />}
+              onClick={() => setBatchImportOpen(true)}
+            >
+              درج دسته‌جمعی
+            </Button>
+            <Button variant="contained" startIcon={<Iconify icon="eva:plus-fill" />} onClick={openNew}>
+              پروفایل جدید
+            </Button>
+          </Stack>
         }
       />
 
@@ -1331,6 +1343,11 @@ export function AdminProfilesView() {
         open={dialogOpen}
         profile={editing}
         onClose={() => setDialogOpen(false)}
+      />
+
+      <BatchImportDialog
+        open={batchImportOpen}
+        onClose={() => setBatchImportOpen(false)}
       />
     </Container>
   );
