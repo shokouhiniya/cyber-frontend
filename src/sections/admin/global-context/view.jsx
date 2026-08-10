@@ -12,6 +12,7 @@ import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Select from '@mui/material/Select';
+import Switch from '@mui/material/Switch';
 import Divider from '@mui/material/Divider';
 import MenuItem from '@mui/material/MenuItem';
 import Container from '@mui/material/Container';
@@ -24,6 +25,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import { alpha, useTheme } from '@mui/material/styles';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import FormControlLabel from '@mui/material/FormControlLabel';
 
 import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
 import {
@@ -377,6 +379,7 @@ function IngestSettingsTab() {
   const save = useSaveIngestSettings();
 
   const DEFAULT = {
+    automaticCollectionEnabled: true,
     heavy:   { sampleSize: 100, range: 'day',  cron: '0 0,6,12,18 * * *', description: 'هر ۶ ساعت (۴ بار در روز)' },
     medium:  { sampleSize: 80,  range: 'week', cron: '0 3 * * *',          description: 'یک بار در روز (ساعت ۳ بامداد)' },
     light:   { sampleSize: 60,  range: 'week', cron: '0 4 */3 * *',        description: 'هر ۳ روز یک بار (ساعت ۴ بامداد)' },
@@ -464,6 +467,26 @@ function IngestSettingsTab() {
       {/* Global settings */}
       <Card variant="outlined" sx={{ p: 2, mb: 3 }}>
         <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2 }}>تنظیمات عمومی</Typography>
+        <Box sx={{ mb: 2, p: 1.5, borderRadius: 1.5, bgcolor: alpha(theme.palette.warning.main, 0.06) }}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={form.automaticCollectionEnabled !== false}
+                onChange={(e) => setGlobal({ automaticCollectionEnabled: e.target.checked })}
+                color="warning"
+              />
+            }
+            label={
+              <Box>
+                <Typography variant="body2" fontWeight={700}>جمع‌آوری خودکار</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  با غیرفعال‌سازی، اجراهای زمان‌بندی‌شده متوقف می‌شوند؛ اجرای دستی همچنان انجام می‌شود.
+                </Typography>
+              </Box>
+            }
+            sx={{ alignItems: 'flex-start', m: 0 }}
+          />
+        </Box>
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
           <TextField
             label="حداقل فاصله بین اجراهای دستی (دقیقه)"
