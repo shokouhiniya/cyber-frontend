@@ -5,10 +5,16 @@
  * `iconType`:
  *   'iconify' — use the Iconify <Iconify icon={icon} /> component
  *   'img'     — use <img src={icon} /> (local SVG in /assets/icons/social/)
+ *
+ * `sourceType` is the post `sourceType` the platform's posts are stored under,
+ * and `ingested` marks platforms whose official-page posts the backend actually
+ * collects (OfficialPagesFeedService — currently Telegram only).
  */
 export const PLATFORMS = [
   {
     id: 'web',
+    sourceType: null,
+    ingested: false,
     label: 'وب‌سایت',
     iconType: 'iconify',
     icon: 'solar:global-bold-duotone',
@@ -18,6 +24,8 @@ export const PLATFORMS = [
   },
   {
     id: 'telegram',
+    sourceType: 'telegram',
+    ingested: true,
     label: 'تلگرام',
     iconType: 'iconify',
     icon: 'ic:baseline-telegram',
@@ -27,6 +35,8 @@ export const PLATFORMS = [
   },
   {
     id: 'x',
+    sourceType: 'twitter',
+    ingested: false,
     label: 'ایکس (توییتر)',
     iconType: 'iconify',
     icon: 'ri:twitter-x-fill',
@@ -36,6 +46,8 @@ export const PLATFORMS = [
   },
   {
     id: 'instagram',
+    sourceType: 'instagram',
+    ingested: false,
     label: 'اینستاگرام',
     iconType: 'iconify',
     icon: 'mdi:instagram',
@@ -45,6 +57,8 @@ export const PLATFORMS = [
   },
   {
     id: 'bale',
+    sourceType: 'bale',
+    ingested: false,
     label: 'بله',
     iconType: 'img',
     icon: '/assets/icons/social/bale.svg',
@@ -54,6 +68,8 @@ export const PLATFORMS = [
   },
   {
     id: 'eitaa',
+    sourceType: 'eitaa',
+    ingested: false,
     label: 'ایتا',
     iconType: 'img',
     icon: '/assets/icons/social/eitaa.svg',
@@ -63,6 +79,8 @@ export const PLATFORMS = [
   },
   {
     id: 'rubika',
+    sourceType: 'rubika',
+    ingested: false,
     label: 'روبیکا',
     iconType: 'img',
     icon: '/assets/icons/social/rubika.svg',
@@ -73,12 +91,21 @@ export const PLATFORMS = [
 ];
 
 export const platformById = Object.fromEntries(PLATFORMS.map((p) => [p.id, p]));
+/** Lower-case handle without a leading @ — for matching channels to posts. */
+export function normalizeHandle(handle) {
+  return String(handle ?? '')
+    .trim()
+    .replace(/^@/, '')
+    .toLowerCase();
+}
+
 export function getPlatformUrl(channel) {
   if (channel.url) return channel.url;
   const cfg = platformById[channel.platform];
-  if (!cfg) return null;
+  const handle = String(channel.handle ?? '').trim();
+  if (!cfg || !handle) return null;
   if (channel.platform === 'web') {
-    return channel.handle.startsWith('http') ? channel.handle : `https://${channel.handle}`;
+    return handle.startsWith('http') ? handle : `https://${handle}`;
   }
-  return `${cfg.urlPrefix}${channel.handle}`;
+  return `${cfg.urlPrefix}${handle.replace(/^@/, '')}`;
 }

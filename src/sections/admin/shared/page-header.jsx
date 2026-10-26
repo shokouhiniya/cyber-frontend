@@ -1,29 +1,22 @@
 'use client';
 
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
+import { PageHeader } from 'src/sections/cyberspace/shared/page-header';
 
 // ----------------------------------------------------------------------
 
-export function AdminPageHeader({ title, subtitle, action }) {
+/**
+ * Admin wrapper around the shared PageHeader: same typography as the
+ * monitoring pages, never shows the selected profile, primary action on the
+ * far side.
+ */
+export function AdminPageHeader({ title, subtitle, action, sx }) {
   return (
-    <Stack
-      direction="row"
-      alignItems="flex-start"
-      justifyContent="space-between"
-      sx={{ mb: 3, flexWrap: 'wrap', gap: 1 }}
-    >
-      <div>
-        <Typography variant="h4" sx={{ fontWeight: 800 }}>
-          {title}
-        </Typography>
-        {subtitle && (
-          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
-            {subtitle}
-          </Typography>
-        )}
-      </div>
-      {action}
-    </Stack>
+    <PageHeader
+      title={title}
+      description={subtitle}
+      actions={action}
+      showProfile={false}
+      sx={sx}
+    />
   );
 }

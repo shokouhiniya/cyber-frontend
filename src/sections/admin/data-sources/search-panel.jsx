@@ -16,12 +16,16 @@ import FormControl from '@mui/material/FormControl';
 import { alpha, useTheme } from '@mui/material/styles';
 import CircularProgress from '@mui/material/CircularProgress';
 
+import { fNum } from 'src/utils/format-number-fa';
+
 import { useSearchDataSource } from 'src/api/admin';
 
 import { Iconify } from 'src/components/iconify';
 import { SvgColor } from 'src/components/svg-color';
 
 import { PostCard, usePostDrawer } from 'src/sections/cyberspace/shared/post-card';
+
+import { getErrorText } from '../shared/admin-ui';
 
 // ----------------------------------------------------------------------
 // Source definitions — 4 rows as specified
@@ -126,6 +130,8 @@ const RANGES = [
 
 function SourcePill({ source, selected, onClick }) {
   const theme = useTheme();
+  // Pure black (X/Twitter) disappears on the dark theme — follow the text colour instead.
+  const color = source.color === '#000000' ? theme.palette.text.primary : source.color;
   return (
     <Box
       onClick={source.disabled ? undefined : onClick}
@@ -133,25 +139,25 @@ function SourcePill({ source, selected, onClick }) {
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         gap: 0.5, p: 1, borderRadius: 1.5,
         cursor: source.disabled ? 'not-allowed' : 'pointer',
-        border: `1.5px solid ${selected ? source.color : alpha(theme.palette.grey[500], 0.2)}`,
-        bgcolor: selected ? alpha(source.color, 0.1) : alpha(theme.palette.grey[500], 0.03),
+        border: `1.5px solid ${selected ? color : alpha(theme.palette.grey[500], 0.2)}`,
+        bgcolor: selected ? alpha(color, 0.1) : alpha(theme.palette.grey[500], 0.04),
         opacity: source.disabled ? 0.4 : 1,
         transition: 'all 0.15s',
-        minWidth: 72, flex: 1,
+        minWidth: 0, flex: 1,
         '&:hover': source.disabled ? {} : {
-          bgcolor: alpha(source.color, selected ? 0.14 : 0.06),
-          borderColor: source.color,
+          bgcolor: alpha(color, selected ? 0.14 : 0.06),
+          borderColor: color,
         },
       }}
     >
       <Box sx={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {source.svg ? (
-          <SvgColor src={source.svg} sx={{ width: 20, height: 20, color: selected ? source.color : 'text.disabled' }} />
+          <SvgColor src={source.svg} sx={{ width: 20, height: 20, color: selected ? color : 'text.disabled' }} />
         ) : (
-          <Iconify icon={source.icon} width={20} sx={{ color: selected ? source.color : 'text.disabled' }} />
+          <Iconify icon={source.icon} width={20} sx={{ color: selected ? color : 'text.disabled' }} />
         )}
       </Box>
-      <Typography variant="caption" sx={{ fontSize: 9, fontWeight: selected ? 700 : 500, color: selected ? source.color : 'text.secondary', lineHeight: 1.2, textAlign: 'center' }}>
+      <Typography variant="caption" sx={{ fontSize: 12, fontWeight: selected ? 700 : 500, color: selected ? color : 'text.secondary', lineHeight: 1.3, textAlign: 'center' }}>
         {source.label}
       </Typography>
     </Box>
@@ -216,7 +222,7 @@ export function EightTagSearchPanel({ dataSourceId, profileKeywords = [], profil
       Object.keys(params).forEach((k) => { if (params[k] === '' || params[k] === null || params[k] === undefined) delete params[k]; });
       const r = await search.mutateAsync({ id: dataSourceId, params });
       setResults(r);
-    } catch (e) { setError(typeof e === 'string' ? e : e?.message || 'خطا در جستجو'); }
+    } catch (e) { setError(getErrorText(e, 'خطا در جستجو')); }
   };
 
   const posts = results?.data ?? [];
@@ -227,13 +233,13 @@ export function EightTagSearchPanel({ dataSourceId, profileKeywords = [], profil
   return (
     <Box sx={{ borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.03), border: `1px solid ${alpha(theme.palette.primary.main, 0.12)}`, overflow: 'hidden' }}>
       <Box sx={{ px: 2, py: 1.5, background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.06)} 0%, ${alpha(theme.palette.info.main, 0.04)} 100%)`, borderBottom: `1px solid ${alpha(theme.palette.primary.main, 0.1)}` }}>
-        <Stack direction="row" alignItems="center" spacing={1}>
+        <Stack direction="row" alignItems="center" sx={{ flexWrap: 'wrap', gap: 1 }}>
           <Iconify icon="solar:magnifer-bold-duotone" width={20} sx={{ color: 'primary.main' }} />
           <Typography variant="subtitle2" fontWeight={700}>جستجوی آنلاین ۸تگ</Typography>
-          {profileName && <Chip size="small" label={profileName} color="primary" variant="outlined" sx={{ ml: 1 }} />}
+          {profileName && <Chip size="small" label={profileName} color="primary" variant="outlined" />}
           {selectedSources.length === 0
             ? <Chip size="small" label="همه منابع" color="warning" variant="outlined" />
-            : selectedSources.length > 1 && <Chip size="small" label={`${selectedSources.length} منبع`} color="info" variant="outlined" />
+            : selectedSources.length > 1 && <Chip size="small" label={`${fNum(selectedSources.length)} منبع`} color="info" variant="outlined" />
           }
         </Stack>
       </Box>
@@ -241,7 +247,7 @@ export function EightTagSearchPanel({ dataSourceId, profileKeywords = [], profil
       <Box sx={{ p: 2 }}>
         {/* Source pill grid */}
         <Box sx={{ mb: 2 }}>
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, fontWeight: 600 }}>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, fontWeight: 600, fontSize: 12 }}>
             منابع — کلیک برای انتخاب/حذف، بدون انتخاب = همه منابع
           </Typography>
           <Stack spacing={1}>
@@ -279,13 +285,13 @@ export function EightTagSearchPanel({ dataSourceId, profileKeywords = [], profil
           <Grid size={{ xs: 12, sm: 6 }}>
             <TextField label="هیچ‌کدام نباشند (not)" value={form.not} onChange={(e) => set({ not: e.target.value })} fullWidth size="small" placeholder="تبلیغ|اسپم" slotProps={{ input: { style: { direction: 'rtl' } } }} />
           </Grid>
-          <Grid size={{ xs: 4 }}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField label="حداقل بازدید" type="number" value={form.minViews} onChange={(e) => set({ minViews: e.target.value })} fullWidth size="small" placeholder="۱۰۰۰" slotProps={{ htmlInput: { min: 0 } }} />
           </Grid>
-          <Grid size={{ xs: 4 }}>
+          <Grid size={{ xs: 6, sm: 4 }}>
             <TextField label="حداقل لایک/ری‌اکشن" type="number" value={form.minLikes} onChange={(e) => set({ minLikes: e.target.value })} fullWidth size="small" placeholder="۵۰" slotProps={{ htmlInput: { min: 0 } }} />
           </Grid>
-          <Grid size={{ xs: 4 }}>
+          <Grid size={{ xs: 6, sm: 4 }}>
             <TextField label="حداقل فالور" type="number" value={form.minFollowers} onChange={(e) => set({ minFollowers: e.target.value })} fullWidth size="small" placeholder="۱۰۰۰" slotProps={{ htmlInput: { min: 0 } }} />
           </Grid>
         </Grid>
@@ -318,11 +324,11 @@ export function EightTagSearchPanel({ dataSourceId, profileKeywords = [], profil
           </Button>
           {results?.thresholdApplied && (
             <Chip size="small" color="warning" variant="outlined"
-              label={`فیلتر: ${results.thresholdApplied.field} ≥ ${results.thresholdApplied.min.toLocaleString('fa-IR')}`}
+              label={`فیلتر: ${results.thresholdApplied.field} ≥ ${fNum(results.thresholdApplied.min)}`}
             />
           )}
-          {results && <Chip size="small" label={`${posts.length} نمایش`} />}
-          {results && <Chip size="small" color="primary" variant="outlined" label={`${total.toLocaleString('fa-IR')} کل`} />}
+          {results && <Chip size="small" label={`${fNum(posts.length)} نمایش`} />}
+          {results && <Chip size="small" color="primary" variant="outlined" label={`${fNum(total)} کل`} />}
         </Stack>
 
         {results && posts.length === 0 && (

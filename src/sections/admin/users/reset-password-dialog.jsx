@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
+import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Dialog from '@mui/material/Dialog';
 import Button from '@mui/material/Button';
@@ -12,6 +13,10 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 
 import { useResetUserPassword } from 'src/api/admin';
+
+import { toast } from 'src/components/snackbar';
+
+import { getErrorText } from '../shared/admin-ui';
 
 // ----------------------------------------------------------------------
 
@@ -34,8 +39,9 @@ export function ResetPasswordDialog({ open, onClose, user }) {
     try {
       await reset.mutateAsync({ id: user.id, password });
       setDone(true);
+      toast.success('رمز عبور تغییر کرد');
     } catch (e) {
-      setError(typeof e === 'string' ? e : e?.message || 'خطا در تغییر رمز');
+      setError(getErrorText(e, 'خطا در تغییر رمز'));
     }
   };
 
@@ -44,11 +50,12 @@ export function ResetPasswordDialog({ open, onClose, user }) {
       <DialogTitle>تغییر رمز کاربر</DialogTitle>
       <DialogContent>
         {done ? (
-          <Box sx={{ color: 'success.main' }}>رمز با موفقیت تغییر کرد.</Box>
+          <Alert severity="success" sx={{ mt: 1 }}>رمز با موفقیت تغییر کرد.</Alert>
         ) : (
           <Stack spacing={2} sx={{ mt: 1 }}>
             <Box sx={{ color: 'text.secondary', fontSize: 14 }}>
-              برای کاربر: <strong>{user?.email}</strong>
+              برای کاربر: <strong>{user?.name || user?.username}</strong>
+              {user?.username && <Box component="span" sx={{ color: 'text.disabled' }}> (@{user.username})</Box>}
             </Box>
             <TextField
               label="رمز جدید"
@@ -56,15 +63,16 @@ export function ResetPasswordDialog({ open, onClose, user }) {
               onChange={(e) => setPassword(e.target.value)}
               fullWidth
               autoFocus
+              helperText="حداقل ۶ کاراکتر"
             />
-            {error && <Box sx={{ color: 'error.main', fontSize: 13 }}>{error}</Box>}
+            {error && <Alert severity="error">{error}</Alert>}
           </Stack>
         )}
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>{done ? 'بستن' : 'انصراف'}</Button>
         {!done && (
-          <Button variant="contained" onClick={submit} disabled={reset.isPending || password.length < 6}>
+          <Button variant="contained" onClick={submit} loading={reset.isPending} disabled={reset.isPending || password.length < 6}>
             ذخیره
           </Button>
         )}

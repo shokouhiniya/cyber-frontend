@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 
-import Box from '@mui/material/Box';
+import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Dialog from '@mui/material/Dialog';
 import Select from '@mui/material/Select';
@@ -18,6 +18,10 @@ import DialogContent from '@mui/material/DialogContent';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
 import { useAdminProfiles, useCreateDataSource, useUpdateDataSource } from 'src/api/admin';
+
+import { toast } from 'src/components/snackbar';
+
+import { getErrorText } from '../shared/admin-ui';
 
 // ----------------------------------------------------------------------
 
@@ -95,9 +99,10 @@ export function DataSourceFormDialog({ open, onClose, dataSource }) {
       } else {
         await create.mutateAsync(body);
       }
+      toast.success(dataSource?.id ? 'منبع داده ذخیره شد' : 'منبع داده ایجاد شد');
       onClose();
     } catch (e) {
-      setError(typeof e === 'string' ? e : e?.message || 'خطا در ذخیره‌سازی');
+      setError(getErrorText(e, 'خطا در ذخیره‌سازی'));
     }
   };
 
@@ -108,7 +113,7 @@ export function DataSourceFormDialog({ open, onClose, dataSource }) {
       <DialogTitle>{dataSource?.id ? 'ویرایش منبع داده' : 'منبع داده جدید'}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
-          <Stack direction="row" spacing={2}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <TextField
               label="نام"
               value={form.name}
@@ -162,7 +167,7 @@ export function DataSourceFormDialog({ open, onClose, dataSource }) {
             helperText='source, or/and/not, range, size, lang, forward, sort — همان پارامترهای پنل جستجو'
           />
 
-          <Stack direction="row" spacing={2} alignItems="center">
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
             <TextField
               label="Cron زمان‌بندی (v1: manual)"
               value={form.scheduleCron || ''}
@@ -181,12 +186,12 @@ export function DataSourceFormDialog({ open, onClose, dataSource }) {
             />
           </Stack>
 
-          {error && <Box sx={{ color: 'error.main', fontSize: 13 }}>{error}</Box>}
+          {error && <Alert severity="error">{error}</Alert>}
         </Stack>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>انصراف</Button>
-        <Button variant="contained" onClick={submit} disabled={submitting || !form.name}>
+        <Button variant="contained" onClick={submit} loading={submitting} disabled={submitting || !form.name}>
           {dataSource?.id ? 'ذخیره' : 'ایجاد'}
         </Button>
       </DialogActions>

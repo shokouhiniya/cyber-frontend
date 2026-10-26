@@ -1,78 +1,120 @@
+import { useState } from 'react';
+
 import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
-import { alpha, useTheme } from '@mui/material/styles';
-import CircularProgress from '@mui/material/CircularProgress';
+import { useTheme } from '@mui/material/styles';
+
+import { fNum, fShort, fPercent } from 'src/utils/format-number-fa';
 
 import { useSourceStats } from 'src/api/dashboard';
 
-import { Iconify } from 'src/components/iconify';
+import { Chart, useChart } from 'src/components/chart';
+import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
+
+import { WidgetCard, WidgetToggle } from '../shared/widget-card';
 
 // ----------------------------------------------------------------------
 
+// Brand colours; `null` means "use the theme text colour" (black logos vanish in dark mode).
 const SOURCE_CONFIG = {
-  telegram: { name: '\u062A\u0644\u06AF\u0631\u0627\u0645', icon: 'ic:baseline-telegram', color: '#0088cc' },
-  bale: { name: '\u0628\u0644\u0647', icon: 'solar:chat-round-dots-bold-duotone', color: '#00B4D8' },
-  rubika: { name: '\u0631\u0648\u0628\u06CC\u06A9\u0627', icon: 'solar:chat-square-bold-duotone', color: '#6C3AED' },
-  eita: { name: '\u0627\u06CC\u062A\u0627', icon: 'solar:letter-bold-duotone', color: '#FF6F00' },
-  news: { name: '\u062E\u0628\u0631\u06AF\u0632\u0627\u0631\u06CC', icon: 'solar:document-text-bold', color: '#4CAF50' },
-  instagram: { name: '\u0627\u06CC\u0646\u0633\u062A\u0627\u06AF\u0631\u0627\u0645', icon: 'mdi:instagram', color: '#E4405F' },
-  twitter: { name: '\u062A\u0648\u06CC\u06CC\u062A\u0631', icon: 'ri:twitter-x-fill', color: '#000000' },
-  newspaper: { name: '\u0631\u0648\u0632\u0646\u0627\u0645\u0647', icon: 'solar:global-bold-duotone', color: '#78909C' },
-  video_media: { name: '\u0631\u0633\u0627\u0646\u0647 \u062A\u0635\u0648\u06CC\u0631\u06CC', icon: 'solar:videocamera-record-bold', color: '#FF5722' },
-  forum: { name: '\u0641\u0631\u0648\u0645', icon: 'solar:chat-square-bold', color: '#795548' },
+  telegram: { name: 'تلگرام', color: '#0088CC' },
+  bale: { name: 'بله', color: '#00B4D8' },
+  rubika: { name: 'روبیکا', color: '#6C3AED' },
+  eita: { name: 'ایتا', color: '#FF6F00' },
+  news: { name: 'خبرگزاری', color: '#4CAF50' },
+  instagram: { name: 'اینستاگرام', color: '#E4405F' },
+  twitter: { name: 'توییتر (ایکس)', color: null },
+  newspaper: { name: 'روزنامه', color: '#78909C' },
+  media: { name: 'رسانه‌ها', color: '#26A69A' },
+  aparat: { name: 'آپارات', color: '#ED145B' },
+  video_media: { name: 'رسانه تصویری', color: '#FF5722' },
+  forum: { name: 'فروم', color: '#795548' },
 };
 
-const DEFAULT_CONFIG = { name: '\u0633\u0627\u06CC\u0631', icon: 'solar:widget-5-bold-duotone', color: '#ADB5BD' };
+const TIME_FILTERS = [
+  { value: 'day', label: 'امروز' },
+  { value: 'week', label: '۷ روز' },
+  { value: 'month', label: '۳۰ روز' },
+  { value: 'quarter', label: 'فصل' },
+];
+
+const TIMEFRAME_LABEL = { day: 'امروز', week: '۷ روز گذشته', month: '۳۰ روز گذشته', quarter: 'فصل اخیر' };
 
 export function PlatformsChart() {
   const theme = useTheme();
-  const { data: sources = [], isLoading } = useSourceStats();
+  const [timeframe, setTimeframe] = useState('week');
+  const { data, isLoading } = useSourceStats(timeframe);
 
-  if (isLoading) {
-    return (
-      <Card sx={{ p: 2, borderRadius: 2, boxShadow: theme.shadows[2], display: 'flex', justifyContent: 'center', minHeight: 80 }}>
-        <CircularProgress size={24} />
-      </Card>
-    );
-  }
+  const sources = (Array.isArray(data) ? data : []).filter((s) => s.count > 0).sort((a, b) => b.count - a.count);
+  const total = sources.reduce((sum, s) => sum + s.count, 0);
+  const items = sources.map((s) => {
+    const cfg = SOURCE_CONFIG[s.source];
+    return {
+      ...s,
+      // Unknown sources keep their own key so two of them never share one «سایر» bar.
+      name: cfg?.name ?? s.source ?? 'سایر',
+      color: cfg ? (cfg.color ?? theme.palette.text.primary) : theme.palette.grey[500],
+    };
+  });
 
-  const total = sources.reduce((sum, s) => sum + s.count, 0) || 1;
+  const options = useChart({
+    colors: items.map((i) => i.color),
+    plotOptions: { bar: { horizontal: true, distributed: true, barHeight: '58%', borderRadius: 3 } },
+    legend: { show: false },
+    dataLabels: {
+      enabled: true,
+      textAnchor: 'start',
+      offsetX: 6,
+      formatter: (v) => fShort(v),
+      style: { fontSize: '12px', fontWeight: 700, colors: [theme.palette.text.primary] },
+      background: { enabled: false },
+      dropShadow: { enabled: false },
+    },
+    xaxis: {
+      categories: items.map((i) => i.name),
+      tickAmount: 4,
+      labels: { formatter: (v) => fShort(v) },
+    },
+    yaxis: { labels: { formatter: (v) => v, style: { fontSize: '12px', fontWeight: 600 } } },
+    grid: { xaxis: { lines: { show: true } }, yaxis: { lines: { show: false } }, padding: { right: 48 } },
+    tooltip: {
+      y: {
+        title: { formatter: () => '' },
+        formatter: (v) => `${fNum(v)} مطلب (${fPercent(total ? (v / total) * 100 : 0, { decimals: 1 })})`,
+      },
+    },
+  });
+
+  const toggle = <WidgetToggle value={timeframe} onChange={setTimeframe} options={TIME_FILTERS} />;
 
   return (
-    <Card sx={{ borderRadius: 2, overflow: 'hidden', boxShadow: theme.shadows[2] }}>
-      <Box sx={{ p: 2 }}>
-        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-          <Iconify icon="solar:widget-5-bold-duotone" width={20} sx={{ color: theme.palette.info.main }} />
-          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>منابع داده</Typography>
-        </Stack>
+    <WidgetCard
+      title="منابع داده"
+      icon="solar:widget-5-bold-duotone"
+      color="info"
+      tooltip={WIDGET_TOOLTIPS.platformsChart}
+      subheader={total ? `${fNum(total)} مطلب در ${TIMEFRAME_LABEL[timeframe]}` : TIMEFRAME_LABEL[timeframe]}
+      action={<Box sx={{ display: { xs: 'none', sm: 'block' } }}>{toggle}</Box>}
+      contentSx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+    >
+      <Box sx={{ display: { xs: 'flex', sm: 'none' }, justifyContent: 'center' }}>{toggle}</Box>
 
-        <Stack spacing={1.5}>
-          {sources.map((item) => {
-            const cfg = SOURCE_CONFIG[item.source] || DEFAULT_CONFIG;
-            const percentage = ((item.count / total) * 100).toFixed(1);
-            return (
-              <Box key={item.source}>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 0.5 }}>
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <Box sx={{ width: 28, height: 28, borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: alpha(cfg.color, 0.12) }}>
-                      <Iconify icon={cfg.icon} width={16} sx={{ color: cfg.color }} />
-                    </Box>
-                    <Typography variant="body2" sx={{ fontSize: 12, fontWeight: 600 }}>{cfg.name}</Typography>
-                  </Stack>
-                  <Typography variant="caption" sx={{ fontSize: 11, fontWeight: 700 }}>
-                    {item.count.toLocaleString('fa-IR')}
-                  </Typography>
-                </Stack>
-                <Box sx={{ width: '100%', height: 6, bgcolor: alpha(cfg.color, 0.08), borderRadius: 1, overflow: 'hidden' }}>
-                  <Box sx={{ width: `${percentage}%`, height: '100%', bgcolor: cfg.color, borderRadius: 1, transition: 'width 0.6s ease' }} />
-                </Box>
-              </Box>
-            );
-          })}
-        </Stack>
-      </Box>
-    </Card>
+      <WidgetCard
+        // Inner, header-less card only for the shared loading / empty states,
+        // so the timeframe toggle stays usable when a period has no data.
+        sx={{ border: 0, boxShadow: 'none', bgcolor: 'transparent', borderRadius: 0 }}
+        contentSx={{ p: 0 }}
+        loading={isLoading}
+        empty={!items.length}
+        emptyIcon="solar:widget-5-bold-duotone"
+        emptyText="برای این بازه آماری از پلتفرم‌ها ثبت نشده است."
+      >
+        <Chart
+          type="bar"
+          series={[{ name: 'مطلب', data: items.map((i) => i.count) }]}
+          options={options}
+          height={items.length * 40 + 50}
+        />
+      </WidgetCard>
+    </WidgetCard>
   );
 }

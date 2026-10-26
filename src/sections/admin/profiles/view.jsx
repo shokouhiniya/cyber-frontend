@@ -34,16 +34,28 @@ import TableContainer from '@mui/material/TableContainer';
 import LinearProgress from '@mui/material/LinearProgress';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
+import { fNum, toFaDigits } from 'src/utils/format-number-fa';
+
 import { CONFIG } from 'src/global-config';
 import axios, { endpoints } from 'src/lib/axios';
 import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
 import { useProfileUsage , useAdminProfiles, useDeleteProfile, useArchiveProfile } from 'src/api/admin';
 
+import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
+
+import { JWT_STORAGE_KEY } from 'src/auth/context/jwt/constant';
 
 import { AdminPageHeader } from '../shared/page-header';
 import { ProfileFormDialog } from './profile-form-dialog';
 import { BatchImportDialog } from './batch-import-dialog';
+import { getErrorText, adminTableSx, AdminListState, AdminTableCard, RowActionsMenu } from '../shared/admin-ui';
+
+/** Short Tehran-time timestamp, Persian digits. */
+const fDateTime = (dt) =>
+  dt
+    ? new Date(dt).toLocaleString('fa-IR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tehran' })
+    : '—';
 
 // ----------------------------------------------------------------------
 
@@ -102,7 +114,7 @@ function Sparkline({ data, color = '#1976d2', height = 32 }) {
         const pct = (d.count / max) * 100;
         const isToday = i === data.length - 1;
         return (
-          <Box key={d.day} title={`${d.day}: ${d.count}`}
+          <Box key={d.day} title={`${toFaDigits(d.day)}: ${fNum(d.count)}`}
             sx={{
               flex: 1, borderRadius: '2px 2px 0 0',
               minHeight: d.count > 0 ? 3 : 1,
@@ -124,7 +136,7 @@ function ProfileUsageDialog({ profileId, profileName, open, onClose }) {
   const theme = useTheme();
   const { data: rows = [], isLoading } = useProfileUsage(open ? profileId : null);
 
-  const fmt = (dt) => dt ? new Date(dt).toLocaleString('fa-IR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tehran' }) : '—';
+  const fmt = fDateTime;
 
   // Summary stats
   const totalEvents = rows.reduce((s, r) => s + r.totalEvents, 0);
@@ -134,7 +146,7 @@ function ProfileUsageDialog({ profileId, profileName, open, onClose }) {
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ pb: 1 }}>
         <Stack direction="row" alignItems="center" spacing={1}>
-          <Iconify icon="solar:chart-bold-duotone" width={20} sx={{ color: 'primary.main' }} />
+          <Iconify icon="solar:chart-bold" width={20} sx={{ color: 'primary.main' }} />
           <span>آمار استفاده — {profileName}</span>
         </Stack>
       </DialogTitle>
@@ -143,7 +155,7 @@ function ProfileUsageDialog({ profileId, profileName, open, onClose }) {
           <LinearProgress sx={{ mt: 1 }} />
         ) : rows.length === 0 ? (
           <Stack alignItems="center" spacing={1.5} sx={{ py: 4 }}>
-            <Iconify icon="solar:chart-bold-duotone" width={40} sx={{ color: 'text.disabled' }} />
+            <Iconify icon="solar:chart-bold" width={40} sx={{ color: 'text.disabled' }} />
             <Typography variant="body2" color="text.secondary">هنوز رویداد استفاده‌ای ثبت نشده است.</Typography>
           </Stack>
         ) : (
@@ -151,21 +163,21 @@ function ProfileUsageDialog({ profileId, profileName, open, onClose }) {
             {/* Summary header */}
             <Stack direction="row" spacing={2} sx={{ mb: 2, p: 1.5, borderRadius: 1.5, bgcolor: 'background.neutral' }}>
               <Stack alignItems="center" sx={{ flex: 1 }}>
-                <Typography variant="h5" fontWeight={800} color="primary.main">{totalEvents.toLocaleString('fa-IR')}</Typography>
+                <Typography variant="h5" fontWeight={800} color="primary.main">{fNum(totalEvents)}</Typography>
                 <Typography variant="caption" color="text.secondary">کل رویداد</Typography>
               </Stack>
               <Stack alignItems="center" sx={{ flex: 1 }}>
-                <Typography variant="h5" fontWeight={800} color="success.main">{rows.length}</Typography>
+                <Typography variant="h5" fontWeight={800} color="success.main">{fNum(rows.length)}</Typography>
                 <Typography variant="caption" color="text.secondary">کاربر</Typography>
               </Stack>
               <Stack alignItems="center" sx={{ flex: 1 }}>
-                <Typography variant="h5" fontWeight={800} color="warning.main">{activeThisWeek}</Typography>
+                <Typography variant="h5" fontWeight={800} color="warning.main">{fNum(activeThisWeek)}</Typography>
                 <Typography variant="caption" color="text.secondary">فعال این هفته</Typography>
               </Stack>
             </Stack>
 
-            <TableContainer>
-              <Table size="small">
+            <TableContainer sx={{ overflowX: 'auto' }}>
+              <Table size="small" sx={[adminTableSx, { minWidth: 560 }]}>
                 <TableHead>
                   <TableRow sx={{ bgcolor: 'background.neutral' }}>
                     <TableCell sx={{ fontWeight: 700, fontSize: 12, py: 1.25 }}>کاربر</TableCell>
@@ -187,30 +199,30 @@ function ProfileUsageDialog({ profileId, profileName, open, onClose }) {
                             </Avatar>
                             <Box>
                               <Typography variant="caption" fontWeight={700} sx={{ fontSize: 12, display: 'block' }}>{r.name}</Typography>
-                              {r.username && <Typography variant="caption" color="text.secondary" sx={{ fontSize: 10 }}>@{r.username}</Typography>}
+                              {r.username && <Typography variant="caption" color="text.secondary" sx={{ fontSize: 12 }}>@{r.username}</Typography>}
                             </Box>
                           </Stack>
                         </TableCell>
                         <TableCell align="center" sx={{ py: 1 }}>
-                          <Chip size="small" label={r.totalEvents.toLocaleString('fa-IR')} color="primary" variant="outlined" sx={{ height: 20, fontSize: 11, fontWeight: 700 }} />
+                          <Chip size="small" label={fNum(r.totalEvents)} color="primary" variant="outlined" sx={{ fontSize: 12, fontWeight: 700 }} />
                         </TableCell>
                         <TableCell sx={{ py: 1 }}>
                           <Stack spacing={0.5}>
                             <Sparkline data={r.daily7 || []} color={theme.palette.primary.main} height={28} />
-                            <Typography variant="caption" color="text.disabled" sx={{ fontSize: 9, textAlign: 'center' }}>
-                              {weekTotal > 0 ? `${weekTotal} رویداد` : 'غیرفعال'}
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: 12, textAlign: 'center' }}>
+                              {weekTotal > 0 ? `${fNum(weekTotal)} رویداد` : 'غیرفعال'}
                             </Typography>
                           </Stack>
                         </TableCell>
                         <TableCell sx={{ py: 1 }}>
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: 11 }}>{fmt(r.lastSeen)}</Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: 12, whiteSpace: 'nowrap' }}>{fmt(r.lastSeen)}</Typography>
                         </TableCell>
                         <TableCell sx={{ py: 1 }}>
                           <Stack direction="row" flexWrap="wrap" gap={0.5}>
                             {(r.topFeatures || []).slice(0, 3).map((f) => (
                               <Chip key={f.eventName} size="small"
-                                label={`${f.eventName.replace(/^(dashboard|admin)\./, '').replace(/\.$/, '')} (${f.count})`}
-                                sx={{ height: 18, fontSize: 9, bgcolor: alpha(theme.palette.info.main, 0.08), color: 'info.dark' }} />
+                                label={`${f.eventName.replace(/^(dashboard|admin)\./, '').replace(/\.$/, '')} (${fNum(f.count)})`}
+                                color="info" variant="soft" sx={{ fontSize: 12 }} />
                             ))}
                           </Stack>
                         </TableCell>
@@ -233,35 +245,35 @@ const INGEST_OPTIONS = [
   {
     key: 'full',
     endpoint: (id) => endpoints.admin.ingestRunNow(id),
-    icon: 'solar:refresh-bold-duotone',
-    color: '#00A76F',
+    icon: 'solar:refresh-bold',
+    color: 'success.main',
     title: 'جمع‌آوری کامل',
     desc: 'دریافت پست‌های جدید + بازتولید تحلیل هوش مصنوعی',
     pollable: true,
-    doneMsg: (n) => `${n} پست جمع‌آوری و تحلیل شد`,
+    doneMsg: (n) => `${fNum(n)} پست جمع‌آوری و تحلیل شد`,
   },
   {
     key: 'posts_only',
     endpoint: () => '/api/ingest/posts-only',
     icon: 'solar:cloud-download-bold-duotone',
-    color: '#0088CC',
+    color: 'info.main',
     title: 'فقط جمع‌آوری پست‌ها',
     desc: 'دریافت پست‌های جدید بدون اجرای پرامپت‌های هوش مصنوعی',
     pollable: true,
-    doneMsg: (n) => `${n} پست جمع‌آوری شد`,
+    doneMsg: (n) => `${fNum(n)} پست جمع‌آوری شد`,
   },
   {
     key: 'ai_only',
     endpoint: () => '/api/ai-content/regenerate-all',
-    icon: 'solar:cpu-bolt-bold-duotone',
-    color: '#8E33FF',
+    icon: 'solar:cpu-bolt-bold',
+    color: 'secondary.main',
     title: 'بازتولید تحلیل هوش مصنوعی',
     desc: 'اجرای مجدد پرامپت‌ها روی پست‌های موجود — بدون دریافت پست جدید',
     pollable: false,
     synchronous: true, // endpoint runs all prompts and returns when done
     doneMsg: (n, res) => {
-      if (res?.errorCount > 0) return `تحلیل با ${res.errorCount} خطا تکمیل شد (${res.durationMs ? Math.round(res.durationMs / 1000) : '?'} ثانیه)`;
-      return `تحلیل هوش مصنوعی بازتولید شد (${res?.durationMs ? Math.round(res.durationMs / 1000) : '?'} ثانیه) — داشبورد به‌روز می‌شود`;
+      if (res?.errorCount > 0) return `تحلیل با ${fNum(res.errorCount)} خطا تکمیل شد (${res.durationMs ? fNum(Math.round(res.durationMs / 1000)) : '?'} ثانیه)`;
+      return `تحلیل هوش مصنوعی بازتولید شد (${res?.durationMs ? fNum(Math.round(res.durationMs / 1000)) : '?'} ثانیه) — داشبورد به‌روز می‌شود`;
     },
   },
 ];
@@ -296,6 +308,7 @@ function IngestActionDialog({ profileId, profileName, open, onClose, onStart }) 
     if (open) {
       setPhase('select'); setActiveOpt(null); setDoneMsg(''); setErrorMsg('');
       setSampleLimit(80); setSortBy('engagement');
+      setAvailableSources([]); setSelectedSources([]);
       // Fetch available sources from the latest run
       axios.get(endpoints.admin.ingestLatestRun(profileId)).then((res) => {
         const runId = res.data?.id;
@@ -336,9 +349,9 @@ function IngestActionDialog({ profileId, profileName, open, onClose, onStart }) 
             setPhase('error');
           }
         }
-      } catch {
+      } catch (e) {
         clearInterval(pollRef.current);
-        setErrorMsg('خطا در دریافت وضعیت');
+        setErrorMsg(getErrorText(e, 'خطا در دریافت وضعیت'));
         setPhase('error');
       }
     }, 3000);
@@ -383,7 +396,8 @@ function IngestActionDialog({ profileId, profileName, open, onClose, onStart }) 
         }
       }
     } catch (e) {
-      setErrorMsg(e?.response?.data?.message || e?.message || 'خطا در اجرا');
+      // src/lib/axios rejects with the server message as a plain string.
+      setErrorMsg(getErrorText(e, 'خطا در اجرا'));
       setPhase('error');
     }
   };
@@ -392,7 +406,7 @@ function IngestActionDialog({ profileId, profileName, open, onClose, onStart }) 
     <Dialog open={open} onClose={phase === 'running' ? undefined : handleClose} maxWidth="xs" fullWidth>
       <DialogTitle sx={{ pb: 1 }}>
         <Stack direction="row" alignItems="center" spacing={1}>
-          <Iconify icon="solar:refresh-bold-duotone" width={20} sx={{ color: 'primary.main' }} />
+          <Iconify icon="solar:refresh-bold" width={20} sx={{ color: 'primary.main' }} />
           <span>اجرا — {profileName}</span>
         </Stack>
       </DialogTitle>
@@ -414,8 +428,8 @@ function IngestActionDialog({ profileId, profileName, open, onClose, onStart }) 
                     <Stack direction="row" alignItems="center" spacing={1.5} sx={{ width: '100%' }}>
                       <Iconify icon={opt.icon} width={22} sx={{ color: opt.color }} />
                       <Box>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: 12 }}>{opt.title}</Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: 10 }}>{opt.desc}</Typography>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: 13 }}>{opt.title}</Typography>
+                        <Typography variant="caption" component="div" color="text.secondary" sx={{ fontSize: 12 }}>{opt.desc}</Typography>
                       </Box>
                     </Stack>
                   </ListItemButton>
@@ -435,7 +449,7 @@ function IngestActionDialog({ profileId, profileName, open, onClose, onStart }) 
             {/* Source filter */}
             {availableSources.length > 0 && (
               <Box>
-                <Typography variant="caption" fontWeight={700} sx={{ display: 'block', mb: 0.75, fontSize: 11 }}>
+                <Typography variant="caption" fontWeight={700} sx={{ display: 'block', mb: 0.75, fontSize: 12 }}>
                   منابع داده
                 </Typography>
                 <Stack direction="row" flexWrap="wrap" gap={0.75}>
@@ -450,11 +464,11 @@ function IngestActionDialog({ profileId, profileName, open, onClose, onStart }) 
                           checked ? prev.filter((s) => s !== src) : [...prev, src]
                         )}
                         sx={{
-                          height: 26, fontSize: 11, cursor: 'pointer',
-                          bgcolor: checked ? 'primary.lighter' : 'transparent',
+                          fontSize: 12, cursor: 'pointer',
+                          bgcolor: checked ? (t) => alpha(t.palette.primary.main, 0.12) : 'transparent',
                           borderColor: checked ? 'primary.main' : 'divider',
                           border: '1px solid',
-                          color: checked ? 'primary.dark' : 'text.secondary',
+                          color: checked ? 'primary.main' : 'text.secondary',
                           fontWeight: checked ? 700 : 400,
                         }}
                       />
@@ -466,8 +480,8 @@ function IngestActionDialog({ profileId, profileName, open, onClose, onStart }) 
 
             {/* Sample size */}
             <Box>
-              <Typography variant="caption" fontWeight={700} sx={{ display: 'block', mb: 0.75, fontSize: 11 }}>
-                تعداد پست نمونه: {sampleLimit}
+              <Typography variant="caption" fontWeight={700} sx={{ display: 'block', mb: 0.75, fontSize: 12 }}>
+                تعداد پست نمونه: {fNum(sampleLimit)}
               </Typography>
               <Box sx={{ px: 1 }}>
                 <Slider
@@ -488,16 +502,16 @@ function IngestActionDialog({ profileId, profileName, open, onClose, onStart }) 
 
             {/* Sort order */}
             <Box>
-              <Typography variant="caption" fontWeight={700} sx={{ display: 'block', mb: 0.75, fontSize: 11 }}>
+              <Typography variant="caption" fontWeight={700} sx={{ display: 'block', mb: 0.75, fontSize: 12 }}>
                 ترتیب انتخاب پست‌ها
               </Typography>
               <Stack spacing={0.5}>
                 {SAMPLE_SORT_OPTIONS.map((o) => (
                   <Stack key={o.value} direction="row" alignItems="center" spacing={1}
-                    sx={{ px: 1.25, py: 0.6, borderRadius: 1.25, border: '1px solid', borderColor: sortBy === o.value ? 'primary.main' : 'divider', bgcolor: sortBy === o.value ? 'primary.lighter' : 'transparent', cursor: 'pointer' }}
+                    sx={{ px: 1.25, py: 0.6, borderRadius: 1.25, border: '1px solid', borderColor: sortBy === o.value ? 'primary.main' : 'divider', bgcolor: sortBy === o.value ? (t) => alpha(t.palette.primary.main, 0.1) : 'transparent', cursor: 'pointer' }}
                     onClick={() => setSortBy(o.value)}>
-                    <Iconify icon={sortBy === o.value ? 'solar:check-circle-bold' : 'solar:circle-bold'} width={14} sx={{ color: sortBy === o.value ? 'primary.main' : 'text.disabled' }} />
-                    <Typography variant="caption" sx={{ fontSize: 11, color: sortBy === o.value ? 'primary.dark' : 'text.secondary', fontWeight: sortBy === o.value ? 700 : 400 }}>{o.label}</Typography>
+                    <Iconify icon={sortBy === o.value ? 'solar:check-circle-bold' : 'solar:minus-circle-bold'} width={14} sx={{ color: sortBy === o.value ? 'primary.main' : 'text.disabled' }} />
+                    <Typography variant="caption" sx={{ fontSize: 13, color: sortBy === o.value ? 'primary.main' : 'text.secondary', fontWeight: sortBy === o.value ? 700 : 400 }}>{o.label}</Typography>
                   </Stack>
                 ))}
               </Stack>
@@ -514,7 +528,7 @@ function IngestActionDialog({ profileId, profileName, open, onClose, onStart }) 
                   };
                   executeRun(activeOpt, (body.sources || body.limit || body.sortBy) ? body : null);
                 }}>
-                <Iconify icon="solar:cpu-bolt-bold-duotone" width={16} sx={{ mr: 0.5 }} />
+                <Iconify icon="solar:cpu-bolt-bold" width={16} sx={{ mr: 0.5 }} />
                 اجرای تحلیل
               </Button>
             </Stack>
@@ -557,7 +571,7 @@ function IngestActionDialog({ profileId, profileName, open, onClose, onStart }) 
           <Stack alignItems="center" spacing={1.5} sx={{ py: 2 }}>
             <Iconify icon="solar:danger-triangle-bold" width={40} sx={{ color: 'error.main' }} />
             <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'error.main' }}>خطا</Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>{errorMsg}</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', wordBreak: 'break-word' }}>{errorMsg}</Typography>
             <Button size="small" onClick={() => setPhase('select')}>بازگشت</Button>
           </Stack>
         )}
@@ -581,11 +595,18 @@ function ExportDialog({ profileId, profileName, open, onClose }) {
         'ai-sample': `${CONFIG.serverUrl}/api/admin/ingest/profiles/${profileId}/export-ai-sample`,
       };
       const url = urlMap[type] || urlMap.posts;
-      const token = sessionStorage.getItem('jwt_access_token');
+      const token = sessionStorage.getItem(JWT_STORAGE_KEY);
       const res = await fetch(url, {
         headers: { Authorization: token ? `Bearer ${token}` : '' },
       });
-      if (!res.ok) throw new Error(`Export failed: ${res.status}`);
+      if (!res.ok) {
+        let msg = `خطا در دریافت فایل (${toFaDigits(res.status)})`;
+        try {
+          const body = await res.json();
+          msg = body?.error?.message || body?.message || msg;
+        } catch { /* not JSON */ }
+        throw new Error(msg);
+      }
       const blob = await res.blob();
       const objectUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -598,6 +619,7 @@ function ExportDialog({ profileId, profileName, open, onClose }) {
       onClose();
     } catch (e) {
       console.error('Export failed:', e);
+      toast.error(getErrorText(e, 'خطا در دانلود داده‌ها'));
     } finally {
       setLoading(null);
     }
@@ -607,7 +629,7 @@ function ExportDialog({ profileId, profileName, open, onClose }) {
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
       <DialogTitle sx={{ pb: 1 }}>
         <Stack direction="row" alignItems="center" spacing={1}>
-          <Iconify icon="solar:download-bold-duotone" width={20} sx={{ color: 'primary.main' }} />
+          <Iconify icon="solar:download-bold" width={20} sx={{ color: 'primary.main' }} />
           <span>دانلود داده‌ها — {profileName}</span>
         </Stack>
       </DialogTitle>
@@ -653,7 +675,7 @@ function ExportDialog({ profileId, profileName, open, onClose }) {
             >
               <Stack direction="row" alignItems="center" spacing={1.5} sx={{ width: '100%' }}>
                 <Iconify
-                  icon={loading === 'analysis' ? 'solar:refresh-bold' : 'solar:cpu-bolt-bold-duotone'}
+                  icon={loading === 'analysis' ? 'solar:refresh-bold' : 'solar:cpu-bolt-bold'}
                   width={22}
                   sx={{
                     color: 'secondary.main',
@@ -682,7 +704,7 @@ function ExportDialog({ profileId, profileName, open, onClose }) {
             >
               <Stack direction="row" alignItems="center" spacing={1.5} sx={{ width: '100%' }}>
                 <Iconify
-                  icon={loading === 'ai-sample' ? 'solar:refresh-bold' : 'solar:test-tube-bold-duotone'}
+                  icon={loading === 'ai-sample' ? 'solar:refresh-bold' : 'solar:widget-5-bold-duotone'}
                   width={22}
                   sx={{
                     color: 'warning.main',
@@ -697,7 +719,7 @@ function ExportDialog({ profileId, profileName, open, onClose }) {
                     <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: 12 }}>
                       نمونه ارسالی به هوش مصنوعی
                     </Typography>
-                    <Chip label="موقت" size="small" sx={{ height: 14, fontSize: 8, bgcolor: 'warning.lighter', color: 'warning.dark' }} />
+                    <Chip label="موقت" size="small" color="warning" variant="soft" sx={{ height: 20, fontSize: 12 }} />
                   </Stack>
                   <Typography variant="caption" color="text.secondary" sx={{ fontSize: 10 }}>
                     دقیقاً همان پست‌هایی که به پرامپت‌های تحلیل ارسال شدند (تا ۸۰ پست، مرتب بر اساس تعامل)
@@ -721,20 +743,24 @@ function IngestStatusChip({ runState }) {
     return (
       <Chip
         size="small"
-        icon={<Iconify icon="solar:refresh-bold" width={10} sx={{ animation: 'spin 1s linear infinite', '@keyframes spin': { from: { transform: 'rotate(0deg)' }, to: { transform: 'rotate(360deg)' } } }} />}
+        color="info"
+        variant="soft"
+        icon={<Iconify icon="solar:refresh-bold" width={14} sx={{ animation: 'spin 1s linear infinite', '@keyframes spin': { from: { transform: 'rotate(0deg)' }, to: { transform: 'rotate(360deg)' } } }} />}
         label="در حال جمع‌آوری..."
-        sx={{ height: 18, fontSize: 9, bgcolor: 'info.lighter', color: 'info.dark' }}
+        sx={{ fontSize: 12 }}
       />
     );
   }
   if (runState.status === 'completed') {
     return (
-      <Tooltip title={`${runState.postsSelected?.toLocaleString('fa-IR') ?? 0} پست انتخاب شد`}>
+      <Tooltip title={`${fNum(runState.postsSelected ?? 0)} پست انتخاب شد`}>
         <Chip
           size="small"
-          icon={<Iconify icon="solar:check-circle-bold" width={10} />}
-          label={`${runState.postsSelected ?? 0} پست`}
-          sx={{ height: 18, fontSize: 9, bgcolor: 'success.lighter', color: 'success.dark' }}
+          color="success"
+          variant="soft"
+          icon={<Iconify icon="solar:check-circle-bold" width={14} />}
+          label={`${fNum(runState.postsSelected ?? 0)} پست`}
+          sx={{ fontSize: 12 }}
         />
       </Tooltip>
     );
@@ -744,9 +770,11 @@ function IngestStatusChip({ runState }) {
       <Tooltip title={runState.errorMessage || 'خطا در جمع‌آوری'}>
         <Chip
           size="small"
-          icon={<Iconify icon="solar:danger-triangle-bold" width={10} />}
+          color="error"
+          variant="soft"
+          icon={<Iconify icon="solar:danger-triangle-bold" width={14} />}
           label="خطا"
-          sx={{ height: 18, fontSize: 9, bgcolor: 'error.lighter', color: 'error.dark' }}
+          sx={{ fontSize: 12 }}
         />
       </Tooltip>
     );
@@ -754,35 +782,34 @@ function IngestStatusChip({ runState }) {
   return null;
 }
 
-// ── Profile card with per-profile ingest state ────────────────────────────────
+/// ── Per-profile ingest run state (shared by card + table row) ────────────────
 
-function ProfileCard({ p, onEdit, onArchive, onDelete }) {
-  const theme = useTheme();
+const SPIN_SX = {
+  animation: 'spin 1s linear infinite',
+  '@keyframes spin': { from: { transform: 'rotate(0deg)' }, to: { transform: 'rotate(360deg)' } },
+};
+
+function useProfileRunState(profileId) {
   const [runState, setRunState] = useState(null);
   const [polling, setPolling] = useState(false);
-  const [exportOpen, setExportOpen] = useState(false);
-  const [ingestOpen, setIngestOpen] = useState(false);
-  const [usageOpen, setUsageOpen] = useState(false);
 
   // Poll the latest run every 3s while running
   useEffect(() => {
     if (!polling) return undefined;
     const interval = setInterval(async () => {
       try {
-        const res = await axios.get(endpoints.admin.ingestLatestRun(p.id));
+        const res = await axios.get(endpoints.admin.ingestLatestRun(profileId));
         const run = res.data;
         if (run) {
           setRunState({ status: run.status, postsSelected: run.postsSelected, errorMessage: run.errorMessage });
-          if (run.status !== 'running') {
-            setPolling(false);
-          }
+          if (run.status !== 'running') setPolling(false);
         }
       } catch {
         setPolling(false);
       }
     }, 3000);
     return () => clearInterval(interval);
-  }, [polling, p.id]);
+  }, [polling, profileId]);
 
   const handleIngestStart = useCallback((type) => {
     if (type === 'ai_only') {
@@ -796,20 +823,84 @@ function ProfileCard({ p, onEdit, onArchive, onDelete }) {
     }
   }, []);
 
-  const isRunning = runState?.status === 'running';
+  return { runState, isRunning: runState?.status === 'running', handleIngestStart };
+}
+
+function profileMenuItems(p, { onEdit, onArchive, onDelete, onExport, onUsage }) {
+  return [
+    { label: 'ویرایش', icon: 'solar:pen-bold', onClick: () => onEdit(p) },
+    { label: 'دانلود داده‌ها', icon: 'solar:download-bold', onClick: onExport },
+    { label: 'آمار استفاده', icon: 'solar:chart-bold', onClick: onUsage },
+    {
+      label: 'غیرفعال‌سازی',
+      icon: 'solar:archive-bold',
+      divider: true,
+      hidden: !p.isActive,
+      onClick: () => onArchive(p),
+    },
+    { label: 'حذف دائمی', icon: 'solar:trash-bin-2-bold', color: 'error', onClick: () => onDelete(p) },
+  ];
+}
+
+function RunButton({ isRunning, onClick, size = 'small' }) {
+  return (
+    <Tooltip title={isRunning ? 'در حال جمع‌آوری...' : 'اجرای فوری'}>
+      <span>
+        <IconButton
+          size={size}
+          disabled={isRunning}
+          onClick={onClick}
+          aria-label="اجرای فوری"
+          sx={{ color: isRunning ? 'text.disabled' : 'primary.main' }}
+        >
+          <Iconify icon="solar:refresh-bold" width={18} sx={isRunning ? SPIN_SX : {}} />
+        </IconButton>
+      </span>
+    </Tooltip>
+  );
+}
+
+function TierChip({ tier }) {
+  if (!tier) return null;
+  return (
+    <Chip
+      label={TIER_LABELS[tier] || tier}
+      size="small"
+      color={TIER_COLORS[tier] || 'default'}
+      variant="soft"
+      sx={{ fontSize: 12, fontWeight: 700 }}
+    />
+  );
+}
+
+function MetaItem({ icon, title, children, color = 'text.secondary' }) {
+  return (
+    <Tooltip title={title}>
+      <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color, minWidth: 0 }}>
+        <Iconify icon={icon} width={14} sx={{ flexShrink: 0, opacity: 0.8 }} />
+        <Typography variant="caption" sx={{ fontSize: 12, color: 'inherit', whiteSpace: 'nowrap' }}>
+          {children}
+        </Typography>
+      </Stack>
+    </Tooltip>
+  );
+}
+
+// ── Profile card with per-profile ingest state ────────────────────────────────
+
+function ProfileCard({ p, onEdit, onArchive, onDelete }) {
+  const { runState, isRunning, handleIngestStart } = useProfileRunState(p.id);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [ingestOpen, setIngestOpen] = useState(false);
+  const [usageOpen, setUsageOpen] = useState(false);
 
   return (
-    <Card key={p.id} sx={{ overflow: 'hidden', opacity: p.isActive ? 1 : 0.6 }}>
+    <Card sx={{ overflow: 'hidden', opacity: p.isActive ? 1 : 0.65 }}>
       {/* Progress bar — only visible while running */}
-      {isRunning && (
-        <LinearProgress
-          sx={{ height: 2, borderRadius: 0 }}
-          color="info"
-        />
-      )}
+      {isRunning && <LinearProgress sx={{ height: 2, borderRadius: 0 }} color="info" />}
 
       <Box sx={{ p: 2 }}>
-        <Stack direction="row" spacing={2} alignItems="center">
+        <Stack direction="row" spacing={1.5} alignItems="flex-start">
           {/* Avatar */}
           <Avatar
             src={p.avatar}
@@ -824,55 +915,25 @@ function ProfileCard({ p, onEdit, onArchive, onDelete }) {
 
           {/* Main info */}
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Stack direction="row" alignItems="center" spacing={1} sx={{ flexWrap: 'wrap' }}>
-              <Typography variant="subtitle1" fontWeight={700} noWrap>
-                {p.name}
-              </Typography>
-              {!p.isActive && <Chip label="غیرفعال" size="small" color="default" />}
-              {p.tier && (
-                <Chip
-                  label={p.tier === 'heavy' ? 'سنگین' : p.tier === 'light' ? 'سبک' : 'متوسط'}
-                  size="small"
-                  sx={{
-                    height: 18, fontSize: 9, fontWeight: 700,
-                    bgcolor: p.tier === 'heavy' ? 'error.lighter' : p.tier === 'light' ? 'success.lighter' : 'warning.lighter',
-                    color: p.tier === 'heavy' ? 'error.dark' : p.tier === 'light' ? 'success.dark' : 'warning.dark',
-                  }}
-                />
-              )}
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }} noWrap>
+              {p.name}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" noWrap sx={{ fontSize: 13 }}>
+              {[p.role, p.organization].filter(Boolean).join(' — ') || '—'}
+            </Typography>
+
+            <Stack direction="row" alignItems="center" sx={{ mt: 1, flexWrap: 'wrap', gap: 0.75 }}>
+              <TierChip tier={p.tier} />
+              {!p.isActive && <Chip label="غیرفعال" size="small" variant="soft" sx={{ fontSize: 12 }} />}
               <IngestStatusChip runState={runState} />
             </Stack>
 
-            <Typography variant="body2" color="text.secondary" noWrap sx={{ fontSize: 12 }}>
-              {[p.role, p.organization].filter(Boolean).join(' — ')}
-            </Typography>
-
             {/* Compact stats row */}
-            <Stack direction="row" alignItems="center" spacing={2} sx={{ mt: 0.75 }}>
-              <Stack direction="row" alignItems="center" spacing={0.5} title="تعداد پست">
-                <Iconify icon="solar:document-text-bold" width={13} sx={{ color: 'text.disabled' }} />
-                <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10 }}>
-                  {(p.postCount ?? 0).toLocaleString('fa-IR')}
-                </Typography>
-              </Stack>
-              <Stack direction="row" alignItems="center" spacing={0.5} title="تعداد کاربر">
-                <Iconify icon="solar:user-bold" width={13} sx={{ color: 'text.disabled' }} />
-                <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10 }}>
-                  {p.userCount ?? 0}
-                </Typography>
-              </Stack>
-              <Stack direction="row" alignItems="center" spacing={0.5} title="منابع داده">
-                <Iconify icon="solar:database-bold" width={13} sx={{ color: 'text.disabled' }} />
-                <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10 }}>
-                  {p.sourceCount ?? 0}
-                </Typography>
-              </Stack>
-              <Stack direction="row" alignItems="center" spacing={0.5} title="کلیدواژه‌های جستجو">
-                <Iconify icon="solar:magnifer-bold" width={13} sx={{ color: 'text.disabled' }} />
-                <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10 }}>
-                  {p.keywords?.length ?? 0}
-                </Typography>
-              </Stack>
+            <Stack direction="row" alignItems="center" sx={{ mt: 1, flexWrap: 'wrap', columnGap: 2, rowGap: 0.5 }}>
+              <MetaItem icon="solar:document-text-bold" title="تعداد پست">{fNum(p.postCount ?? 0)}</MetaItem>
+              <MetaItem icon="solar:user-bold" title="تعداد کاربر">{fNum(p.userCount ?? 0)}</MetaItem>
+              <MetaItem icon="solar:database-bold" title="منابع داده">{fNum(p.sourceCount ?? 0)}</MetaItem>
+              <MetaItem icon="solar:magnifer-bold" title="کلیدواژه‌های جستجو">{fNum(p.keywords?.length ?? 0)}</MetaItem>
               {p.primaryColor && (
                 <Box
                   sx={{
@@ -887,82 +948,37 @@ function ProfileCard({ p, onEdit, onArchive, onDelete }) {
             </Stack>
 
             {/* Fetch schedule row */}
-            <Stack direction="row" alignItems="center" spacing={2} sx={{ mt: 0.5 }}>
-              {p.lastFetchAt ? (
-                <Stack direction="row" alignItems="center" spacing={0.5} title="آخرین جمع‌آوری">
-                  <Iconify icon="solar:history-bold" width={12} sx={{ color: 'text.disabled' }} />
-                  <Typography variant="caption" color="text.disabled" sx={{ fontSize: 9 }}>
-                    {new Date(p.lastFetchAt).toLocaleString('fa-IR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tehran' })}
-                    {p.lastFetchPosts != null && ` · ${p.lastFetchPosts} پست`}
-                  </Typography>
-                </Stack>
-              ) : (
-                <Stack direction="row" alignItems="center" spacing={0.5}>
-                  <Iconify icon="solar:history-bold" width={12} sx={{ color: 'text.disabled' }} />
-                  <Typography variant="caption" color="text.disabled" sx={{ fontSize: 9 }}>هنوز جمع‌آوری نشده</Typography>
-                </Stack>
-              )}
+            <Stack direction="row" alignItems="center" sx={{ mt: 0.75, flexWrap: 'wrap', columnGap: 2, rowGap: 0.5 }}>
+              <MetaItem icon="solar:history-bold" title="آخرین جمع‌آوری">
+                {p.lastFetchAt
+                  ? `${fDateTime(p.lastFetchAt)}${p.lastFetchPosts != null ? ` · ${fNum(p.lastFetchPosts)} پست` : ''}`
+                  : 'هنوز جمع‌آوری نشده'}
+              </MetaItem>
               {p.nextFetchAt && (
-                <Stack direction="row" alignItems="center" spacing={0.5} title="جمع‌آوری بعدی">
-                  <Iconify icon="solar:calendar-bold" width={12} sx={{ color: 'info.main' }} />
-                  <Typography variant="caption" sx={{ fontSize: 9, color: 'info.main' }}>
-                    {new Date(p.nextFetchAt).toLocaleString('fa-IR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tehran' })}
-                  </Typography>
-                </Stack>
+                <MetaItem icon="solar:calendar-bold" title="جمع‌آوری بعدی" color="info.main">
+                  {fDateTime(p.nextFetchAt)}
+                </MetaItem>
               )}
               {p.lastAiAt && (
-                <Stack direction="row" alignItems="center" spacing={0.5} title="آخرین تحلیل هوش مصنوعی">
-                  <Iconify icon="solar:cpu-bolt-bold" width={12} sx={{ color: 'secondary.main' }} />
-                  <Typography variant="caption" sx={{ fontSize: 9, color: 'secondary.main' }}>
-                    AI: {new Date(p.lastAiAt).toLocaleString('fa-IR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tehran' })}
-                  </Typography>
-                </Stack>
+                <MetaItem icon="solar:cpu-bolt-bold" title="آخرین تحلیل هوش مصنوعی" color="secondary.main">
+                  {`AI: ${fDateTime(p.lastAiAt)}`}
+                </MetaItem>
               )}
             </Stack>
           </Box>
 
           {/* Actions */}
-          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
-            <IconButton size="small" onClick={() => onEdit(p)} title="ویرایش">
-              <Iconify icon="solar:pen-bold" width={18} />
-            </IconButton>
-            <Tooltip title={isRunning ? 'در حال جمع‌آوری...' : 'اجرا'}>
-              <span>
-                <IconButton
-                  size="small"
-                  disabled={isRunning}
-                  onClick={() => setIngestOpen(true)}
-                  sx={{ color: isRunning ? 'text.disabled' : 'primary.main' }}
-                >
-                  <Iconify
-                    icon="solar:refresh-bold"
-                    width={18}
-                    sx={isRunning ? { animation: 'spin 1s linear infinite', '@keyframes spin': { from: { transform: 'rotate(0deg)' }, to: { transform: 'rotate(360deg)' } } } : {}}
-                  />
-                </IconButton>
-              </span>
-            </Tooltip>
-            <Tooltip title="دانلود داده‌ها">
-              <IconButton size="small" onClick={() => setExportOpen(true)} sx={{ color: 'text.secondary' }}>
-                <Iconify icon="solar:download-bold" width={18} />
-              </IconButton>
-            </Tooltip>
-            <IconButton
-              size="small"
-              onClick={() => onArchive(p)}
-              title="غیرفعال‌سازی"
-              disabled={!p.isActive}
-            >
-              <Iconify icon="solar:archive-bold" width={18} />
-            </IconButton>
-            <IconButton
-              size="small"
-              color="error"
-              onClick={() => onDelete(p)}
-              title="حذف دائمی"
-            >
-              <Iconify icon="solar:trash-bin-2-bold" width={18} />
-            </IconButton>
+          <Stack direction="row" spacing={0.25} alignItems="center" sx={{ flexShrink: 0 }}>
+            <RunButton isRunning={isRunning} onClick={() => setIngestOpen(true)} />
+            <RowActionsMenu
+              items={profileMenuItems(p, {
+                onEdit,
+                onArchive,
+                onDelete,
+                onExport: () => setExportOpen(true),
+                onUsage: () => setUsageOpen(true),
+              })}
+            />
           </Stack>
         </Stack>
       </Box>
@@ -995,50 +1011,22 @@ function ProfileCard({ p, onEdit, onArchive, onDelete }) {
 // ── Desktop table row ─────────────────────────────────────────────────────────
 
 function ProfileTableRow({ p, onEdit, onArchive, onDelete }) {
-  const [runState, setRunState] = useState(null);
-  const [polling, setPolling] = useState(false);
+  const { runState, isRunning, handleIngestStart } = useProfileRunState(p.id);
   const [exportOpen, setExportOpen] = useState(false);
   const [ingestOpen, setIngestOpen] = useState(false);
   const [usageOpen, setUsageOpen] = useState(false);
 
-  useEffect(() => {
-    if (!polling) return undefined;
-    const interval = setInterval(async () => {
-      try {
-        const res = await axios.get(endpoints.admin.ingestLatestRun(p.id));
-        const run = res.data;
-        if (run) {
-          setRunState({ status: run.status, postsSelected: run.postsSelected, errorMessage: run.errorMessage });
-          if (run.status !== 'running') setPolling(false);
-        }
-      } catch { setPolling(false); }
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [polling, p.id]);
-
-  const handleIngestStart = useCallback((type) => {
-    if (type === 'ai_only') {
-      setRunState({ status: 'completed', postsSelected: 0, errorMessage: null });
-      setTimeout(() => setRunState(null), 3000);
-    } else {
-      setRunState({ status: 'running', postsSelected: 0, errorMessage: null });
-      setPolling(true);
-    }
-  }, []);
-
-  const isRunning = runState?.status === 'running';
-
   return (
-    <TableRow hover sx={{ opacity: p.isActive ? 1 : 0.55, '&:last-child td': { border: 0 } }}>
+    <TableRow sx={{ opacity: p.isActive ? 1 : 0.6 }}>
       {/* Avatar + name */}
-      <TableCell sx={{ py: 1, pl: 2 }}>
+      <TableCell sx={{ py: 1.25, pl: 2.5 }}>
         <Stack direction="row" alignItems="center" spacing={1.5}>
-          <Avatar src={p.avatar} sx={{ width: 34, height: 34, fontSize: 13, fontWeight: 700, bgcolor: p.primaryColor || 'primary.main', flexShrink: 0 }}>
+          <Avatar src={p.avatar} sx={{ width: 36, height: 36, fontSize: 14, fontWeight: 700, bgcolor: p.primaryColor || 'primary.main', flexShrink: 0 }}>
             {p.name?.charAt(0)}
           </Avatar>
           <Box sx={{ minWidth: 0 }}>
-            <Typography variant="subtitle2" noWrap sx={{ fontWeight: 700, fontSize: 13 }}>{p.name}</Typography>
-            <Typography variant="caption" color="text.secondary" noWrap sx={{ fontSize: 11 }}>
+            <Typography variant="subtitle2" noWrap sx={{ fontWeight: 700 }}>{p.name}</Typography>
+            <Typography variant="caption" component="div" color="text.secondary" noWrap sx={{ fontSize: 12, maxWidth: 280 }}>
               {[p.role, p.organization].filter(Boolean).join(' — ') || '—'}
             </Typography>
           </Box>
@@ -1046,76 +1034,55 @@ function ProfileTableRow({ p, onEdit, onArchive, onDelete }) {
       </TableCell>
 
       {/* Tier + status */}
-      <TableCell sx={{ py: 1 }}>
-        <Stack direction="row" spacing={0.5} flexWrap="wrap">
-          {p.tier && (
-            <Chip label={TIER_LABELS[p.tier] || p.tier} size="small" color={TIER_COLORS[p.tier] || 'default'}
-              sx={{ height: 18, fontSize: 10, fontWeight: 700 }} />
-          )}
-          {!p.isActive && <Chip label="غیرفعال" size="small" sx={{ height: 18, fontSize: 10 }} />}
+      <TableCell>
+        <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 0.5 }}>
+          <TierChip tier={p.tier} />
+          <Chip
+            label={p.isActive ? 'فعال' : 'غیرفعال'}
+            size="small"
+            variant="soft"
+            color={p.isActive ? 'success' : 'default'}
+            sx={{ fontSize: 12 }}
+          />
           <IngestStatusChip runState={runState} />
         </Stack>
       </TableCell>
 
       {/* Stats */}
-      <TableCell sx={{ py: 1 }}>
-        <Stack direction="row" spacing={1.5}>
-          <Tooltip title="پست"><Stack direction="row" spacing={0.4} alignItems="center">
-            <Iconify icon="solar:document-text-bold" width={12} sx={{ color: 'text.disabled' }} />
-            <Typography variant="caption" sx={{ fontSize: 11 }}>{(p.postCount ?? 0).toLocaleString('fa-IR')}</Typography>
-          </Stack></Tooltip>
-          <Tooltip title="کاربر"><Stack direction="row" spacing={0.4} alignItems="center">
-            <Iconify icon="solar:user-bold" width={12} sx={{ color: 'text.disabled' }} />
-            <Typography variant="caption" sx={{ fontSize: 11 }}>{p.userCount ?? 0}</Typography>
-          </Stack></Tooltip>
-          <Tooltip title="کلیدواژه"><Stack direction="row" spacing={0.4} alignItems="center">
-            <Iconify icon="solar:magnifer-bold" width={12} sx={{ color: 'text.disabled' }} />
-            <Typography variant="caption" sx={{ fontSize: 11 }}>{p.keywords?.length ?? 0}</Typography>
-          </Stack></Tooltip>
-        </Stack>
-      </TableCell>
+      <TableCell align="center" sx={{ fontWeight: 600 }}>{fNum(p.postCount ?? 0)}</TableCell>
+      <TableCell align="center">{fNum(p.userCount ?? 0)}</TableCell>
+      <TableCell align="center">{fNum(p.keywords?.length ?? 0)}</TableCell>
 
       {/* Last fetch / AI */}
-      <TableCell sx={{ py: 1 }}>
-        <Stack spacing={0.3}>
-          {p.lastFetchAt ? (
-            <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary' }}>
-              <Iconify icon="solar:history-bold" width={10} sx={{ mr: 0.4, verticalAlign: 'middle' }} />
-              {new Date(p.lastFetchAt).toLocaleString('fa-IR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tehran' })}
-            </Typography>
-          ) : (
-            <Typography variant="caption" sx={{ fontSize: 10, color: 'text.disabled' }}>جمع‌آوری نشده</Typography>
-          )}
+      <TableCell>
+        <Stack spacing={0.5}>
+          <MetaItem icon="solar:history-bold" title="آخرین جمع‌آوری" color={p.lastFetchAt ? 'text.secondary' : 'text.disabled'}>
+            {p.lastFetchAt ? fDateTime(p.lastFetchAt) : 'جمع‌آوری نشده'}
+          </MetaItem>
           {p.lastAiAt && (
-            <Typography variant="caption" sx={{ fontSize: 10, color: 'secondary.main' }}>
-              <Iconify icon="solar:cpu-bolt-bold" width={10} sx={{ mr: 0.4, verticalAlign: 'middle' }} />
-              {new Date(p.lastAiAt).toLocaleString('fa-IR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tehran' })}
-            </Typography>
+            <MetaItem icon="solar:cpu-bolt-bold" title="آخرین تحلیل هوش مصنوعی" color="secondary.main">
+              {fDateTime(p.lastAiAt)}
+            </MetaItem>
           )}
         </Stack>
       </TableCell>
 
       {/* Actions */}
-      <TableCell align="right" sx={{ py: 1, pr: 1.5 }}>
-        <Stack direction="row" spacing={0.25} justifyContent="flex-end">
-          <IconButton size="small" onClick={() => onEdit(p)} title="ویرایش"><Iconify icon="solar:pen-bold" width={16} /></IconButton>
-          <Tooltip title={isRunning ? 'در حال اجرا...' : 'اجرا'}>
-            <span>
-              <IconButton size="small" disabled={isRunning} onClick={() => setIngestOpen(true)} sx={{ color: isRunning ? 'text.disabled' : 'primary.main' }}>
-                <Iconify icon="solar:refresh-bold" width={16} sx={isRunning ? { animation: 'spin 1s linear infinite', '@keyframes spin': { from: { transform: 'rotate(0deg)' }, to: { transform: 'rotate(360deg)' } } } : {}} />
-              </IconButton>
-            </span>
-          </Tooltip>
-          <IconButton size="small" onClick={() => setExportOpen(true)} title="دانلود"><Iconify icon="solar:download-bold" width={16} /></IconButton>
-          <IconButton size="small" onClick={() => setUsageOpen(true)} title="آمار استفاده" sx={{ color: 'text.secondary' }}><Iconify icon="solar:chart-bold" width={16} /></IconButton>
-          <IconButton size="small" onClick={() => onArchive(p)} title="غیرفعال‌سازی" disabled={!p.isActive}><Iconify icon="solar:archive-bold" width={16} /></IconButton>
-          <IconButton size="small" color="error" onClick={() => onDelete(p)} title="حذف"><Iconify icon="solar:trash-bin-2-bold" width={16} /></IconButton>
-        </Stack>
+      <TableCell align="right" sx={{ pr: 1.5, whiteSpace: 'nowrap' }}>
+        <RunButton isRunning={isRunning} onClick={() => setIngestOpen(true)} />
+        <RowActionsMenu
+          items={profileMenuItems(p, {
+            onEdit,
+            onArchive,
+            onDelete,
+            onExport: () => setExportOpen(true),
+            onUsage: () => setUsageOpen(true),
+          })}
+        />
+        <ExportDialog profileId={p.id} profileName={p.name} open={exportOpen} onClose={() => setExportOpen(false)} />
+        <IngestActionDialog profileId={p.id} profileName={p.name} open={ingestOpen} onClose={() => setIngestOpen(false)} onStart={handleIngestStart} />
+        <ProfileUsageDialog profileId={p.id} profileName={p.name} open={usageOpen} onClose={() => setUsageOpen(false)} />
       </TableCell>
-
-      <ExportDialog profileId={p.id} profileName={p.name} open={exportOpen} onClose={() => setExportOpen(false)} />
-      <IngestActionDialog profileId={p.id} profileName={p.name} open={ingestOpen} onClose={() => setIngestOpen(false)} onStart={handleIngestStart} />
-      <ProfileUsageDialog profileId={p.id} profileName={p.name} open={usageOpen} onClose={() => setUsageOpen(false)} />
     </TableRow>
   );
 }
@@ -1123,7 +1090,6 @@ function ProfileTableRow({ p, onEdit, onArchive, onDelete }) {
 // ── Main view ─────────────────────────────────────────────────────────────────
 
 export function AdminProfilesView() {
-  const theme = useTheme();
   const { desktopMode } = useAdminDesktopMode();
 
   const { data: profiles = [], isLoading } = useAdminProfiles();
@@ -1160,11 +1126,21 @@ export function AdminProfilesView() {
   const openEdit = (p) => { setEditing(p); setDialogOpen(true); };
 
   const handleArchive = (p) => {
-    if (window.confirm(`پروفایل «${p.name}» غیرفعال شود؟`)) archive.mutate(p.id);
+    if (!window.confirm(`پروفایل «${p.name}» غیرفعال شود؟`)) return;
+    archive.mutate(p.id, {
+      onSuccess: () => toast.success(`پروفایل «${p.name}» غیرفعال شد`),
+      onError: (e) => toast.error(getErrorText(e, 'خطا در غیرفعال‌سازی پروفایل')),
+    });
   };
   const handleDelete = (p) => {
-    if (window.confirm(`پروفایل «${p.name}» برای همیشه حذف شود؟\n\nاین عمل قابل بازگشت نیست.`)) deleteProfile.mutate(p.id);
+    if (!window.confirm(`پروفایل «${p.name}» برای همیشه حذف شود؟\n\nاین عمل قابل بازگشت نیست.`)) return;
+    deleteProfile.mutate(p.id, {
+      onSuccess: () => toast.success(`پروفایل «${p.name}» حذف شد`),
+      onError: (e) => toast.error(getErrorText(e, 'خطا در حذف پروفایل')),
+    });
   };
+
+  const selectSx = { minWidth: { xs: 'calc(50% - 4px)', sm: 140 }, flex: { xs: 1, sm: 'none' } };
 
   return (
     <Container maxWidth={desktopMode ? 'xl' : 'lg'} sx={{ py: { xs: 3, md: 4 } }}>
@@ -1172,11 +1148,10 @@ export function AdminProfilesView() {
         title="مدیریت پروفایل‌ها"
         subtitle="هر پروفایل نماینده یک کلاینت / تحلیل‌شونده در سیستم است."
         action={
-          <Stack direction="row" spacing={1}>
+          <>
             <Button
               variant="outlined"
-              size="small"
-              startIcon={<Iconify icon="solar:import-bold-duotone" width={16} />}
+              startIcon={<Iconify icon="solar:import-bold" width={18} />}
               onClick={() => setBatchImportOpen(true)}
             >
               درج دسته‌جمعی
@@ -1184,7 +1159,7 @@ export function AdminProfilesView() {
             <Button variant="contained" startIcon={<Iconify icon="eva:plus-fill" />} onClick={openNew}>
               پروفایل جدید
             </Button>
-          </Stack>
+          </>
         }
       />
 
@@ -1205,11 +1180,11 @@ export function AdminProfilesView() {
                 placeholder="جستجو بر اساس نام، نقش یا سازمان..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                sx={{ fontSize: 13, '& input': { p: 0 } }}
-                inputProps={{ dir: 'rtl' }}
+                sx={{ fontSize: 14, '& input': { p: 0 } }}
+                inputProps={{ dir: 'rtl', 'aria-label': 'جستجوی پروفایل' }}
               />
               {search && (
-                <IconButton size="small" onClick={() => setSearch('')} sx={{ p: 0.25 }}>
+                <IconButton size="small" onClick={() => setSearch('')} sx={{ p: 0.25 }} aria-label="پاک کردن جستجو">
                   <Iconify icon="solar:close-circle-bold" width={16} sx={{ color: 'text.disabled' }} />
                 </IconButton>
               )}
@@ -1224,10 +1199,10 @@ export function AdminProfilesView() {
                 onChange={(_, v) => { if (v) setViewMode(v); }}
                 sx={{ flexShrink: 0 }}
               >
-                <ToggleButton value="cards" title="کارت">
-                  <Iconify icon="solar:card-bold" width={16} />
+                <ToggleButton value="cards" title="کارت" aria-label="نمای کارت">
+                  <Iconify icon="solar:widget-5-bold" width={16} />
                 </ToggleButton>
-                <ToggleButton value="table" title="جدول">
+                <ToggleButton value="table" title="جدول" aria-label="نمای جدول">
                   <Iconify icon="solar:list-bold" width={16} />
                 </ToggleButton>
               </ToggleButtonGroup>
@@ -1235,8 +1210,8 @@ export function AdminProfilesView() {
           </Stack>
 
           {/* Filter row */}
-          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-            <FormControl size="small" sx={{ minWidth: 110 }}>
+          <Stack direction="row" alignItems="center" sx={{ flexWrap: 'wrap', gap: 1 }}>
+            <FormControl size="small" sx={selectSx}>
               <Select value={filterTier} onChange={(e) => setFilterTier(e.target.value)} displayEmpty
                 renderValue={(v) => v ? TIER_LABELS[v] : 'همه تیرها'}>
                 <MenuItem value="">همه تیرها</MenuItem>
@@ -1246,7 +1221,7 @@ export function AdminProfilesView() {
               </Select>
             </FormControl>
 
-            <FormControl size="small" sx={{ minWidth: 110 }}>
+            <FormControl size="small" sx={selectSx}>
               <Select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} displayEmpty
                 renderValue={(v) => v === 'active' ? 'فعال' : v === 'inactive' ? 'غیرفعال' : 'همه وضعیت‌ها'}>
                 <MenuItem value="">همه وضعیت‌ها</MenuItem>
@@ -1255,7 +1230,7 @@ export function AdminProfilesView() {
               </Select>
             </FormControl>
 
-            <FormControl size="small" sx={{ minWidth: 120 }}>
+            <FormControl size="small" sx={selectSx}>
               <Select value={filterHasAi} onChange={(e) => setFilterHasAi(e.target.value)} displayEmpty
                 renderValue={(v) => v === 'yes' ? 'دارای تحلیل AI' : v === 'no' ? 'بدون تحلیل AI' : 'همه (AI)'}>
                 <MenuItem value="">همه (AI)</MenuItem>
@@ -1264,7 +1239,7 @@ export function AdminProfilesView() {
               </Select>
             </FormControl>
 
-            <FormControl size="small" sx={{ minWidth: 140 }}>
+            <FormControl size="small" sx={selectSx}>
               <Select value={sortKey} onChange={(e) => setSortKey(e.target.value)}>
                 {SORT_OPTIONS.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
               </Select>
@@ -1274,59 +1249,63 @@ export function AdminProfilesView() {
               <Button size="small" variant="outlined" color="error"
                 onClick={() => { setFilterTier(''); setFilterStatus(''); setFilterHasAi(''); }}
                 startIcon={<Iconify icon="solar:close-circle-bold" width={14} />}
-                sx={{ fontSize: 11 }}>
-                پاک کردن فیلترها ({activeFilterCount})
+                sx={{ fontSize: 12 }}>
+                پاک کردن فیلترها ({fNum(activeFilterCount)})
               </Button>
             )}
 
-            <Typography variant="caption" color="text.disabled" sx={{ mr: 'auto' }}>
-              {sorted.length} از {profiles.length} پروفایل
+            <Typography variant="caption" sx={{ ml: { sm: 'auto' }, fontSize: 12, color: 'text.secondary' }}>
+              {fNum(sorted.length)} از {fNum(profiles.length)} پروفایل
             </Typography>
           </Stack>
         </Stack>
       </Card>
 
       {/* ── Content ── */}
-      {isLoading ? (
-        <Card sx={{ p: 3 }}>در حال بارگذاری...</Card>
-      ) : sorted.length === 0 ? (
-        <Card sx={{ p: 3, textAlign: 'center' }}>
-          <Iconify icon="solar:user-search-bold-duotone" width={40} sx={{ color: 'text.disabled', mb: 1 }} />
-          <Typography color="text.secondary">
-            {profiles.length === 0 ? 'هنوز پروفایلی ایجاد نشده است.' : 'پروفایلی با این فیلترها یافت نشد.'}
-          </Typography>
-        </Card>
+      {isLoading || sorted.length === 0 ? (
+        <AdminListState
+          loading={isLoading}
+          empty={!isLoading}
+          icon="solar:user-id-bold"
+          emptyText={profiles.length === 0 ? 'هنوز پروفایلی ایجاد نشده است.' : 'پروفایلی با این فیلترها یافت نشد.'}
+        />
       ) : useTable ? (
         /* ── Desktop table view ── */
-        <Card sx={{ overflow: 'hidden' }}>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow sx={{ bgcolor: 'background.neutral' }}>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12, py: 1.25, pl: 2 }}>پروفایل</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12, py: 1.25 }}>تیر / وضعیت</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12, py: 1.25 }}>آمار</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12, py: 1.25 }}>آخرین فعالیت</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12, py: 1.25, pr: 1.5 }}>عملیات</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {sorted.map((p) => (
-                  <ProfileTableRow
-                    key={p.id}
-                    p={p}
-                    onEdit={openEdit}
-                    onArchive={handleArchive}
-                    onDelete={handleDelete}
-                  />
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Card>
+        <AdminTableCard>
+          <Table size="small" stickyHeader sx={[adminTableSx, { minWidth: 960 }]}>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ pl: 2.5 }}>پروفایل</TableCell>
+                <TableCell>تیر / وضعیت</TableCell>
+                <TableCell align="center">پست</TableCell>
+                <TableCell align="center">کاربر</TableCell>
+                <TableCell align="center">کلیدواژه</TableCell>
+                <TableCell>آخرین فعالیت</TableCell>
+                <TableCell align="right" sx={{ pr: 1.5, width: 110 }} />
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {sorted.map((p) => (
+                <ProfileTableRow
+                  key={p.id}
+                  p={p}
+                  onEdit={openEdit}
+                  onArchive={handleArchive}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </TableBody>
+          </Table>
+        </AdminTableCard>
       ) : (
-        /* ── Mobile / card view ── */
-        <Stack spacing={1.5}>
+        /* ── Card view (mobile, or desktop with the card toggle) ── */
+        <Box
+          sx={{
+            display: 'grid',
+            gap: 1.5,
+            gridTemplateColumns: { xs: '1fr', lg: desktopMode ? 'repeat(2, 1fr)' : '1fr' },
+          }}
+        >
           {sorted.map((p) => (
             <ProfileCard
               key={p.id}
@@ -1336,7 +1315,7 @@ export function AdminProfilesView() {
               onDelete={handleDelete}
             />
           ))}
-        </Stack>
+        </Box>
       )}
 
       <ProfileFormDialog

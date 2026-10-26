@@ -1,7 +1,3 @@
-import Box from '@mui/material/Box';
-import Stack from '@mui/material/Stack';
-import { useTheme } from '@mui/material/styles';
-
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
@@ -11,13 +7,15 @@ import { AISummary } from './ai-summary';
 import { HotTopics } from './hot-topics';
 import { TrendChart } from './trend-chart';
 import { CrisisRadar } from './crisis-radar';
-import { ImportantPosts } from './important-posts';import { ReputationGauge } from './reputation-gauge';
+import { ImportantPosts } from './important-posts';
+import { PageHeader } from '../shared/page-header';
+import { ReputationGauge } from './reputation-gauge';
 import { PoliticalSpectrum } from './political-spectrum';
+import { GridItem, WidgetGrid } from '../shared/widget-grid';
 
 // ----------------------------------------------------------------------
 
-export function TabOverview({ stats, emotionData, loading, healthScore = null }) {
-  const theme = useTheme();
+export function TabOverview({ loading, healthScore = null }) {
   const router = useRouter();
   const hidden = useHiddenWidgets();
 
@@ -26,16 +24,49 @@ export function TabOverview({ stats, emotionData, loading, healthScore = null })
   };
 
   return (
-    <Stack spacing={2.5} sx={{ pb: 10 }}>
-      {!hidden.has('reputation_gauge') && <ReputationGauge loading={loading} healthScore={healthScore} />}
-      {!hidden.has('ai_summary') && <AISummary loading={loading} onActionClick={handleActionClick} />}
-      {!hidden.has('crisis_radar') && <CrisisRadar loading={loading} />}
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr', gap: 1.5 }}>
-        {!hidden.has('trend_chart') && <TrendChart loading={loading} />}
-        {!hidden.has('political_spectrum') && <PoliticalSpectrum loading={loading} />}
-        {!hidden.has('hot_topics') && <HotTopics />}
-      </Box>
-      {!hidden.has('important_posts') && <ImportantPosts />}
-    </Stack>
+    <>
+      <PageHeader
+        title="داشبورد"
+        description="نمای کلی وضعیت اعتبار، روند احساسات و موضوعات داغ در فضای مجازی."
+      />
+
+      <WidgetGrid sx={{ pb: { xs: 10, lg: 4 } }}>
+        {!hidden.has('reputation_gauge') && (
+          <GridItem span={{ md: 5, lg: 4 }}>
+            <ReputationGauge loading={loading} healthScore={healthScore} />
+          </GridItem>
+        )}
+        {!hidden.has('ai_summary') && (
+          <GridItem span={{ md: 7, lg: 8 }}>
+            <AISummary loading={loading} onActionClick={handleActionClick} />
+          </GridItem>
+        )}
+        {!hidden.has('crisis_radar') && (
+          <GridItem span={{ md: 5, lg: 4 }}>
+            <CrisisRadar loading={loading} />
+          </GridItem>
+        )}
+        {!hidden.has('trend_chart') && (
+          <GridItem span={{ md: 7, lg: 8 }}>
+            <TrendChart loading={loading} />
+          </GridItem>
+        )}
+        {!hidden.has('political_spectrum') && (
+          <GridItem span={{ md: 6 }}>
+            <PoliticalSpectrum loading={loading} />
+          </GridItem>
+        )}
+        {!hidden.has('hot_topics') && (
+          <GridItem span={{ md: 6 }}>
+            <HotTopics />
+          </GridItem>
+        )}
+        {!hidden.has('important_posts') && (
+          <GridItem>
+            <ImportantPosts />
+          </GridItem>
+        )}
+      </WidgetGrid>
+    </>
   );
 }

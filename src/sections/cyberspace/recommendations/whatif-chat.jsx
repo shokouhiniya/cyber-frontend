@@ -3,18 +3,24 @@
 import { useRef, useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
+import Alert from '@mui/material/Alert';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import { alpha, useTheme } from '@mui/material/styles';
 
+import { fDelta, fPercent, toFaDigits } from 'src/utils/format-number-fa';
+
 import axios from 'src/lib/axios';
 import { useProfile, useScenarioStarters } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
+import { SENTIMENT_COLORS } from 'src/components/chart';
+import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
+
+import { WidgetCard } from '../shared/widget-card';
 
 // ----------------------------------------------------------------------
 
@@ -23,16 +29,18 @@ const DISABLED = true;
 
 const UNDER_DEV_MSG = 'این قابلیت در دست توسعه است.';
 
-const RISK_COLORS = {
-  low:      '#51CF66',
-  medium:   '#FFA94D',
-  high:     '#FF6B6B',
-  critical: '#C92A2A',
+const FALLBACK_ERROR = 'خطا در ارتباط با سرور. لطفاً دوباره تلاش کنید.';
+
+// Palette keys, so risk colors follow the theme in light and dark mode
+const RISK_TONES = {
+  low: 'success',
+  medium: 'warning',
+  high: 'error',
+  critical: 'error',
 };
 
 export function WhatIfChat() {
   const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -48,7 +56,7 @@ export function WhatIfChat() {
   }, [messages, isTyping]);
 
   const handleSend = async (text) => {
-    const msg = text || input.trim();
+    const msg = (text || input).trim();
     if (!msg || isTyping) return;
 
     setMessages((prev) => [...prev, { role: 'user', text: msg }]);
@@ -62,36 +70,33 @@ export function WhatIfChat() {
     setIsTyping(true);
     try {
       const orgId = profile?.promticIdentifier?.external_id;
-      const params = orgId ? `?org_id=${orgId}` : '';
+      const params = orgId ? `?org_id=${encodeURIComponent(orgId)}` : '';
       const res = await axios.post(`/api/ai-content/scenario${params}`, { scenario: msg });
-      const data = res.data;
-
-      if (data.error) {
-        setMessages((prev) => [...prev, { role: 'ai', text: `خطا: ${data.error}`, analysis: null }]);
-      } else {
-        const a = data.analysis;
-        setMessages((prev) => [...prev, {
+      const a = res.data?.analysis;
+      setMessages((prev) => [
+        ...prev,
+        {
           role: 'ai',
           text: a?.summary || 'تحلیل دریافت شد.',
-          analysis: a ? {
-            riskLevel: a.risk_label || a.risk_level,
-            riskColor: RISK_COLORS[a.risk_level] || '#FFA94D',
-            sentimentShift: a.sentiment_shift ?? 0,
-            expectedMentions: a.expected_volume || 'متوسط',
-            peakTime: a.peak_time || '۲-۴ ساعت',
-            breakdown: a.breakdown || { positive: 33, neutral: 34, negative: 33 },
-            keyRisks: a.key_risks || [],
-            recommendations: a.recommendations || [],
-            suggestedResponse: a.suggested_response || null,
-          } : null,
-        }]);
-      }
-    } catch {
-      setMessages((prev) => [...prev, {
-        role: 'ai',
-        text: 'خطا در ارتباط با سرور. لطفاً دوباره تلاش کنید.',
-        analysis: null,
-      }]);
+          analysis: a
+            ? {
+                riskLevel: a.risk_label || a.risk_level,
+                riskTone: RISK_TONES[a.risk_level] || 'warning',
+                sentimentShift: a.sentiment_shift ?? 0,
+                expectedMentions: a.expected_volume || 'متوسط',
+                peakTime: a.peak_time || '۲-۴ ساعت',
+                breakdown: a.breakdown || { positive: 33, neutral: 34, negative: 33 },
+                keyRisks: a.key_risks || [],
+                recommendations: a.recommendations || [],
+                suggestedResponse: a.suggested_response || null,
+              }
+            : null,
+        },
+      ]);
+    } catch (err) {
+      // The axios interceptor rejects with a plain (already localized) message string
+      const message = typeof err === 'string' && err ? err : err?.message || FALLBACK_ERROR;
+      setMessages((prev) => [...prev, { role: 'error', text: message }]);
     } finally {
       setIsTyping(false);
     }
@@ -104,209 +109,357 @@ export function WhatIfChat() {
     }
   };
 
-  return (
-    <Card
-      sx={{
-        borderRadius: 2.5,
-        overflow: 'hidden',
-        boxShadow: theme.shadows[2],
-        ...(DISABLED && {
-          filter: 'grayscale(0.35)',
-          bgcolor: alpha(theme.palette.grey[100], 0.6),
-        }),
-      }}
-    >
-      {/* Header */}
-      <Box sx={{ p: 2.5, background: `linear-gradient(135deg, ${alpha(theme.palette.grey[400], 0.10)} 0%, ${alpha(theme.palette.grey[500], 0.10)} 100%)` }}>
-        <Stack direction="row" alignItems="center" spacing={1.5}>
-          <Box sx={{ width: 40, height: 40, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: alpha(theme.palette.grey[500], 0.16) }}>
-            <Iconify icon="solar:chat-round-dots-bold-duotone" width={24} sx={{ color: 'text.secondary' }} />
-          </Box>
-          <Box>
-            <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>شبیه‌ساز سناریو</Typography>
-              {DISABLED
-                ? <Chip label="در دست توسعه" size="small" sx={{ height: 20, fontSize: 9, fontWeight: 700, bgcolor: alpha(theme.palette.grey[500], 0.12), color: 'text.disabled' }} />
-                : <Chip label="AI" size="small" sx={{ height: 20, fontSize: 9, fontWeight: 800, bgcolor: alpha('#845EF7', 0.12), color: '#845EF7' }} />
-              }
-            </Stack>
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              سناریوهای آینده را تست کنید و واکنش احتمالی افکار عمومی را ببینید
-            </Typography>
-          </Box>
-        </Stack>
-      </Box>
+  const canSend = !!input.trim() && !isTyping;
 
-      {/* Chat area */}
-      <Box ref={scrollRef} sx={{ height: 420, overflowY: 'auto', p: 2, bgcolor: alpha(theme.palette.grey[500], isDark ? 0.04 : 0.02) }}>
+  return (
+    <WidgetCard
+      title="شبیه‌ساز سناریو"
+      icon="solar:chat-round-dots-bold-duotone"
+      color="secondary"
+      tooltip={WIDGET_TOOLTIPS.whatIfChat}
+      subheader="سناریوهای فرضی را تست کنید و واکنش احتمالی افکار عمومی را ببینید"
+      action={
+        <Chip
+          label={DISABLED ? 'در دست توسعه' : 'هوش مصنوعی'}
+          size="small"
+          color={DISABLED ? 'default' : 'secondary'}
+          variant="soft"
+          sx={{ height: 24, fontSize: 12, fontWeight: 700 }}
+        />
+      }
+      disablePadding
+      sx={{ height: { xs: 560, lg: 'calc(100vh - 160px)' }, minHeight: { lg: 560 }, maxHeight: { lg: 760 } }}
+      contentSx={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}
+    >
+      {DISABLED && (
+        <Alert severity="info" variant="outlined" sx={{ mx: 2, mb: 1.5, py: 0.25, fontSize: 13 }}>
+          این بخش هنوز به سرویس تحلیل متصل نیست و پاسخ‌ها نمایشی هستند.
+        </Alert>
+      )}
+
+      {/* Messages */}
+      <Box
+        ref={scrollRef}
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          px: 2,
+          py: 2,
+          bgcolor: alpha(theme.palette.grey[500], 0.04),
+          borderTop: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
+        }}
+      >
         {messages.length === 0 && !isTyping && (
-          <Box sx={{ textAlign: 'center', py: 3 }}>
-            <Iconify icon="solar:chat-round-dots-bold-duotone" width={40} sx={{ color: 'text.disabled', mb: 1.5 }} />
-            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2.5 }}>
-              یک سناریو فرضی مطرح کنید تا تأثیر آن را تحلیل کنم
+          <Stack alignItems="center" sx={{ textAlign: 'center', py: 2 }}>
+            <Iconify icon="solar:chat-round-dots-bold-duotone" width={40} sx={{ color: 'text.disabled', mb: 1 }} />
+            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+              یک سناریوی فرضی مطرح کنید یا از پیشنهادهای زیر شروع کنید.
             </Typography>
-            <Stack spacing={0.75}>
+            <Stack spacing={1} sx={{ width: 1 }}>
               {starters.map((scenario) => (
                 <Box
                   key={scenario}
-                  dir="rtl"
+                  component="button"
+                  type="button"
                   onClick={() => handleSend(scenario)}
                   sx={{
-                    p: 1.25, borderRadius: 1.5, cursor: 'pointer',
-                    textAlign: 'right',
-                    bgcolor: alpha(theme.palette.grey[500], 0.04),
-                    border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
-                    transition: 'all 0.2s',
-                    '&:hover': { bgcolor: alpha(theme.palette.grey[500], 0.08), borderColor: alpha(theme.palette.grey[500], 0.24) },
+                    font: 'inherit',
+                    fontSize: 13,
+                    lineHeight: 1.8,
+                    color: 'text.primary',
+                    textAlign: 'start',
+                    cursor: 'pointer',
+                    p: 1.25,
+                    borderRadius: 1.5,
+                    bgcolor: 'background.paper',
+                    border: `1px solid ${alpha(theme.palette.grey[500], 0.2)}`,
+                    transition: theme.transitions.create(['border-color', 'background-color']),
+                    '&:hover': {
+                      borderColor: theme.palette.primary.main,
+                      bgcolor: alpha(theme.palette.primary.main, 0.04),
+                    },
+                    '&:focus-visible': { outline: `2px solid ${theme.palette.primary.main}`, outlineOffset: 1 },
                   }}
                 >
-                  <Typography variant="caption" sx={{ fontSize: 11, color: 'text.primary', display: 'block', textAlign: 'right' }}>
-                    {scenario}
-                  </Typography>
+                  {toFaDigits(scenario)}
                 </Box>
               ))}
             </Stack>
-          </Box>
+          </Stack>
         )}
 
         <Stack spacing={2}>
-          {messages.map((msg, i) => (
-            <Box key={i}>
-              {msg.role === 'user' ? (
-                <Stack direction="row" justifyContent="flex-end">
-                  <Box sx={{ maxWidth: '85%', p: 1.5, borderRadius: '12px 12px 4px 12px', bgcolor: theme.palette.grey[400], color: '#fff' }}>
-                    <Typography variant="body2" sx={{ fontSize: 12, lineHeight: 1.7 }}>{msg.text}</Typography>
-                  </Box>
-                </Stack>
-              ) : (
-                <Stack direction="row" justifyContent="flex-start" spacing={1}>
-                  <Box sx={{ width: 28, height: 28, borderRadius: 1, bgcolor: alpha(theme.palette.grey[500], 0.16), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.5 }}>
-                    <Iconify icon="solar:cpu-bolt-bold" width={16} sx={{ color: 'text.secondary' }} />
-                  </Box>
-                  <Box sx={{ maxWidth: '90%' }}>
-                    <Box sx={{ p: 1.5, borderRadius: '12px 12px 12px 4px', bgcolor: alpha(theme.palette.grey[500], isDark ? 0.12 : 0.08) }}>
-                      <Typography variant="body2" sx={{ fontSize: 12, lineHeight: 1.7, color: 'text.primary' }}>{msg.text}</Typography>
-                    </Box>
+          {messages.map((msg, i) => {
+            if (msg.role === 'user') return <UserBubble key={i} text={msg.text} />;
+            return <AiBubble key={i} msg={msg} />;
+          })}
 
-                    {msg.analysis && (
-                      <Box sx={{ mt: 1, p: 1.5, borderRadius: 2, bgcolor: alpha('#845EF7', 0.04), border: `1px solid ${alpha('#845EF7', 0.12)}` }}>
-                        <Stack direction="row" spacing={0.75} sx={{ mb: 1.5, flexWrap: 'wrap', gap: 0.5 }}>
-                          <Chip label={`ریسک: ${msg.analysis.riskLevel}`} size="small"
-                            sx={{ height: 22, fontSize: 9, fontWeight: 700, bgcolor: alpha(msg.analysis.riskColor, 0.12), color: msg.analysis.riskColor, border: `1px solid ${alpha(msg.analysis.riskColor, 0.24)}` }} />
-                          <Chip label={`تغییر احساسات: ${msg.analysis.sentimentShift > 0 ? '+' : ''}${msg.analysis.sentimentShift}٪`} size="small"
-                            sx={{ height: 22, fontSize: 9, fontWeight: 700, bgcolor: alpha(msg.analysis.sentimentShift >= 0 ? '#51CF66' : '#FF6B6B', 0.1), color: msg.analysis.sentimentShift >= 0 ? '#51CF66' : '#FF6B6B' }} />
-                          <Chip label={`حجم: ${msg.analysis.expectedMentions}`} size="small"
-                            sx={{ height: 22, fontSize: 9, fontWeight: 700, bgcolor: alpha(theme.palette.info.main, 0.1), color: theme.palette.info.main }} />
-                        </Stack>
-                        <Stack direction="row" spacing={0.25} sx={{ mb: 0.5, borderRadius: 1, overflow: 'hidden' }}>
-                          <Box sx={{ flex: msg.analysis.breakdown.positive, height: 6, bgcolor: '#51CF66' }} />
-                          <Box sx={{ flex: msg.analysis.breakdown.neutral, height: 6, bgcolor: '#ADB5BD' }} />
-                          <Box sx={{ flex: msg.analysis.breakdown.negative, height: 6, bgcolor: '#FF6B6B' }} />
-                        </Stack>
-                        <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.25 }}>
-                          <Typography variant="caption" sx={{ fontSize: 8, color: '#51CF66', fontWeight: 700 }}>{msg.analysis.breakdown.positive}٪ مثبت</Typography>
-                          <Typography variant="caption" sx={{ fontSize: 8, color: '#ADB5BD', fontWeight: 700 }}>{msg.analysis.breakdown.neutral}٪ خنثی</Typography>
-                          <Typography variant="caption" sx={{ fontSize: 8, color: '#FF6B6B', fontWeight: 700 }}>{msg.analysis.breakdown.negative}٪ منفی</Typography>
-                        </Stack>
-                        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 1.25 }}>
-                          <Iconify icon="solar:clock-circle-bold" width={12} sx={{ color: 'text.disabled' }} />
-                          <Typography variant="caption" sx={{ fontSize: 9, color: 'text.secondary' }}>اوج واکنش: {msg.analysis.peakTime}</Typography>
-                        </Stack>
-                        {msg.analysis.keyRisks?.length > 0 && (
-                          <Box sx={{ mb: 1.25 }}>
-                            <Typography variant="caption" sx={{ fontSize: 10, fontWeight: 700, display: 'block', mb: 0.5, color: '#FF6B6B' }}>ریسک‌های کلیدی:</Typography>
-                            <Stack spacing={0.25}>
-                              {msg.analysis.keyRisks.map((risk, ri) => (
-                                <Stack key={ri} direction="row" alignItems="flex-start" spacing={0.5}>
-                                  <Iconify icon="solar:danger-triangle-bold" width={11} sx={{ color: '#FF6B6B', mt: 0.2, flexShrink: 0 }} />
-                                  <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary', lineHeight: 1.5 }}>{risk}</Typography>
-                                </Stack>
-                              ))}
-                            </Stack>
-                          </Box>
-                        )}
-                        {msg.analysis.recommendations?.length > 0 && (
-                          <Box sx={{ mb: msg.analysis.suggestedResponse ? 1.25 : 0 }}>
-                            <Typography variant="caption" sx={{ fontSize: 10, fontWeight: 700, display: 'block', mb: 0.5 }}>توصیه‌ها:</Typography>
-                            <Stack spacing={0.25}>
-                              {msg.analysis.recommendations.map((rec, ri) => (
-                                <Stack key={ri} direction="row" alignItems="flex-start" spacing={0.5}>
-                                  <Iconify icon="solar:check-read-bold" width={11} sx={{ color: '#51CF66', mt: 0.2, flexShrink: 0 }} />
-                                  <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary', lineHeight: 1.5 }}>{rec}</Typography>
-                                </Stack>
-                              ))}
-                            </Stack>
-                          </Box>
-                        )}
-                        {msg.analysis.suggestedResponse && (
-                          <Box sx={{ p: 1, borderRadius: 1, bgcolor: alpha('#51CF66', 0.06), border: `1px solid ${alpha('#51CF66', 0.16)}` }}>
-                            <Typography variant="caption" sx={{ fontSize: 9, fontWeight: 700, color: '#51CF66', display: 'block', mb: 0.25 }}>پیشنهاد واکنش:</Typography>
-                            <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary', lineHeight: 1.6 }}>{msg.analysis.suggestedResponse}</Typography>
-                          </Box>
-                        )}
-                      </Box>
-                    )}
-                  </Box>
-                </Stack>
-              )}
-            </Box>
-          ))}
-
-          {isTyping && (
-            <Stack direction="row" justifyContent="flex-start" spacing={1}>
-              <Box sx={{ width: 28, height: 28, borderRadius: 1, bgcolor: alpha('#845EF7', 0.12), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Iconify icon="solar:cpu-bolt-bold" width={16} sx={{ color: '#845EF7' }} />
-              </Box>
-              <Box sx={{ p: 1.5, borderRadius: '12px 12px 12px 4px', bgcolor: alpha(theme.palette.grey[500], isDark ? 0.12 : 0.08) }}>
-                <Stack direction="row" spacing={0.5} alignItems="center">
-                  {[0, 1, 2].map((dot) => (
-                    <Box key={dot} sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#845EF7',
-                      animation: 'pulse 1.2s ease-in-out infinite', animationDelay: `${dot * 0.2}s`,
-                      '@keyframes pulse': { '0%, 80%, 100%': { opacity: 0.3, transform: 'scale(0.8)' }, '40%': { opacity: 1, transform: 'scale(1)' } },
-                    }} />
-                  ))}
-                </Stack>
-              </Box>
-            </Stack>
-          )}
+          {isTyping && <TypingBubble />}
         </Stack>
       </Box>
 
-      {/* Input */}
-      <Box sx={{ p: 2, borderTop: `1px solid ${alpha(theme.palette.grey[500], 0.12)}` }}>
+      {/* Input, pinned to the bottom of the card */}
+      <Box sx={{ p: 1.5, borderTop: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`, bgcolor: 'background.paper' }}>
         <Stack direction="row" spacing={1} alignItems="flex-end">
           <TextField
-            fullWidth multiline maxRows={3}
-            placeholder="یک سناریو فرضی بنویسید..."
+            fullWidth
+            multiline
+            maxRows={4}
+            placeholder="یک سناریوی فرضی بنویسید…"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            variant="outlined" size="small"
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2, fontSize: 13,
-                bgcolor: alpha(theme.palette.grey[500], isDark ? 0.08 : 0.04),
-                '& fieldset': { borderColor: alpha(theme.palette.grey[500], 0.12) },
-                '&:hover fieldset': { borderColor: alpha(theme.palette.grey[500], 0.3) },
-                '&.Mui-focused fieldset': { borderColor: theme.palette.grey[500] },
-              },
-            }}
+            size="small"
+            slotProps={{ htmlInput: { 'aria-label': 'متن سناریو' } }}
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5, fontSize: 14 } }}
           />
           <IconButton
+            aria-label="ارسال"
             onClick={() => handleSend()}
-            disabled={!input.trim() || isTyping}
+            disabled={!canSend}
             sx={{
-              width: 40, height: 40, borderRadius: 2,
-              bgcolor: input.trim() && !isTyping ? theme.palette.grey[500] : alpha(theme.palette.grey[500], 0.12),
-              color: input.trim() && !isTyping ? '#fff' : 'text.disabled',
-              '&:hover': { bgcolor: input.trim() && !isTyping ? theme.palette.grey[600] : undefined },
-              '&.Mui-disabled': { bgcolor: alpha(theme.palette.grey[500], 0.08), color: 'text.disabled' },
+              width: 40,
+              height: 40,
+              flexShrink: 0,
+              borderRadius: 1.5,
+              color: 'primary.contrastText',
+              bgcolor: 'primary.main',
+              '&:hover': { bgcolor: 'primary.dark' },
+              '&.Mui-disabled': { bgcolor: alpha(theme.palette.grey[500], 0.12), color: 'text.disabled' },
             }}
           >
             <Iconify icon="solar:plain-bold" width={20} />
           </IconButton>
         </Stack>
+        <Typography variant="caption" sx={{ display: 'block', mt: 0.75, color: 'text.disabled', fontSize: 11 }}>
+          Enter برای ارسال · Shift+Enter برای خط جدید
+        </Typography>
       </Box>
-    </Card>
+    </WidgetCard>
+  );
+}
+
+// ----------------------------------------------------------------------
+
+function UserBubble({ text }) {
+  return (
+    <Stack direction="row" justifyContent="flex-end">
+      <Box
+        sx={{
+          maxWidth: '85%',
+          px: 1.75,
+          py: 1.25,
+          borderRadius: 2,
+          borderEndEndRadius: 4,
+          bgcolor: 'primary.main',
+          color: 'primary.contrastText',
+        }}
+      >
+        <Typography variant="body2" sx={{ lineHeight: 1.8, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          {toFaDigits(text)}
+        </Typography>
+      </Box>
+    </Stack>
+  );
+}
+
+function BotAvatar({ tone }) {
+  const theme = useTheme();
+  const color = theme.palette[tone].main;
+  return (
+    <Box
+      sx={{
+        width: 30,
+        height: 30,
+        flexShrink: 0,
+        borderRadius: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color,
+        bgcolor: alpha(color, 0.12),
+      }}
+    >
+      <Iconify icon={tone === 'error' ? 'solar:danger-triangle-bold' : 'solar:cpu-bolt-bold'} width={16} />
+    </Box>
+  );
+}
+
+function TypingBubble() {
+  const theme = useTheme();
+  return (
+    <Stack direction="row" spacing={1} alignItems="flex-end" aria-live="polite" aria-label="در حال تحلیل">
+      <BotAvatar tone="secondary" />
+      <Box
+        sx={{
+          px: 1.75,
+          py: 1.5,
+          borderRadius: 2,
+          borderEndStartRadius: 4,
+          bgcolor: 'background.paper',
+          border: `1px solid ${alpha(theme.palette.grey[500], 0.16)}`,
+        }}
+      >
+        <Stack direction="row" spacing={0.5} alignItems="center">
+          {[0, 1, 2].map((dot) => (
+            <Box
+              key={dot}
+              sx={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                bgcolor: 'text.secondary',
+                animation: 'whatif-typing 1.2s ease-in-out infinite',
+                animationDelay: `${dot * 0.2}s`,
+                '@keyframes whatif-typing': {
+                  '0%, 80%, 100%': { opacity: 0.3, transform: 'scale(0.8)' },
+                  '40%': { opacity: 1, transform: 'scale(1)' },
+                },
+              }}
+            />
+          ))}
+          <Typography variant="caption" sx={{ color: 'text.secondary', ml: 1 }}>
+            در حال تحلیل…
+          </Typography>
+        </Stack>
+      </Box>
+    </Stack>
+  );
+}
+
+function AiBubble({ msg }) {
+  const theme = useTheme();
+  const isError = msg.role === 'error';
+
+  return (
+    <Stack direction="row" justifyContent="flex-start" alignItems="flex-start" spacing={1}>
+      <BotAvatar tone={isError ? 'error' : 'secondary'} />
+      <Box sx={{ maxWidth: '88%', minWidth: 0 }}>
+        <Box
+          sx={{
+            px: 1.75,
+            py: 1.25,
+            borderRadius: 2,
+            borderStartStartRadius: 4,
+            bgcolor: isError ? alpha(theme.palette.error.main, 0.08) : 'background.paper',
+            border: `1px solid ${isError ? alpha(theme.palette.error.main, 0.24) : alpha(theme.palette.grey[500], 0.16)}`,
+          }}
+        >
+          <Typography
+            variant="body2"
+            sx={{ lineHeight: 1.8, color: isError ? 'error.main' : 'text.primary', wordBreak: 'break-word' }}
+          >
+            {toFaDigits(msg.text)}
+          </Typography>
+        </Box>
+
+        {msg.analysis && <AnalysisCard analysis={msg.analysis} />}
+      </Box>
+    </Stack>
+  );
+}
+
+function AnalysisCard({ analysis }) {
+  const theme = useTheme();
+  const riskColor = theme.palette[analysis.riskTone].main;
+  const shiftColor = analysis.sentimentShift >= 0 ? theme.palette.success.main : theme.palette.error.main;
+  const { breakdown } = analysis;
+
+  const chipSx = (color) => ({ height: 24, fontSize: 12, fontWeight: 700, color, bgcolor: alpha(color, 0.12) });
+
+  return (
+    <Box
+      sx={{
+        mt: 1,
+        p: 1.5,
+        borderRadius: 1.5,
+        bgcolor: 'background.paper',
+        border: `1px solid ${alpha(theme.palette.grey[500], 0.16)}`,
+      }}
+    >
+      <Stack direction="row" flexWrap="wrap" gap={0.75} sx={{ mb: 1.5 }}>
+        <Chip size="small" label={`ریسک: ${toFaDigits(analysis.riskLevel)}`} sx={chipSx(riskColor)} />
+        <Chip size="small" label={`تغییر احساسات: ${fDelta(analysis.sentimentShift)}`} sx={chipSx(shiftColor)} />
+        <Chip
+          size="small"
+          label={`حجم: ${toFaDigits(analysis.expectedMentions)}`}
+          sx={chipSx(theme.palette.info.main)}
+        />
+      </Stack>
+
+      <Stack direction="row" spacing={0.25} sx={{ mb: 0.75, borderRadius: 1, overflow: 'hidden' }}>
+        <Box sx={{ flex: breakdown.positive || 0, height: 8, bgcolor: SENTIMENT_COLORS.positive }} />
+        <Box sx={{ flex: breakdown.neutral || 0, height: 8, bgcolor: SENTIMENT_COLORS.neutral }} />
+        <Box sx={{ flex: breakdown.negative || 0, height: 8, bgcolor: SENTIMENT_COLORS.negative }} />
+      </Stack>
+      <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.5 }}>
+        {[
+          ['positive', 'مثبت'],
+          ['neutral', 'خنثی'],
+          ['negative', 'منفی'],
+        ].map(([key, label]) => (
+          <Typography key={key} variant="caption" sx={{ fontSize: 12, fontWeight: 700, color: SENTIMENT_COLORS[key] }}>
+            {fPercent(breakdown[key])} {label}
+          </Typography>
+        ))}
+      </Stack>
+
+      <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 1.5 }}>
+        <Iconify icon="solar:clock-circle-bold" width={16} sx={{ color: 'text.disabled' }} />
+        <Typography variant="caption" sx={{ fontSize: 12, color: 'text.secondary' }}>
+          اوج واکنش: {toFaDigits(analysis.peakTime)}
+        </Typography>
+      </Stack>
+
+      {analysis.keyRisks?.length > 0 && (
+        <BulletList
+          title="ریسک‌های کلیدی"
+          items={analysis.keyRisks}
+          icon="solar:danger-triangle-bold"
+          color={theme.palette.error.main}
+        />
+      )}
+
+      {analysis.recommendations?.length > 0 && (
+        <BulletList
+          title="توصیه‌ها"
+          items={analysis.recommendations}
+          icon="solar:check-read-bold"
+          color={theme.palette.success.main}
+        />
+      )}
+
+      {analysis.suggestedResponse && (
+        <Box sx={{ p: 1.25, borderRadius: 1, bgcolor: alpha(theme.palette.success.main, 0.08) }}>
+          <Typography variant="caption" sx={{ fontSize: 12, fontWeight: 700, color: 'success.main', display: 'block', mb: 0.5 }}>
+            پیشنهاد واکنش
+          </Typography>
+          <Typography variant="body2" sx={{ fontSize: 13, color: 'text.primary', lineHeight: 1.8 }}>
+            {toFaDigits(analysis.suggestedResponse)}
+          </Typography>
+        </Box>
+      )}
+    </Box>
+  );
+}
+
+function BulletList({ title, items, icon, color }) {
+  return (
+    <Box sx={{ mb: 1.5 }}>
+      <Typography variant="caption" sx={{ fontSize: 12, fontWeight: 700, display: 'block', mb: 0.5, color }}>
+        {title}
+      </Typography>
+      <Stack spacing={0.5}>
+        {items.map((item, i) => (
+          <Stack key={i} direction="row" alignItems="flex-start" spacing={0.75}>
+            <Iconify icon={icon} width={14} sx={{ color, mt: 0.5, flexShrink: 0 }} />
+            <Typography variant="body2" sx={{ fontSize: 13, color: 'text.secondary', lineHeight: 1.7 }}>
+              {toFaDigits(item)}
+            </Typography>
+          </Stack>
+        ))}
+      </Stack>
+    </Box>
   );
 }

@@ -1,26 +1,34 @@
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
-import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 import { alpha, useTheme } from '@mui/material/styles';
+
+import { toFaDigits } from 'src/utils/format-number-fa';
 
 import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
 
+/** Event severity → theme palette key, label and icon. */
 export const SEVERITY = {
-  high:   { color: '#FF6B6B', label: 'بحرانی',   icon: 'solar:danger-triangle-bold-duotone' },
-  medium: { color: '#FFA94D', label: 'مهم',       icon: 'solar:shield-warning-bold-duotone' },
-  low:    { color: '#51CF66', label: 'قابل توجه', icon: 'solar:info-circle-bold-duotone' },
+  high: { color: 'error', label: 'بحرانی', icon: 'solar:danger-triangle-bold-duotone' },
+  medium: { color: 'warning', label: 'مهم', icon: 'solar:shield-warning-bold-duotone' },
+  low: { color: 'success', label: 'قابل توجه', icon: 'solar:info-circle-bold-duotone' },
 };
+
+const TENSIONS = [
+  { key: 'domestic', label: 'داخلی', icon: 'solar:home-2-bold-duotone', color: 'secondary' },
+  { key: 'foreign', label: 'خارجی', icon: 'solar:global-bold-duotone', color: 'info' },
+  { key: 'economic', label: 'اقتصادی', icon: 'solar:chart-bold-duotone', color: 'warning' },
+];
 
 export function SectionLabel({ icon, label, color }) {
   const theme = useTheme();
   return (
-    <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 1 }}>
-      <Iconify icon={icon} width={14} sx={{ color: color || theme.palette.text.secondary }} />
-      <Typography variant="caption" sx={{ fontWeight: 700, fontSize: 10, color: color || 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+    <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 1.25 }}>
+      <Iconify icon={icon} width={18} sx={{ color: color || theme.palette.text.secondary }} />
+      <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: 13, color: color || 'text.secondary' }}>
         {label}
       </Typography>
     </Stack>
@@ -69,8 +77,17 @@ export function parseMacroValue(raw) {
   return result.reverse();
 }
 
+function TextBlock({ children }) {
+  return (
+    <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.9 }}>
+      {toFaDigits(children)}
+    </Typography>
+  );
+}
+
 /**
  * Renders a parsed macro-politics JSON object in a structured, readable layout.
+ * Events on one side, tensions / media / forecast on the other from md up.
  * Used by both the analytics MacroContext widget and the admin global-context view.
  */
 export function MacroParsedContent({ parsed }) {
@@ -78,29 +95,74 @@ export function MacroParsedContent({ parsed }) {
 
   if (!parsed) return null;
 
+  const hasEvents = parsed.events?.length > 0;
+  const tensions = parsed.tensions ? TENSIONS.filter((t) => parsed.tensions[t.key]) : [];
+  const hasSide = tensions.length > 0 || parsed.media_atmosphere || parsed.forecast;
+
+  const panelSx = {
+    p: 2,
+    borderRadius: 1.5,
+    bgcolor: alpha(theme.palette.grey[500], 0.04),
+    border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
+  };
+
   return (
-    <Stack spacing={2}>
-      {/* Events */}
-      {parsed.events?.length > 0 && (
+    <Box
+      sx={{
+        display: 'grid',
+        gap: 2,
+        gridTemplateColumns: { xs: '1fr', md: hasEvents && hasSide ? '7fr 5fr' : '1fr' },
+        alignItems: 'start',
+      }}
+    >
+      {hasEvents && (
         <Box>
           <SectionLabel icon="solar:calendar-bold-duotone" label="رویدادها" />
-          <Stack spacing={0.75}>
+          <Stack spacing={1}>
             {parsed.events.map((ev, i) => {
               const sev = SEVERITY[ev.severity] || SEVERITY.medium;
+              const tone = theme.palette[sev.color].main;
               return (
-                <Stack key={i} direction="row" alignItems="flex-start" spacing={1}
-                  sx={{ p: 1.25, borderRadius: 1.5, bgcolor: alpha(sev.color, 0.05), borderRight: `3px solid ${sev.color}` }}>
-                  <Iconify icon={sev.icon} width={16} sx={{ color: sev.color, mt: 0.2, flexShrink: 0 }} />
+                <Stack
+                  key={i}
+                  direction="row"
+                  alignItems="flex-start"
+                  spacing={1.25}
+                  sx={{
+                    p: 1.5,
+                    borderRadius: 1.5,
+                    bgcolor: alpha(tone, 0.06),
+                    borderInlineStart: `3px solid ${tone}`,
+                  }}
+                >
+                  <Iconify icon={sev.icon} width={18} sx={{ color: tone, mt: 0.25, flexShrink: 0 }} />
                   <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography variant="caption" sx={{ fontWeight: 700, fontSize: 11, display: 'block' }}>{ev.title}</Typography>
-                    <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary', lineHeight: 1.5 }}>{ev.summary}</Typography>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1.6 }}>
+                      {toFaDigits(ev.title)}
+                    </Typography>
+                    {ev.summary && (
+                      <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.8, mt: 0.25 }}>
+                        {toFaDigits(ev.summary)}
+                      </Typography>
+                    )}
                     {ev.actor && (
-                      <Typography variant="caption" sx={{ fontSize: 9, color: 'text.disabled', display: 'block', mt: 0.25 }}>
+                      <Typography variant="caption" component="div" sx={{ color: 'text.disabled', mt: 0.5 }}>
                         {ev.actor}
                       </Typography>
                     )}
                   </Box>
-                  <Chip label={sev.label} size="small" sx={{ height: 18, fontSize: 8, fontWeight: 700, flexShrink: 0, bgcolor: alpha(sev.color, 0.12), color: sev.color }} />
+                  <Chip
+                    label={sev.label}
+                    size="small"
+                    sx={{
+                      height: 22,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      flexShrink: 0,
+                      bgcolor: alpha(tone, 0.14),
+                      color: theme.palette[sev.color][theme.palette.mode === 'dark' ? 'light' : 'dark'],
+                    }}
+                  />
                 </Stack>
               );
             })}
@@ -108,57 +170,50 @@ export function MacroParsedContent({ parsed }) {
         </Box>
       )}
 
-      {/* Tensions */}
-      {parsed.tensions && (
-        <>
-          <Divider sx={{ opacity: 0.4 }} />
-          <Box>
-            <SectionLabel icon="solar:danger-bold-duotone" label="تنش‌ها" color={theme.palette.error.main} />
-            <Stack spacing={0.5}>
-              {[
-                { key: 'domestic', label: 'داخلی',   icon: 'solar:home-bold',  color: '#868E96' },
-                { key: 'foreign',  label: 'خارجی',   icon: 'solar:global-bold', color: '#4DABF7' },
-                { key: 'economic', label: 'اقتصادی', icon: 'solar:chart-bold',  color: '#FFA94D' },
-              ].map(({ key, label, icon, color }) => parsed.tensions[key] ? (
-                <Stack key={key} direction="row" alignItems="flex-start" spacing={1} sx={{ py: 0.5 }}>
-                  <Iconify icon={icon} width={13} sx={{ color, mt: 0.3, flexShrink: 0 }} />
-                  <Box>
-                    <Typography component="span" variant="caption" sx={{ fontWeight: 700, fontSize: 10, color }}>{label}: </Typography>
-                    <Typography component="span" variant="caption" sx={{ fontSize: 10, color: 'text.secondary' }}>{parsed.tensions[key]}</Typography>
-                  </Box>
-                </Stack>
-              ) : null)}
-            </Stack>
-          </Box>
-        </>
-      )}
+      {hasSide && (
+        <Stack spacing={2}>
+          {tensions.length > 0 && (
+            <Box sx={panelSx}>
+              <SectionLabel icon="solar:danger-bold-duotone" label="تنش‌ها" color={theme.palette.error.main} />
+              <Stack spacing={1.25}>
+                {tensions.map(({ key, label, icon, color }) => {
+                  const tone = theme.palette[color].main;
+                  return (
+                    <Stack key={key} direction="row" alignItems="flex-start" spacing={1}>
+                      <Iconify icon={icon} width={16} sx={{ color: tone, mt: 0.4, flexShrink: 0 }} />
+                      <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.8 }}>
+                        <Box component="span" sx={{ fontWeight: 700, color: tone }}>
+                          {label}:{' '}
+                        </Box>
+                        {toFaDigits(parsed.tensions[key])}
+                      </Typography>
+                    </Stack>
+                  );
+                })}
+              </Stack>
+            </Box>
+          )}
 
-      {/* Media atmosphere */}
-      {parsed.media_atmosphere && (
-        <>
-          <Divider sx={{ opacity: 0.4 }} />
-          <Box>
-            <SectionLabel icon="solar:tv-bold-duotone" label="فضای رسانه" />
-            <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary', lineHeight: 1.6 }}>
-              {parsed.media_atmosphere}
-            </Typography>
-          </Box>
-        </>
-      )}
+          {parsed.media_atmosphere && (
+            <Box sx={panelSx}>
+              <SectionLabel icon="solar:tv-bold-duotone" label="فضای رسانه" />
+              <TextBlock>{parsed.media_atmosphere}</TextBlock>
+            </Box>
+          )}
 
-      {/* Forecast */}
-      {parsed.forecast && (
-        <>
-          <Divider sx={{ opacity: 0.4 }} />
-          <Box>
-            <SectionLabel icon="solar:clock-circle-bold-duotone" label="پیش‌بینی ۴۸ ساعت" color={theme.palette.warning.main} />
-            <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary', lineHeight: 1.6 }}>
-              {parsed.forecast}
-            </Typography>
-          </Box>
-        </>
+          {parsed.forecast && (
+            <Box sx={panelSx}>
+              <SectionLabel
+                icon="solar:clock-circle-bold-duotone"
+                label="پیش‌بینی ۴۸ ساعت آینده"
+                color={theme.palette.warning.main}
+              />
+              <TextBlock>{parsed.forecast}</TextBlock>
+            </Box>
+          )}
+        </Stack>
       )}
-    </Stack>
+    </Box>
   );
 }
 
@@ -185,8 +240,8 @@ export function MacroRawContent({ raw }) {
     .trim();
 
   return (
-    <Typography variant="body2" sx={{ whiteSpace: 'pre-line', lineHeight: 2, fontSize: 11, color: 'text.primary', direction: 'rtl' }}>
-      {cleaned}
+    <Typography variant="body2" sx={{ whiteSpace: 'pre-line', lineHeight: 2, color: 'text.primary' }}>
+      {toFaDigits(cleaned)}
     </Typography>
   );
 }

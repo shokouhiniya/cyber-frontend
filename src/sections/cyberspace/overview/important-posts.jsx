@@ -1,66 +1,52 @@
 import { useState } from 'react';
 
 import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import Stack from '@mui/material/Stack';
-import Collapse from '@mui/material/Collapse';
-import { useTheme } from '@mui/material/styles';
-import Typography from '@mui/material/Typography';
-import ButtonBase from '@mui/material/ButtonBase';
-import CircularProgress from '@mui/material/CircularProgress';
 
 import { useTopPosts } from 'src/api/dashboard';
 
-import { Iconify } from 'src/components/iconify';
-import { InfoTooltip } from 'src/components/info-tooltip';
 import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 
 import { PostCard, usePostDrawer } from '../shared/post-card';
+import { WidgetCard, WidgetToggle } from '../shared/widget-card';
 
 // ----------------------------------------------------------------------
 
-export function ImportantPosts() {
-  const theme = useTheme();
-  const { openPost, PostDrawer } = usePostDrawer();
-  const { data: posts = [], isLoading } = useTopPosts(5);
-  const [sectionOpen, setSectionOpen] = useState(false);
+const TIME_FILTERS = [
+  { value: '24h', label: '۲۴ ساعت' },
+  { value: '7d', label: '۷ روز' },
+  { value: '30d', label: '۳۰ روز' },
+];
 
-  if (isLoading) {
-    return (
-      <Card sx={{ p: 2, borderRadius: 2, boxShadow: theme.shadows[2], display: 'flex', justifyContent: 'center', minHeight: 80 }}>
-        <CircularProgress size={24} />
-      </Card>
-    );
-  }
+export function ImportantPosts() {
+  const { openPost, PostDrawer } = usePostDrawer();
+  const [timeframe, setTimeframe] = useState('7d');
+  const { data: posts = [], isLoading } = useTopPosts(6, timeframe);
 
   return (
     <>
-      <Card sx={{ borderRadius: 2, overflow: 'hidden', boxShadow: theme.shadows[2] }}>
-        <ButtonBase
-          component="div"
-          onClick={() => setSectionOpen((prev) => !prev)}
-          sx={{ width: '100%', p: 2, display: 'block', textAlign: 'start' }}
+      <WidgetCard
+        title="پربازدیدترین محتواها"
+        icon="solar:star-bold-duotone"
+        color="warning"
+        tooltip={WIDGET_TOOLTIPS.importantPosts}
+        subheader="پست‌های مرتبط با بیشترین بازدید (بدون صفحات رسمی)"
+        loading={isLoading}
+        empty={!posts.length}
+        emptyText="در این بازه پستی ثبت نشده است."
+        action={<WidgetToggle value={timeframe} onChange={setTimeframe} options={TIME_FILTERS} />}
+      >
+        <Box
+          sx={{
+            display: 'grid',
+            gap: 1.5,
+            gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))', xl: 'repeat(3, minmax(0, 1fr))' },
+          }}
         >
-          <Stack direction="row" alignItems="center" justifyContent="space-between">
-            <Stack direction="row" alignItems="center" spacing={1}>
-              <Iconify icon="solar:star-bold-duotone" width={20} sx={{ color: theme.palette.warning.main }} />
-              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>پربازدیدترین محتواها</Typography>
-              <InfoTooltip title={WIDGET_TOOLTIPS.importantPosts} />
-            </Stack>
-            <Iconify icon={sectionOpen ? 'solar:alt-arrow-up-bold' : 'solar:alt-arrow-down-bold'} width={18} sx={{ color: 'text.secondary' }} />
-          </Stack>
-        </ButtonBase>
-
-        <Collapse in={sectionOpen} timeout={350}>
-          <Box sx={{ px: 2, pb: 2 }}>
-            <Stack spacing={1.5}>
-              {posts.map((post) => (
-                <PostCard key={post.id} post={post} onClick={() => openPost(post)} />
-              ))}
-            </Stack>
-          </Box>
-        </Collapse>
-      </Card>
+          {posts.map((post) => (
+            <PostCard key={post.id} post={post} onClick={() => openPost(post)} />
+          ))}
+        </Box>
+      </WidgetCard>
       {PostDrawer}
     </>
   );

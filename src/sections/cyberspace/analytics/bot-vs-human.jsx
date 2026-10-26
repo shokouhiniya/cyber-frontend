@@ -1,73 +1,147 @@
 import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
+import { useTheme } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
-import { alpha, useTheme } from '@mui/material/styles';
-import CircularProgress from '@mui/material/CircularProgress';
+
+import { fNum, fPercent } from 'src/utils/format-number-fa';
 
 import { useUserDistribution } from 'src/api/dashboard';
 
-import { Iconify } from 'src/components/iconify';
-import { InfoTooltip } from 'src/components/info-tooltip';
+import { Chart, useChart } from 'src/components/chart';
 import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
+
+import { WidgetCard } from '../shared/widget-card';
 
 // ----------------------------------------------------------------------
 
+/**
+ * Splits stored posts by how many views they got. The backend buckets are
+ * view-count thresholds, not bot detection: «کم‌بازدید» is ≤ ۱٬۰۰۰ views,
+ * which only hints at automated / low-reach activity.
+ */
 export function BotVsHuman() {
   const theme = useTheme();
   const { data, isLoading } = useUserDistribution();
 
-  if (isLoading || !data) {
-    return (
-      <Card sx={{ p: 2, borderRadius: 2, boxShadow: theme.shadows[2], display: 'flex', justifyContent: 'center', minHeight: 80 }}>
-        <CircularProgress size={24} />
-      </Card>
-    );
-  }
+  const influencers = Number(data?.influencers) || 0;
+  const regular = Number(data?.regular) || 0;
+  const lowReach = Number(data?.suspicious) || 0;
+  const classified = influencers + regular + lowReach;
+  const total = Math.max(Number(data?.total) || 0, classified);
+  // Posts with no view count (e.g. platforms that don't report views) fall in no bucket.
+  const unknown = total - classified;
+
+  const pct = (n) => (total ? (n / total) * 100 : 0);
 
   const segments = [
-    { label: 'اینفلوئنسرها', value: data.influencerPercent, count: data.influencers, color: '#667eea', icon: 'solar:verified-check-bold' },
-    { label: 'کاربران عادی', value: data.regularPercent, count: data.regular, color: '#51CF66', icon: 'solar:user-bold' },
-    { label: 'مشکوک/ربات', value: data.suspiciousPercent, count: data.suspicious, color: '#FF6B6B', icon: 'solar:danger-triangle-bold' },
-  ];
+    {
+      key: 'influencers',
+      label: 'پربازدید (اینفلوئنسر)',
+      hint: 'بیش از ۱۰۰ هزار بازدید',
+      count: influencers,
+      color: theme.palette.primary.main,
+    },
+    {
+      key: 'regular',
+      label: 'کاربران عادی',
+      hint: '۱ تا ۱۰۰ هزار بازدید',
+      count: regular,
+      color: theme.palette.info.main,
+    },
+    {
+      key: 'low',
+      label: 'کم‌بازدید / احتمال ربات',
+      hint: '۱٬۰۰۰ بازدید یا کمتر',
+      count: lowReach,
+      color: theme.palette.warning.main,
+    },
+    ...(unknown > 0
+      ? [
+          {
+            key: 'unknown',
+            label: 'بدون آمار بازدید',
+            hint: 'پلتفرم تعداد بازدید را گزارش نمی‌کند',
+            count: unknown,
+            color: theme.palette.grey[500],
+          },
+        ]
+      : []),
+  ].map((s) => ({ ...s, percent: pct(s.count) }));
+
+  const options = useChart({
+    colors: segments.map((s) => s.color),
+    plotOptions: {
+      bar: { horizontal: true, distributed: true, barHeight: '56%', borderRadius: 4 },
+    },
+    legend: { show: false },
+    dataLabels: {
+      enabled: true,
+      textAnchor: 'start',
+      offsetX: 6,
+      formatter: (v) => fPercent(pct(v), { decimals: 1 }),
+      style: { fontSize: '12px', fontWeight: 700, colors: [theme.palette.text.primary] },
+      background: { enabled: false },
+      dropShadow: { enabled: false },
+    },
+    xaxis: {
+      categories: segments.map((s) => s.label),
+      labels: { formatter: (v) => fNum(v) },
+    },
+    yaxis: { labels: { formatter: (v) => v, style: { fontSize: '12px', fontWeight: 600 }, maxWidth: 160 } },
+    grid: { xaxis: { lines: { show: true } }, yaxis: { lines: { show: false } }, padding: { right: 40 } },
+    tooltip: {
+      y: {
+        title: { formatter: () => '' },
+        formatter: (v) => `${fNum(v)} پست (${fPercent(pct(v), { decimals: 1 })})`,
+      },
+    },
+  });
 
   return (
-    <Card sx={{ borderRadius: 2.5, overflow: 'hidden', boxShadow: theme.shadows[2] }}>
-      <Box sx={{ p: 2, background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.08)} 0%, ${alpha(theme.palette.warning.main, 0.08)} 100%)` }}>
-        <Stack direction="row" alignItems="center" spacing={1.5}>
-          <Box sx={{ width: 40, height: 40, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: alpha(theme.palette.info.main, 0.16) }}>
-            <Iconify icon="solar:shield-user-bold-duotone" width={24} sx={{ color: theme.palette.info.main }} />
-          </Box>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>تفکیک کاربران</Typography>
-            <InfoTooltip title={WIDGET_TOOLTIPS.botVsHuman} />
-          </Box>
-        </Stack>
+    <WidgetCard
+      title="تفکیک پست‌ها بر اساس بازدید"
+      icon="solar:shield-user-bold-duotone"
+      color="info"
+      tooltip={WIDGET_TOOLTIPS.botVsHuman}
+      subheader="معیار فقط تعداد بازدید است؛ «کم‌بازدید» یعنی ۱٬۰۰۰ بازدید یا کمتر و به معنی تشخیص قطعی ربات نیست."
+      loading={isLoading}
+      empty={!total}
+      emptyText="هنوز پستی برای این تفکیک ثبت نشده است."
+    >
+      <Chart type="bar" series={[{ name: 'پست', data: segments.map((s) => s.count) }]} options={options} height={segments.length * 52 + 50} />
+
+      <Box
+        sx={{
+          mt: 2,
+          display: 'grid',
+          gap: 1.5,
+          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+        }}
+      >
+        {segments.map((s) => (
+          <Stack key={s.key} spacing={0.25} sx={{ minWidth: 0 }}>
+            <Stack direction="row" alignItems="center" spacing={0.75}>
+              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: s.color, flexShrink: 0 }} />
+              <Typography variant="caption" sx={{ fontSize: 12, color: 'text.secondary' }} noWrap>
+                {s.label}
+              </Typography>
+            </Stack>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+              {fNum(s.count)}
+              <Typography component="span" variant="caption" sx={{ color: 'text.secondary', fontSize: 12, mx: 0.5 }}>
+                ({fPercent(s.percent, { decimals: 1 })})
+              </Typography>
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: 11 }}>
+              {s.hint}
+            </Typography>
+          </Stack>
+        ))}
       </Box>
 
-      <Box sx={{ p: 2 }}>
-        <Stack spacing={2}>
-          {segments.map((segment, index) => (
-            <Box key={index}>
-              <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
-                <Stack direction="row" alignItems="center" spacing={1}>
-                  <Iconify icon={segment.icon} width={18} sx={{ color: segment.color }} />
-                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: 12 }}>{segment.label}</Typography>
-                </Stack>
-                <Stack direction="row" alignItems="center" spacing={1}>
-                  <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 10 }}>
-                    {segment.count.toLocaleString('en-US')} پست
-                  </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 800, color: segment.color }}>{segment.value}%</Typography>
-                </Stack>
-              </Stack>
-              <Box sx={{ height: 8, borderRadius: 1, bgcolor: alpha(theme.palette.grey[500], 0.08), overflow: 'hidden' }}>
-                <Box sx={{ width: `${segment.value}%`, height: '100%', bgcolor: segment.color, transition: 'width 0.5s ease' }} />
-              </Box>
-            </Box>
-          ))}
-        </Stack>
-      </Box>
-    </Card>
+      <Typography variant="caption" component="div" sx={{ mt: 2, color: 'text.secondary', fontSize: 12 }}>
+        مجموع: {fNum(total)} پست
+      </Typography>
+    </WidgetCard>
   );
 }

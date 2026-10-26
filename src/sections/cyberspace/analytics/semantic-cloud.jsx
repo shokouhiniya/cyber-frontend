@@ -3,136 +3,125 @@
 import { useState } from 'react';
 
 import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import Chip from '@mui/material/Chip';
-import Stack from '@mui/material/Stack';
-import Button from '@mui/material/Button';
+import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
-import ButtonGroup from '@mui/material/ButtonGroup';
 import { alpha, useTheme } from '@mui/material/styles';
-import CircularProgress from '@mui/material/CircularProgress';
 
-import { Iconify } from 'src/components/iconify';
-import { InfoTooltip } from 'src/components/info-tooltip';
+import { fNum, toFaDigits } from 'src/utils/format-number-fa';
+
+import { useHashtags } from 'src/api/dashboard';
+
 import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
+
+import { WidgetCard, WidgetToggle } from '../shared/widget-card';
 
 // ----------------------------------------------------------------------
 
-const getSizeStyles = (size) => {
-  switch (size) {
-    case 'xl': return { fontSize: 20, height: 36, px: 2.5 };
-    case 'lg': return { fontSize: 17, height: 32, px: 2 };
-    case 'md': return { fontSize: 14, height: 28, px: 1.5 };
-    case 'sm': return { fontSize: 12, height: 24, px: 1.25 };
-    default:   return { fontSize: 10, height: 20, px: 1 };
-  }
+const TIME_FILTERS = [
+  { value: '24h', label: '۲۴ ساعت' },
+  { value: '7d', label: '۷ روز' },
+  { value: '30d', label: '۳۰ روز' },
+  { value: 'all', label: 'همه' },
+];
+
+const TIMEFRAME_LABEL = {
+  '24h': '۲۴ ساعت گذشته',
+  '7d': '۷ روز گذشته',
+  '30d': '۳۰ روز گذشته',
+  all: 'کل بازه',
 };
 
-const getSentimentColor = (sentiment, theme) => {
-  switch (sentiment) {
-    case 'positive': return { bg: alpha('#51CF66', 0.12), border: alpha('#51CF66', 0.24), text: '#51CF66' };
-    case 'negative': return { bg: alpha('#FF6B6B', 0.12), border: alpha('#FF6B6B', 0.24), text: '#FF6B6B' };
-    default: return {
-      bg: alpha(theme.palette.grey[500], 0.08),
-      border: alpha(theme.palette.grey[500], 0.16),
-      text: theme.palette.text.secondary,
-    };
-  }
-};
+// Font size steps (px) by frequency relative to the most frequent word.
+function sizeFor(ratio) {
+  if (ratio > 0.8) return 22;
+  if (ratio > 0.6) return 19;
+  if (ratio > 0.4) return 16;
+  if (ratio > 0.2) return 14;
+  return 13;
+}
 
 /**
- * Semantic word cloud.
- * Accepts a `words` prop: [{ text, value, percent, size, sentiment }]
- * Size values: 'xl' | 'lg' | 'md' | 'sm' | 'xs'
+ * Word cloud of the most frequent topics / hashtags for the selected period.
+ * Size and colour strength show frequency only; the data carries no sentiment.
  */
-export function SemanticCloud({ words = [], loading }) {
+export function SemanticCloud({ limit = 30 }) {
   const theme = useTheme();
-  const [timeFilter, setTimeFilter] = useState('7d');
+  const [timeframe, setTimeframe] = useState('7d');
+  const { data, isLoading } = useHashtags(limit, timeframe);
 
-  const timeFilters = [
-    { value: '24h', label: '۲۴ ساعت' },
-    { value: '7d',  label: 'هفته پیش' },
-    { value: '30d', label: 'ماه پیش' },
-    { value: 'all', label: 'کل بازه' },
-  ];
+  const hashtags = Array.isArray(data) ? data : [];
+  const maxCount = Math.max(1, ...hashtags.map((h) => h.count || 0));
+  const words = hashtags.map((h) => {
+    const ratio = (h.count || 0) / maxCount;
+    return { text: h.label, count: h.count || 0, ratio, fontSize: sizeFor(ratio) };
+  });
 
-  if (loading) {
-    return (
-      <Card sx={{ p: 2.5, borderRadius: 2.5, boxShadow: theme.shadows[2], display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 100 }}>
-        <CircularProgress size={24} />
-      </Card>
-    );
-  }
+  const toggle = <WidgetToggle value={timeframe} onChange={setTimeframe} options={TIME_FILTERS} />;
+  const tone = theme.palette.primary.main;
+  const isDark = theme.palette.mode === 'dark';
 
   return (
-    <Card sx={{ borderRadius: 2.5, overflow: 'hidden', boxShadow: theme.shadows[2] }}>
-      <Box sx={{ p: 2 }}>
-        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-          <Iconify icon="solar:cloud-bold-duotone" width={20} sx={{ color: theme.palette.success.main }} />
-          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>ابر واژگان هوشمند</Typography>
-          <InfoTooltip title={WIDGET_TOOLTIPS.semanticCloud} />
-        </Stack>
+    <WidgetCard
+      title="ابر واژگان"
+      icon="solar:cloud-bold-duotone"
+      color="success"
+      tooltip={WIDGET_TOOLTIPS.semanticCloud}
+      subheader={`پرتکرارترین واژه‌ها و هشتگ‌ها · ${TIMEFRAME_LABEL[timeframe]}`}
+      action={<Box sx={{ display: { xs: 'none', sm: 'block' } }}>{toggle}</Box>}
+      contentSx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+    >
+      <Box sx={{ display: { xs: 'flex', sm: 'none' }, justifyContent: 'center' }}>{toggle}</Box>
 
-        <ButtonGroup
-          variant="outlined"
-          size="small"
+      <WidgetCard
+        // Inner, header-less card only for the shared loading / empty states.
+        sx={{ border: 0, boxShadow: 'none', bgcolor: 'transparent', borderRadius: 0 }}
+        contentSx={{ p: 0 }}
+        loading={isLoading}
+        empty={!words.length}
+        emptyIcon="solar:cloud-bold-duotone"
+        emptyText="در این بازه واژه پرتکراری ثبت نشده است."
+      >
+        <Box
           sx={{
-            width: '100%', mb: 2,
-            '& .MuiButton-root': {
-              flex: 1, fontSize: 9, fontWeight: 600,
-              borderColor: alpha(theme.palette.primary.main, 0.16),
-              color: 'text.secondary',
-              '&.active': { bgcolor: alpha(theme.palette.primary.main, 0.12), borderColor: theme.palette.primary.main, color: theme.palette.primary.main, fontWeight: 700 },
-            },
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: { xs: 1, md: 1.25 },
+            py: 1,
           }}
         >
-          {timeFilters.map((filter) => (
-            <Button key={filter.value} className={timeFilter === filter.value ? 'active' : ''} onClick={() => setTimeFilter(filter.value)}>
-              {filter.label}
-            </Button>
+          {words.map((word) => (
+            <Tooltip key={word.text} title={`${fNum(word.count)} بار تکرار`} arrow>
+              <Box
+                sx={{
+                  px: 1.25,
+                  py: 0.5,
+                  borderRadius: 1.25,
+                  cursor: 'default',
+                  lineHeight: 1.6,
+                  fontSize: word.fontSize,
+                  fontWeight: word.ratio > 0.4 ? 700 : 600,
+                  color: word.ratio > 0.4 ? (isDark ? 'primary.light' : 'primary.dark') : 'text.primary',
+                  bgcolor: alpha(tone, 0.06 + word.ratio * 0.14),
+                  border: `1px solid ${alpha(tone, 0.1 + word.ratio * 0.2)}`,
+                  transition: theme.transitions.create(['background-color', 'transform']),
+                  '&:hover': { bgcolor: alpha(tone, 0.24), transform: 'translateY(-1px)' },
+                }}
+              >
+                {toFaDigits(word.text)}
+                <Typography component="span" sx={{ ml: 0.75, fontSize: 12, fontWeight: 500, color: 'text.secondary' }}>
+                  {fNum(word.count)}
+                </Typography>
+              </Box>
+            </Tooltip>
           ))}
-        </ButtonGroup>
+        </Box>
+      </WidgetCard>
 
-        {words.length === 0 ? (
-          <Stack alignItems="center" spacing={1} sx={{ py: 3 }}>
-            <Iconify icon="solar:cloud-bold-duotone" width={36} sx={{ color: 'text.disabled' }} />
-            <Typography variant="body2" color="text.secondary">داده‌ای موجود نیست.</Typography>
-          </Stack>
-        ) : (
-          <Stack direction="row" flexWrap="wrap" gap={1}>
-            {words.map((word, index) => {
-              const colors = getSentimentColor(word.sentiment, theme);
-              return (
-                <Chip
-                  key={index}
-                  label={
-                    <Stack direction="row" alignItems="center" spacing={0.5}>
-                      <Typography sx={{ ...getSizeStyles(word.size), height: 'auto', px: 0, fontWeight: 700, color: colors.text }}>
-                        {word.text}
-                      </Typography>
-                      <Typography sx={{ fontSize: '0.75em', opacity: 0.7, fontWeight: 600, color: colors.text }}>
-                        {word.percent}%
-                      </Typography>
-                    </Stack>
-                  }
-                  sx={{
-                    height: getSizeStyles(word.size).height,
-                    px: getSizeStyles(word.size).px,
-                    bgcolor: colors.bg,
-                    border: `1px solid ${colors.border}`,
-                    transition: 'all 0.2s ease',
-                    '&:hover': { transform: 'scale(1.05)', boxShadow: `0 4px 12px ${colors.border}` },
-                  }}
-                />
-              );
-            })}
-          </Stack>
-        )}
-
-        <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: 10, display: 'block', textAlign: 'center', mt: 1.5 }}>
-          اندازه هر واژه نشان‌دهنده تکرار آن در محتواست
-        </Typography>
-      </Box>
-    </Card>
+      <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'center' }}>
+        اندازه هر واژه نسبت به پرتکرارترین واژه این بازه است؛ عدد کنار آن تعداد تکرار است.
+      </Typography>
+    </WidgetCard>
   );
 }

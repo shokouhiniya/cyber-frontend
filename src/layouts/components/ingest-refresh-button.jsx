@@ -10,6 +10,7 @@ import IconButton from '@mui/material/IconButton';
 
 import axios from 'src/lib/axios';
 
+import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 
 import { useAuthContext } from 'src/auth/hooks';
@@ -71,7 +72,12 @@ export function IngestRefreshButton() {
         if (run.status !== 'running') {
           clearInterval(pollRef.current);
 
+          if (run.status === 'failed') {
+            toast.error(run.errorMessage || 'جمع‌آوری داده‌ها با خطا متوقف شد');
+          }
+
           if (run.status === 'completed') {
+            toast.success(`جمع‌آوری تمام شد — ${(run.postsSelected ?? 0).toLocaleString('fa-IR')} پست انتخاب شد`);
             queryClient.invalidateQueries();
             setShowPill(true);
             if (pillTimerRef.current) clearTimeout(pillTimerRef.current);
@@ -94,20 +100,38 @@ export function IngestRefreshButton() {
     // Optimistically show running state immediately
     setRunState({ status: 'running', postsSelected: 0, errorMessage: null });
     setShowPill(false);
+    toast.info('جمع‌آوری داده‌ها شروع شد. این کار ممکن است چند دقیقه طول بکشد.');
 
     try {
       await axios.post('/api/ingest/run-now');
       // POST succeeded — start polling for the actual run record
       startPolling();
     } catch (e) {
-      const msg = e?.response?.data?.message || '';
-      const minMatch = msg.match(/(\d+)\s*دقیقه/);
+      // The axios interceptor rejects with the server's message as a plain string
+      const msg = (typeof e === 'string' ? e : e?.message) || '';
+      const minMatch = msg.match(/([\d۰-۹]+)\s*دقیقه/);
       if (minMatch) {
-        startCooldown(parseInt(minMatch[1], 10) * 60);
+        const minutes = parseInt(minMatch[1].replace(/[۰-۹]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)), 10);
+        startCooldown(minutes * 60);
         setRunState(null);
-      } else {
-        setRunState({ status: 'failed', postsSelected: 0, errorMessage: msg || 'خطا در جمع‌آوری' });
+        toast.warning(msg);
+        return;
       }
+
+      // A long run can outlive the proxy timeout while still running on the
+      // server, so check the latest run before reporting a failure.
+      try {
+        const res = await axios.get('/api/ingest/latest-run');
+        if (res.data?.status === 'running') {
+          startPolling();
+          return;
+        }
+      } catch {
+        // fall through to the error state
+      }
+      const errorMessage = msg || 'خطا در جمع‌آوری داده‌ها';
+      setRunState({ status: 'failed', postsSelected: 0, errorMessage });
+      toast.error(errorMessage);
     }
   }, [canRun, runState, cooldownSec, startPolling, startCooldown]);
 

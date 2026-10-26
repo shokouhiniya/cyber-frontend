@@ -109,12 +109,14 @@ export function useInfluencerMap(limit = 20) {
 
 // ----------------------------------------------------------------------
 
-export function useTopPosts(limit = 10, timeframe = 'all') {
+export function useTopPosts(limit = 10, timeframe = 'all', source = null) {
   const profileId = useActiveProfileId();
   return useQuery({
-    queryKey: ['top-posts', profileId, limit, timeframe],
+    queryKey: ['top-posts', profileId, limit, timeframe, source],
+    placeholderData: keepSameProfileData,
     queryFn: async () => {
       const params = new URLSearchParams({ limit: String(limit) });
+      if (source) params.set('source', source);
       if (timeframe && timeframe !== 'all') {
         const hours = { '24h': 24, '7d': 168, '30d': 720 }[timeframe];
         if (hours) {
@@ -132,12 +134,14 @@ export function useTopPosts(limit = 10, timeframe = 'all') {
 
 // ----------------------------------------------------------------------
 
-export function useTopCommented(limit = 20, timeframe = 'all') {
+export function useTopCommented(limit = 20, timeframe = 'all', source = null) {
   const profileId = useActiveProfileId();
   return useQuery({
-    queryKey: ['top-commented', profileId, limit, timeframe],
+    queryKey: ['top-commented', profileId, limit, timeframe, source],
+    placeholderData: keepSameProfileData,
     queryFn: async () => {
       const params = new URLSearchParams({ limit: String(limit) });
+      if (source) params.set('source', source);
       if (timeframe && timeframe !== 'all') {
         const hours = { '24h': 24, '7d': 168, '30d': 720 }[timeframe];
         if (hours) {
@@ -155,12 +159,14 @@ export function useTopCommented(limit = 20, timeframe = 'all') {
 
 // ----------------------------------------------------------------------
 
-export function useTopForwarded(limit = 20, timeframe = 'all') {
+export function useTopForwarded(limit = 20, timeframe = 'all', source = null) {
   const profileId = useActiveProfileId();
   return useQuery({
-    queryKey: ['top-forwarded', profileId, limit, timeframe],
+    queryKey: ['top-forwarded', profileId, limit, timeframe, source],
+    placeholderData: keepSameProfileData,
     queryFn: async () => {
       const params = new URLSearchParams({ limit: String(limit) });
+      if (source) params.set('source', source);
       if (timeframe && timeframe !== 'all') {
         const hours = { '24h': 24, '7d': 168, '30d': 720 }[timeframe];
         if (hours) {
@@ -178,12 +184,35 @@ export function useTopForwarded(limit = 20, timeframe = 'all') {
 
 // ----------------------------------------------------------------------
 
-export function useHashtags(limit = 10) {
+/**
+ * While a time-range filter changes, keep showing the previous result instead
+ * of a skeleton — but only for the same profile (index 1 of the query key),
+ * so switching profiles never flashes another person's data.
+ */
+const keepSameProfileData = (prev, prevQuery) => {
+  const key = prevQuery?.queryKey;
+  return key && key[1] === getActiveProfileId() ? prev : undefined;
+};
+
+/** '24h' | '7d' | '30d' → ISO timestamp rounded to the hour; anything else → null (all time) */
+export function timeframeToSince(timeframe) {
+  const hours = { '24h': 24, '7d': 168, '30d': 720 }[timeframe];
+  if (!hours) return null;
+  const d = new Date(Date.now() - hours * 3600_000);
+  d.setMinutes(0, 0, 0);
+  return d.toISOString();
+}
+
+export function useHashtags(limit = 10, timeframe = 'all') {
   const profileId = useActiveProfileId();
   return useQuery({
-    queryKey: ['hashtags', profileId, limit],
+    queryKey: ['hashtags', profileId, limit, timeframe],
+    placeholderData: keepSameProfileData,
     queryFn: async () => {
-      const res = await axios.get(`${endpoints.hashtags}?limit=${limit}`);
+      const params = new URLSearchParams({ limit: String(limit) });
+      const since = timeframeToSince(timeframe);
+      if (since) params.set('since', since);
+      const res = await axios.get(`${endpoints.hashtags}?${params.toString()}`);
       return res.data;
     },
   });
@@ -253,13 +282,16 @@ export function useCategories() {
 
 export function useAiContent(section) {
   const { data: profile } = useProfile();
+  const profileId = profile?.id ?? null;
   const orgId = profile?.promticIdentifier?.external_id ?? null;
 
   return useQuery({
-    queryKey: ['ai-content', section, orgId],
-    enabled: !!orgId,
+    // profileId is part of the key so two profiles never share a cached result
+    queryKey: ['ai-content', section, profileId, orgId],
+    enabled: !!profileId,
     queryFn: async () => {
-      const url = `/api/ai-content/generate?section=${section}&org_id=${orgId}`;
+      const orgParam = orgId ? `&org_id=${encodeURIComponent(orgId)}` : '';
+      const url = `/api/ai-content/generate?section=${section}${orgParam}`;
       const res = await axios.get(url);
       return res.data?.debug ?? res.data;
     },

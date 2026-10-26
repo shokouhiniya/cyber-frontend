@@ -1,129 +1,75 @@
-import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
-import { alpha, useTheme } from '@mui/material/styles';
-import CircularProgress from '@mui/material/CircularProgress';
+import { useState } from 'react';
+
+import { fNum, fPercent } from 'src/utils/format-number-fa';
 
 import { useAiContent } from 'src/api/dashboard';
 
-import { Iconify } from 'src/components/iconify';
-import { InfoTooltip } from 'src/components/info-tooltip';
+import { Chart, useChart, SENTIMENT_COLORS } from 'src/components/chart';
 import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
+
+import { WidgetCard, WidgetToggle } from '../shared/widget-card';
 
 // ----------------------------------------------------------------------
 
-const POSITIVE_COLOR = '#51CF66';
-const NEGATIVE_COLOR = '#FF6B6B';
-
-const FALLBACK_BRACKETS = [];
+const UNIT_FILTERS = [
+  { value: 'count', label: 'تعداد' },
+  { value: 'percent', label: 'درصد' },
+];
 
 export function PoliticalSpectrum({ loading }) {
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
-  const { data: aiData } = useAiContent('political_spectrum');
+  const [unit, setUnit] = useState('count');
+  const { data: aiData, isLoading } = useAiContent('political_spectrum');
 
-  const BRACKETS = Array.isArray(aiData?.llm_parsed) ? aiData.llm_parsed : FALLBACK_BRACKETS;
+  const brackets = (Array.isArray(aiData?.llm_parsed) ? aiData.llm_parsed : []).map((b) => ({
+    label: b.label,
+    positive: b.positive || 0,
+    neutral: b.neutral || 0,
+    negative: b.negative || 0,
+  }));
+  const isPercent = unit === 'percent';
 
-  if (loading) {
-    return (
-      <Card sx={{ p: 2, borderRadius: 2, boxShadow: theme.shadows[2] }}>
-        <CircularProgress size={24} />
-      </Card>
-    );
-  }
+  const series = [
+    { name: 'مثبت', data: brackets.map((b) => b.positive) },
+    { name: 'خنثی', data: brackets.map((b) => b.neutral) },
+    { name: 'منفی', data: brackets.map((b) => b.negative) },
+  ];
 
-  const maxVal = Math.max(...BRACKETS.flatMap((b) => [b.positive, b.negative]));
+  const options = useChart({
+    chart: { stacked: true, stackType: isPercent ? '100%' : 'normal' },
+    colors: [SENTIMENT_COLORS.positive, SENTIMENT_COLORS.neutral, SENTIMENT_COLORS.negative],
+    plotOptions: { bar: { horizontal: true, barHeight: '58%', borderRadius: 3 } },
+    xaxis: {
+      categories: brackets.map((b) => b.label),
+      labels: { formatter: (v) => (isPercent ? fPercent(v) : fNum(v)) },
+    },
+    yaxis: { labels: { formatter: (v) => v, style: { fontSize: '13px', fontWeight: 600 } } },
+    grid: { xaxis: { lines: { show: true } }, yaxis: { lines: { show: false } } },
+    tooltip: {
+      shared: true,
+      intersect: false,
+      y: {
+        formatter: (v, { dataPointIndex }) => {
+          const b = brackets[dataPointIndex];
+          const total = b ? b.positive + b.neutral + b.negative : 0;
+          return `${fNum(v)} پست (${fPercent(total ? (v / total) * 100 : 0)})`;
+        },
+      },
+    },
+  });
 
   return (
-    <Card sx={{ borderRadius: 2, overflow: 'hidden', boxShadow: theme.shadows[2] }}>
-      <Box sx={{ p: 2 }}>
-        {/* Header */}
-        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2.5 }}>
-          <Iconify icon="solar:scale-bold-duotone" width={20} sx={{ color: theme.palette.primary.main }} />
-          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>طیف سیاسی</Typography>
-          <InfoTooltip title={WIDGET_TOOLTIPS.politicalSpectrum} />
-        </Stack>
-
-        {/* Chart area */}
-        <Box sx={{ px: 1 }}>
-          {/* Positive bars (above the line) */}
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end', height: 80, mb: 0 }}>
-            {BRACKETS.map((b) => {
-              const h = maxVal > 0 ? (b.positive / maxVal) * 100 : 0;
-              return (
-                <Box key={`pos-${b.label}`} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
-                  <Typography variant="caption" sx={{ fontSize: 9, fontWeight: 700, color: POSITIVE_COLOR, mb: 0.5 }}>
-                    {b.positive.toLocaleString('fa-IR')}
-                  </Typography>
-                  <Box
-                    sx={{
-                      width: '70%',
-                      height: `${h}%`,
-                      minHeight: 4,
-                      bgcolor: alpha(POSITIVE_COLOR, isDark ? 0.6 : 0.7),
-                      borderRadius: '4px 4px 0 0',
-                      transition: 'height 0.5s ease',
-                      boxShadow: `0 -2px 8px ${alpha(POSITIVE_COLOR, 0.3)}`,
-                    }}
-                  />
-                </Box>
-              );
-            })}
-          </Box>
-
-          {/* Center line */}
-          <Box sx={{ height: 2, bgcolor: alpha(theme.palette.grey[500], 0.3), borderRadius: 1, mx: -0.5 }} />
-
-          {/* Negative bars (below the line) */}
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', height: 80, mt: 0 }}>
-            {BRACKETS.map((b) => {
-              const h = maxVal > 0 ? (b.negative / maxVal) * 100 : 0;
-              return (
-                <Box key={`neg-${b.label}`} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', height: '100%' }}>
-                  <Box
-                    sx={{
-                      width: '70%',
-                      height: `${h}%`,
-                      minHeight: 4,
-                      bgcolor: alpha(NEGATIVE_COLOR, isDark ? 0.6 : 0.7),
-                      borderRadius: '0 0 4px 4px',
-                      transition: 'height 0.5s ease',
-                      boxShadow: `0 2px 8px ${alpha(NEGATIVE_COLOR, 0.3)}`,
-                    }}
-                  />
-                  <Typography variant="caption" sx={{ fontSize: 9, fontWeight: 700, color: NEGATIVE_COLOR, mt: 0.5 }}>
-                    {b.negative.toLocaleString('fa-IR')}
-                  </Typography>
-                </Box>
-              );
-            })}
-          </Box>
-
-          {/* Labels */}
-          <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-            {BRACKETS.map((b) => (
-              <Box key={`lbl-${b.label}`} sx={{ flex: 1, textAlign: 'center' }}>
-                <Typography variant="caption" sx={{ fontSize: 9, fontWeight: 700, color: 'text.primary', lineHeight: 1.2 }}>
-                  {b.label}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
-        </Box>
-
-        {/* Legend */}
-        <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 2 }}>
-          <Stack direction="row" alignItems="center" spacing={0.5}>
-            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: POSITIVE_COLOR }} />
-            <Typography variant="caption" sx={{ fontSize: 10 }}>حجم مثبت</Typography>
-          </Stack>
-          <Stack direction="row" alignItems="center" spacing={0.5}>
-            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: NEGATIVE_COLOR }} />
-            <Typography variant="caption" sx={{ fontSize: 10 }}>حجم منفی</Typography>
-          </Stack>
-        </Stack>
-      </Box>
-    </Card>
+    <WidgetCard
+      title="طیف سیاسی"
+      icon="solar:scale-bold-duotone"
+      color="secondary"
+      tooltip={WIDGET_TOOLTIPS.politicalSpectrum}
+      subheader="احساس پست‌های هر جناح نسبت به این شخصیت (آخرین جمع‌آوری)"
+      loading={loading || isLoading}
+      empty={!brackets.length}
+      emptyText="هنوز پستی با طیف سیاسی مشخص ثبت نشده است."
+      action={<WidgetToggle value={unit} onChange={setUnit} options={UNIT_FILTERS} />}
+    >
+      <Chart type="bar" series={series} options={options} height={Math.max(200, brackets.length * 48 + 70)} />
+    </WidgetCard>
   );
 }

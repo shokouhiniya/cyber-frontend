@@ -3,17 +3,18 @@
 /**
  * AdminDesktopMode context
  *
- * Provides a persistent toggle for switching admin pages between
- * mobile (default) and desktop layout. State is stored in localStorage
- * so it survives page reloads.
+ * `desktopMode` is true on wide screens (≥ lg). Admin pages use it to switch
+ * between card lists (mobile) and tables / multi-column layouts (desktop).
+ * It used to be a manual toggle while the app was locked to a phone frame;
+ * now that the app is responsive it simply follows the viewport width.
  *
  * Usage:
- *   const { desktopMode, toggleDesktopMode } = useAdminDesktopMode();
+ *   const { desktopMode } = useAdminDesktopMode();
  */
 
-import { useMemo, useState, useContext, useCallback, createContext } from 'react';
+import { useMemo, useContext, createContext } from 'react';
 
-const STORAGE_KEY = 'admin_desktop_mode';
+import useMediaQuery from '@mui/material/useMediaQuery';
 
 const AdminDesktopModeContext = createContext({
   desktopMode: false,
@@ -21,24 +22,9 @@ const AdminDesktopModeContext = createContext({
 });
 
 export function AdminDesktopModeProvider({ children }) {
-  const [desktopMode, setDesktopMode] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    try { return localStorage.getItem(STORAGE_KEY) === 'true'; } catch { return false; }
-  });
+  const desktopMode = useMediaQuery('(min-width:1200px)', { noSsr: true });
 
-  const toggleDesktopMode = useCallback(() => {
-    setDesktopMode((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem(STORAGE_KEY, String(next));
-        // Notify ScreenSize (same tab) since storage events don't fire in the same tab
-        window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY, newValue: String(next) }));
-      } catch { /* ignore */ }
-      return next;
-    });
-  }, []);
-
-  const value = useMemo(() => ({ desktopMode, toggleDesktopMode }), [desktopMode, toggleDesktopMode]);
+  const value = useMemo(() => ({ desktopMode, toggleDesktopMode: () => {} }), [desktopMode]);
 
   return (
     <AdminDesktopModeContext.Provider value={value}>

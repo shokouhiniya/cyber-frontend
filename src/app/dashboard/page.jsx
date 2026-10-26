@@ -4,7 +4,7 @@ import { OverviewView } from 'src/sections/cyberspace/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `نمای کلی - ${CONFIG.appName}` };
+export const metadata = { title: `داشبورد - ${CONFIG.appName}` };
 
 export default function Page() {
   return <OverviewView />;

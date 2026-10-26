@@ -1,203 +1,268 @@
 'use client';
 
+import { useMemo } from 'react';
+
 import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import Chip from '@mui/material/Chip';
 import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
+import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import { alpha, useTheme } from '@mui/material/styles';
+
+import { fNum, fShort, fDateFa, fRelativeFa } from 'src/utils/format-number-fa';
 
 import { useProfile } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
-import { InfoTooltip } from 'src/components/info-tooltip';
 import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 
 import { PlatformIcon } from './platform-icon';
-import { platformById, getPlatformUrl } from './platform-config';
+import { WidgetCard } from '../shared/widget-card';
+import { platformById, getPlatformUrl, normalizeHandle } from './platform-config';
 
 // ----------------------------------------------------------------------
 
-const formatNum = (n) => {
-  if (n == null) return '—';
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
-  return n.toLocaleString('fa-IR');
+const FALLBACK_PLATFORM = {
+  label: 'سایر',
+  iconType: 'iconify',
+  icon: 'solar:global-bold-duotone',
+  color: '#607D8B',
+  sourceType: null,
+  ingested: false,
 };
 
-export function OfficialAccounts() {
+// The `active` flag is an admin setting that decides whether the backend
+// collects the page's posts — it says nothing about whether the page itself
+// is active. Label it as monitoring status, and be honest about platforms
+// whose posts are not collected at all.
+function getMonitorStatus(channel, cfg) {
+  if (channel.active === false) {
+    return { label: 'خارج از پایش', color: 'default', hint: 'مدیر سامانه پایش این صفحه را متوقف کرده است.' };
+  }
+  if (!cfg.ingested) {
+    return {
+      label: 'بدون جمع‌آوری پست',
+      color: 'default',
+      hint: 'پست‌های این بستر فعلاً جمع‌آوری نمی‌شوند؛ صفحه فقط برای معرفی فهرست شده است.',
+    };
+  }
+  return { label: 'در حال پایش', color: 'success', hint: 'پست‌های این صفحه در هر نوبت جمع‌آوری خوانده می‌شوند.' };
+}
+
+/** Latest publishedAt per channel, from the loaded official posts. */
+function useLastPostByChannel(channels, posts) {
+  return useMemo(() => {
+    const latest = new Map(); // `${sourceType}:${handle}` → timestamp
+    const latestBySource = new Map(); // sourceType → timestamp
+    for (const post of posts) {
+      if (!post.publishedAt) continue;
+      const t = new Date(post.publishedAt).getTime();
+      if (Number.isNaN(t)) continue;
+      const key = `${post.sourceType}:${normalizeHandle(post.screenName)}`;
+      if (!latest.has(key) || latest.get(key) < t) latest.set(key, t);
+      if (!latestBySource.has(post.sourceType) || latestBySource.get(post.sourceType) < t) {
+        latestBySource.set(post.sourceType, t);
+      }
+    }
+
+    const perPlatformCount = channels.reduce((acc, ch) => {
+      acc[ch.platform] = (acc[ch.platform] || 0) + 1;
+      return acc;
+    }, {});
+
+    return channels.map((ch) => {
+      const sourceType = platformById[ch.platform]?.sourceType;
+      if (!sourceType) return null;
+      const exact = latest.get(`${sourceType}:${normalizeHandle(ch.handle)}`);
+      if (exact) return exact;
+      // Handle spelled differently from the post's screen name: fall back to the
+      // platform's latest post only when this is the platform's only channel.
+      return perPlatformCount[ch.platform] === 1 ? latestBySource.get(sourceType) ?? null : null;
+    });
+  }, [channels, posts]);
+}
+
+// ----------------------------------------------------------------------
+
+export function OfficialAccounts({ posts = [], loading: postsLoading }) {
   const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
 
   const { data: profile, isLoading } = useProfile();
-  const channels = profile?.officialChannels ?? [];
+  const channels = useMemo(() => profile?.officialChannels ?? [], [profile]);
+  const lastPosts = useLastPostByChannel(channels, posts);
 
-  const activeCount = channels.filter((c) => c.active !== false).length;
+  const monitoredCount = channels.filter(
+    (c) => c.active !== false && (platformById[c.platform] ?? FALLBACK_PLATFORM).ingested
+  ).length;
   const totalFollowers = channels.reduce((s, c) => s + (c.followers || 0), 0);
   const totalPosts = channels.reduce((s, c) => s + (c.posts || 0), 0);
 
-  if (isLoading) {
-    return (
-      <Card sx={{ p: 3, borderRadius: 2.5 }}>
-        <Typography color="text.secondary">در حال بارگذاری صفحات رسمی...</Typography>
-      </Card>
-    );
-  }
-
-  if (channels.length === 0) {
-    return (
-      <Card sx={{ p: 3, borderRadius: 2.5 }}>
-        <Stack alignItems="center" spacing={1} sx={{ py: 2 }}>
-          <Iconify icon="solar:shield-check-bold-duotone" width={40} sx={{ color: 'text.disabled' }} />
-          <Typography color="text.secondary" variant="body2">
-            هنوز صفحه رسمی تعریف نشده است.
-          </Typography>
-          <Typography color="text.disabled" variant="caption">
-            از پنل مدیریت → پروفایل‌ها → ویرایش، صفحات رسمی را اضافه کنید.
-          </Typography>
-        </Stack>
-      </Card>
-    );
-  }
+  const subheader = [
+    `${fNum(channels.length)} صفحه`,
+    `${fNum(monitoredCount)} در حال پایش`,
+    totalFollowers > 0 && `${fShort(totalFollowers)} دنبال‌کننده`,
+    totalPosts > 0 && `${fShort(totalPosts)} انتشار`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
-    <Card sx={{ borderRadius: 2.5, overflow: 'hidden', boxShadow: theme.shadows[2] }}>
-      {/* Header */}
+    <WidgetCard
+      title="صفحات رسمی"
+      icon="solar:shield-check-bold-duotone"
+      color="info"
+      tooltip={WIDGET_TOOLTIPS.officialAccounts}
+      subheader={channels.length ? subheader : undefined}
+      loading={isLoading}
+      empty={!channels.length}
+      emptyIcon="solar:shield-check-bold-duotone"
+      emptyText="هنوز صفحه رسمی تعریف نشده است. از پنل مدیریت ← پروفایل‌ها ← ویرایش، صفحات رسمی را اضافه کنید."
+    >
       <Box
         sx={{
-          p: 2.5,
-          background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.08)} 0%, ${alpha(theme.palette.primary.main, 0.08)} 100%)`,
-        }}
-      >
-        <Stack direction="row" alignItems="center" spacing={1.5}>
-          <Box
-            sx={{
-              width: 40, height: 40, borderRadius: 1.5,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              bgcolor: alpha(theme.palette.info.main, 0.16),
-            }}
-          >
-            <Iconify icon="solar:shield-check-bold-duotone" width={24} sx={{ color: theme.palette.info.main }} />
-          </Box>
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>صفحات رسمی</Typography>
-            <InfoTooltip title={WIDGET_TOOLTIPS.officialAccounts} />
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              {activeCount.toLocaleString('fa-IR')} حساب فعال
-              {totalFollowers > 0 && ` · ${formatNum(totalFollowers)} دنبال‌کننده`}
-              {totalPosts > 0 && ` · ${formatNum(totalPosts)} انتشار`}
-            </Typography>
-          </Box>
-        </Stack>
-      </Box>
-
-      {/* Channel cards */}
-      <Box
-        sx={{
-          p: 2,
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+          gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
           gap: 1.5,
         }}
       >
         {channels.map((ch, idx) => {
-          const cfg = platformById[ch.platform] ?? {
-            label: ch.platform,
-            iconType: 'iconify',
-            icon: 'solar:global-bold-duotone',
-            color: '#607D8B',
-          };
-          const isActive = ch.active !== false;
+          const cfg = platformById[ch.platform] ?? { ...FALLBACK_PLATFORM, label: ch.platform || FALLBACK_PLATFORM.label };
+          // X's brand color is black — use the text color so it stays visible in dark mode
+          const tone = cfg.color === '#000000' ? theme.palette.text.primary : cfg.color;
+          const status = getMonitorStatus(ch, cfg);
+          const isMonitored = status.color === 'success';
+          const statusTone = isMonitored ? theme.palette.success.main : theme.palette.text.secondary;
           const href = getPlatformUrl(ch);
+          const lastPost = lastPosts[idx];
 
           return (
             <Box
-              key={idx}
+              key={`${ch.platform}-${ch.handle}-${idx}`}
               component={href ? Link : 'div'}
               href={href || undefined}
-              target="_blank"
-              rel="noopener noreferrer"
+              target={href ? '_blank' : undefined}
+              rel={href ? 'noopener noreferrer' : undefined}
               underline="none"
+              color="inherit"
               sx={{
                 p: 2,
-                borderRadius: 2,
-                bgcolor: alpha(cfg.color, isDark ? 0.08 : 0.04),
-                border: `1px solid ${alpha(cfg.color, isDark ? 0.24 : 0.12)}`,
-                opacity: isActive ? 1 : 0.5,
-                transition: 'all 0.2s ease',
-                cursor: href ? 'pointer' : 'default',
-                '&:hover': href
-                  ? {
-                      bgcolor: alpha(cfg.color, isDark ? 0.14 : 0.08),
-                      transform: 'translateY(-2px)',
-                      boxShadow: theme.shadows[4],
-                    }
-                  : undefined,
+                display: 'block',
+                borderRadius: 1.5,
+                bgcolor: alpha(tone, 0.05),
+                border: `1px solid ${alpha(tone, 0.16)}`,
+                transition: theme.transitions.create(['background-color', 'border-color']),
+                ...(href && {
+                  '&:hover': { bgcolor: alpha(tone, 0.1), borderColor: alpha(tone, 0.32) },
+                }),
               }}
             >
               <Stack spacing={1.5}>
-                {/* Platform + status */}
-                <Stack direction="row" alignItems="center" justifyContent="space-between">
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <Box
-                      sx={{
-                        width: 32, height: 32, borderRadius: 1,
-                        bgcolor: alpha(cfg.color, 0.16),
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <PlatformIcon cfg={cfg} size={18} />
-                    </Box>
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography variant="caption" sx={{ fontWeight: 700, fontSize: 12, display: 'block', lineHeight: 1.2 }}>
+                {/* Platform + handle */}
+                <Stack direction="row" alignItems="center" spacing={1.25}>
+                  <Box
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 1.25,
+                      bgcolor: alpha(tone, 0.14),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <PlatformIcon cfg={cfg} size={20} />
+                  </Box>
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                      <Typography variant="subtitle2" noWrap sx={{ fontWeight: 700 }}>
                         {cfg.label}
                       </Typography>
-                      <Typography
-                        variant="caption"
-                        noWrap
-                        sx={{ color: 'text.secondary', fontSize: 10, direction: 'ltr', display: 'block' }}
-                      >
-                        {ch.handle}
-                      </Typography>
-                    </Box>
-                  </Stack>
-                  <Stack direction="row" spacing={0.5} alignItems="center" flexShrink={0}>
-                    {ch.verified && (
-                      <Iconify icon="solar:verified-check-bold" width={16} sx={{ color: '#1DA1F2' }} />
-                    )}
-                    <Chip
-                      label={isActive ? 'فعال' : 'غیرفعال'}
-                      size="small"
-                      sx={{
-                        height: 20, fontSize: 9, fontWeight: 700,
-                        bgcolor: isActive ? alpha('#51CF66', 0.12) : alpha('#FF6B6B', 0.12),
-                        color: isActive ? '#51CF66' : '#FF6B6B',
-                      }}
-                    />
-                  </Stack>
+                      {ch.verified && (
+                        <Tooltip title="تأییدشده" arrow>
+                          <Iconify icon="solar:verified-check-bold" width={16} sx={{ color: 'info.main', flexShrink: 0 }} />
+                        </Tooltip>
+                      )}
+                    </Stack>
+                    <Typography
+                      variant="caption"
+                      noWrap
+                      component="div"
+                      sx={{ color: 'text.secondary', direction: 'ltr', textAlign: 'right' }}
+                    >
+                      {ch.handle}
+                    </Typography>
+                  </Box>
                 </Stack>
+
+                {/* Monitoring status */}
+                <Tooltip title={status.hint} arrow placement="top">
+                  <Stack
+                    direction="row"
+                    alignItems="center"
+                    spacing={0.75}
+                    sx={{
+                      alignSelf: 'flex-start',
+                      px: 1,
+                      py: 0.25,
+                      borderRadius: 1,
+                      bgcolor: alpha(statusTone, 0.12),
+                      color: isMonitored ? 'success.main' : 'text.secondary',
+                    }}
+                  >
+                    <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'currentColor' }} />
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: 'inherit' }}>
+                      {status.label}
+                    </Typography>
+                  </Stack>
+                </Tooltip>
 
                 {/* Stats */}
                 {(ch.followers != null || ch.posts != null) && (
-                  <Stack direction="row" spacing={2}>
+                  <Stack direction="row" spacing={3}>
                     {ch.followers != null && (
                       <Box>
-                        <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: 9, display: 'block' }}>دنبال‌کننده</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 800, fontSize: 14, color: cfg.color }}>
-                          {formatNum(ch.followers)}
+                        <Typography variant="caption" component="div" sx={{ color: 'text.secondary' }}>
+                          دنبال‌کننده
+                        </Typography>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 800, lineHeight: 1.3 }}>
+                          {fShort(ch.followers)}
                         </Typography>
                       </Box>
                     )}
                     {ch.posts != null && (
                       <Box>
-                        <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: 9, display: 'block' }}>انتشار</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 800, fontSize: 14, color: 'text.primary' }}>
-                          {formatNum(ch.posts)}
+                        <Typography variant="caption" component="div" sx={{ color: 'text.secondary' }}>
+                          انتشار
+                        </Typography>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 800, lineHeight: 1.3 }}>
+                          {fShort(ch.posts)}
                         </Typography>
                       </Box>
                     )}
+                  </Stack>
+                )}
+
+                {/* Last collected post — only for platforms whose posts are collected */}
+                {cfg.ingested && ch.active !== false && !postsLoading && (
+                  <Stack direction="row" alignItems="center" spacing={0.75} sx={{ color: 'text.secondary' }}>
+                    <Iconify icon="solar:clock-circle-linear" width={14} sx={{ flexShrink: 0 }} />
+                    <Typography variant="caption" sx={{ color: 'inherit' }}>
+                      {lastPost ? (
+                        <>
+                          آخرین پست: {fRelativeFa(lastPost)}
+                          {/* fRelativeFa already falls back to the date after 30 days */}
+                          {Date.now() - lastPost < 30 * 86_400_000 && (
+                            <Box component="span" sx={{ color: 'text.disabled' }}>
+                              {' '}
+                              ({fDateFa(lastPost)})
+                            </Box>
+                          )}
+                        </>
+                      ) : (
+                        'پستی از این صفحه در انتشارهای اخیر یافت نشد'
+                      )}
+                    </Typography>
                   </Stack>
                 )}
               </Stack>
@@ -205,6 +270,6 @@ export function OfficialAccounts() {
           );
         })}
       </Box>
-    </Card>
+    </WidgetCard>
   );
 }

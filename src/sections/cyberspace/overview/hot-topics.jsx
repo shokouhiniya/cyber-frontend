@@ -1,64 +1,76 @@
+import { useState } from 'react';
+
 import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { alpha, useTheme } from '@mui/material/styles';
-import CircularProgress from '@mui/material/CircularProgress';
+
+import { fNum } from 'src/utils/format-number-fa';
 
 import { useHashtags } from 'src/api/dashboard';
 
-import { Iconify } from 'src/components/iconify';
-import { InfoTooltip } from 'src/components/info-tooltip';
 import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
+
+import { WidgetCard, WidgetToggle } from '../shared/widget-card';
 
 // ----------------------------------------------------------------------
 
+const TIME_FILTERS = [
+  { value: '24h', label: '۲۴ ساعت' },
+  { value: '7d', label: '۷ روز' },
+  { value: '30d', label: '۳۰ روز' },
+];
+
 export function HotTopics() {
   const theme = useTheme();
-  const { data: topics = [], isLoading } = useHashtags(15);
+  const [timeframe, setTimeframe] = useState('7d');
+  const { data: topics = [], isLoading } = useHashtags(12, timeframe);
 
-  if (isLoading) {
-    return (
-      <Card sx={{ p: 2, borderRadius: 2, boxShadow: theme.shadows[2], display: 'flex', justifyContent: 'center', minHeight: 80 }}>
-        <CircularProgress size={24} />
-      </Card>
-    );
-  }
+  const max = topics[0]?.count || 1;
 
   return (
-    <Card sx={{ borderRadius: 2, overflow: 'hidden', boxShadow: theme.shadows[2] }}>
-      <Box sx={{ p: 2 }}>
-        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-          <Iconify icon="solar:fire-bold-duotone" width={20} sx={{ color: theme.palette.error.main }} />
-          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>هشتگ‌های داغ</Typography>
-          <InfoTooltip title={WIDGET_TOOLTIPS.hotTopics} />
-        </Stack>
-
-        <Stack direction="row" flexWrap="wrap" gap={1}>
-          {topics.map((topic) => (
-            <Chip
-              key={topic.label}
-              label={
-                <Stack direction="row" alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'text.primary' }}>
-                    #{topic.label}
-                  </Typography>
-                  <Typography sx={{ fontSize: 10, color: 'text.secondary' }}>
-                    ({topic.count.toLocaleString('fa-IR')})
-                  </Typography>
-                </Stack>
-              }
-              sx={{
-                height: 32,
-                bgcolor: alpha(theme.palette.grey[500], 0.08),
-                border: `1px solid ${alpha(theme.palette.grey[500], 0.16)}`,
-                '&:hover': { bgcolor: alpha(theme.palette.grey[500], 0.12) },
-              }}
-            />
-          ))}
-        </Stack>
-      </Box>
-    </Card>
+    <WidgetCard
+      title="هشتگ‌ها و موضوعات داغ"
+      icon="solar:fire-bold-duotone"
+      color="error"
+      tooltip={WIDGET_TOOLTIPS.hotTopics}
+      subheader="پرتکرارترین موضوعات در پست‌های مرتبط"
+      loading={isLoading}
+      empty={!topics.length}
+      emptyText="در این بازه موضوعی ثبت نشده است."
+      action={<WidgetToggle value={timeframe} onChange={setTimeframe} options={TIME_FILTERS} />}
+    >
+      <Stack spacing={1.25}>
+        {topics.map((topic, index) => (
+          <Stack key={topic.label} direction="row" alignItems="center" spacing={1.5}>
+            <Typography
+              variant="caption"
+              sx={{ width: 20, textAlign: 'center', fontWeight: 700, color: index < 3 ? 'error.main' : 'text.disabled' }}
+            >
+              {fNum(index + 1)}
+            </Typography>
+            <Box sx={{ flex: 1, minWidth: 0, position: 'relative', height: 32, display: 'flex', alignItems: 'center' }}>
+              <Box
+                sx={{
+                  position: 'absolute',
+                  insetInlineStart: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: `${Math.max(6, (topic.count / max) * 100)}%`,
+                  borderRadius: 1,
+                  bgcolor: alpha(theme.palette.error.main, index < 3 ? 0.14 : 0.07),
+                }}
+              />
+              <Typography variant="body2" noWrap sx={{ position: 'relative', px: 1.25, fontWeight: 600 }}>
+                #{topic.label}
+              </Typography>
+            </Box>
+            <Typography variant="body2" sx={{ width: 48, textAlign: 'end', fontWeight: 700, color: 'text.secondary' }}>
+              {fNum(topic.count)}
+            </Typography>
+          </Stack>
+        ))}
+      </Stack>
+    </WidgetCard>
   );
 }

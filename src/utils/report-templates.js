@@ -3,12 +3,12 @@
  * Includes all dashboard sections in a print-friendly format.
  */
 
-const fmtNum = (n) => {
-  if (!n) return '۰';
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}k`;
-  return Number(n).toLocaleString('fa-IR');
-};
+import { fShort, toFaDigits } from 'src/utils/format-number-fa';
+
+const fmtNum = (n) => (n ? fShort(n) : '۰');
+
+// Marks sections whose data ignores the report period (backend has no `since` for them yet)
+const ALL_TIME = ' <span style="font-weight:400;color:#919EAB;">(کل دوره)</span>';
 
 const today = () => new Date().toLocaleDateString('fa-IR', { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -91,13 +91,13 @@ export function buildReportHtml(period, data) {
   const postCard = (p, i) => {
     const cleanText = stripLinks(p.text || '');
     const text = cleanText.slice(0, 500) + (cleanText.length > 500 ? '...' : '');
-    return `<div class="post"><div class="pm">${i + 1}. @${p.screenName || '?'} · ${p.sourceType || '?'} · ${fmtNum(p.viewCount)} بازدید</div><div class="pt">${text}</div></div>`;
+    return `<div class="post"><div class="pm">${toFaDigits(i + 1)}. @${p.screenName || '?'} · ${p.sourceType || '?'} · ${fmtNum(p.viewCount)} بازدید</div><div class="pt">${text}</div></div>`;
   };
 
   // Influencers
   const supporters = (influencers || []).filter(a => a.stance === 'supporter').slice(0, 6);
   const critics = (influencers || []).filter(a => a.stance === 'critic').slice(0, 6);
-  const infRow = (a, i) => `<tr><td style="width:20px;">${i + 1}</td><td>@${a.username}</td><td>${a.sourceType}</td><td>${fmtNum(a.totalViews)}</td></tr>`;
+  const infRow = (a, i) => `<tr><td style="width:20px;">${toFaDigits(i + 1)}</td><td>@${a.username}</td><td>${a.sourceType}</td><td>${fmtNum(a.totalViews)}</td></tr>`;
 
   // Keywords/topics
   const kwHtml = (hashtags || []).slice(0, 15).map(h => `<span class="kw">${h.label}</span>`).join('');
@@ -184,8 +184,8 @@ export function buildReportHtml(period, data) {
     <div class="st"><div class="v">${fmtNum(stats?.totalViews)}</div><div class="l">بازدید</div></div>
     <div class="st"><div class="v">${fmtNum(stats?.totalLikes)}</div><div class="l">لایک</div></div>
     <div class="st"><div class="v">${fmtNum(stats?.totalRetweets)}</div><div class="l">بازنشر</div></div>
-    ${period === 'daily' ? `<div class="st"><div class="v">${healthScore !== null ? healthScore + '%' : '—'}</div><div class="l">سلامت اعتبار</div></div>` : ''}
-    ${period === 'daily' ? `<div class="st"><div class="v">${crisis.score ?? '—'}</div><div class="l">بحران (${crisisLevel})</div></div>` : ''}
+    ${period === 'daily' ? `<div class="st"><div class="v">${healthScore !== null ? `${toFaDigits(healthScore)}٪` : '—'}</div><div class="l">سلامت اعتبار</div></div>` : ''}
+    ${period === 'daily' ? `<div class="st"><div class="v">${toFaDigits(crisis.score ?? '—')}</div><div class="l">بحران (${crisisLevel})</div></div>` : ''}
   </div>
 
   <div class="cols">
@@ -197,25 +197,25 @@ export function buildReportHtml(period, data) {
         <div class="sec-t">توزیع احساسات</div>
         <div class="bar"><div style="flex:${posPct};background:#51CF66;"></div><div style="flex:${neuPct};background:#DFE3E8;"></div><div style="flex:${negPct};background:#FF6B6B;"></div></div>
         <div style="display:flex;justify-content:space-between;margin-top:3px;font-size:8px;">
-          <span style="color:#51CF66;font-weight:700;">مثبت ${posPct}%</span>
-          <span style="color:#868E96;">خنثی ${neuPct}%</span>
-          <span style="color:#FF6B6B;font-weight:700;">منفی ${negPct}%</span>
+          <span style="color:#51CF66;font-weight:700;">مثبت ${toFaDigits(posPct)}٪</span>
+          <span style="color:#868E96;">خنثی ${toFaDigits(neuPct)}٪</span>
+          <span style="color:#FF6B6B;font-weight:700;">منفی ${toFaDigits(negPct)}٪</span>
         </div>
       </div>
 
-      ${period === 'daily' && (crisis.dimensions || []).length > 0 ? `<div class="sec"><div class="sec-t">رادار بحران</div><div class="crisis-dims">${(crisis.dimensions || []).map(d => `<div class="dim"><div class="dn">${d.label}</div><div class="dv" style="color:${d.value >= 70 ? '#C92A2A' : d.value >= 50 ? '#E67700' : '#2B8A3E'};">${d.value}</div></div>`).join('')}</div></div>` : ''}
+      ${period === 'daily' && (crisis.dimensions || []).length > 0 ? `<div class="sec"><div class="sec-t">رادار بحران</div><div class="crisis-dims">${(crisis.dimensions || []).map(d => `<div class="dim"><div class="dn">${d.label}</div><div class="dv" style="color:${d.value >= 70 ? '#C92A2A' : d.value >= 50 ? '#E67700' : '#2B8A3E'};">${toFaDigits(d.value)}</div></div>`).join('')}</div></div>` : ''}
 
       ${srcHtml ? `<div class="sec"><div class="sec-t">خلاصه پلتفرم‌ها</div>${srcHtml}</div>` : ''}
 
       ${kwHtml ? `<div class="sec"><div class="sec-t">ابر واژگان هوشمند</div><div class="kw-cloud">${kwHtml}</div></div>` : ''}
 
-      ${supporters.length > 0 ? `<div class="sec"><div class="sec-t">موافقان برتر</div><table class="tbl"><tr><th style="width:20px;">#</th><th>حساب</th><th>پلتفرم</th><th>بازدید</th></tr>${supporters.map(infRow).join('')}</table></div>` : ''}
+      ${supporters.length > 0 ? `<div class="sec"><div class="sec-t">موافقان برتر${ALL_TIME}</div><table class="tbl"><tr><th style="width:20px;">#</th><th>حساب</th><th>پلتفرم</th><th>بازدید</th></tr>${supporters.map(infRow).join('')}</table></div>` : ''}
 
-      ${critics.length > 0 ? `<div class="sec"><div class="sec-t">مخالفان برتر</div><table class="tbl"><tr><th style="width:20px;">#</th><th>حساب</th><th>پلتفرم</th><th>بازدید</th></tr>${critics.map(infRow).join('')}</table></div>` : ''}
+      ${critics.length > 0 ? `<div class="sec"><div class="sec-t">مخالفان برتر${ALL_TIME}</div><table class="tbl"><tr><th style="width:20px;">#</th><th>حساب</th><th>پلتفرم</th><th>بازدید</th></tr>${critics.map(infRow).join('')}</table></div>` : ''}
 
-      ${ud.total > 0 ? `<div class="sec"><div class="sec-t">تفکیک کاربران</div><div style="display:flex;gap:8px;"><div class="st" style="flex:1;"><div class="v">${ud.influencerPercent || 0}%</div><div class="l">تأثیرگذار</div></div><div class="st" style="flex:1;"><div class="v">${ud.regularPercent || 0}%</div><div class="l">عادی</div></div><div class="st" style="flex:1;"><div class="v">${ud.suspiciousPercent || 0}%</div><div class="l">مشکوک</div></div></div></div>` : ''}
+      ${ud.total > 0 ? `<div class="sec"><div class="sec-t">تفکیک کاربران${ALL_TIME}</div><div style="display:flex;gap:8px;"><div class="st" style="flex:1;"><div class="v">${toFaDigits(ud.influencerPercent || 0)}٪</div><div class="l">تأثیرگذار</div></div><div class="st" style="flex:1;"><div class="v">${toFaDigits(ud.regularPercent || 0)}٪</div><div class="l">عادی</div></div><div class="st" style="flex:1;"><div class="v">${toFaDigits(ud.suspiciousPercent || 0)}٪</div><div class="l">مشکوک</div></div></div></div>` : ''}
 
-      ${promiseHtml ? `<div class="sec"><div class="sec-t">رصد وعده‌ها</div>${promiseHtml}</div>` : ''}
+      ${promiseHtml ? `<div class="sec"><div class="sec-t">رصد وعده‌ها${ALL_TIME}</div>${promiseHtml}</div>` : ''}
 
       ${period === 'daily' && gapHtml ? `<div class="sec"><div class="sec-t">تحلیل شکاف روایت</div>${gapHtml}</div>` : ''}
 
@@ -227,7 +227,7 @@ export function buildReportHtml(period, data) {
 
       ${macroHtml ? `<div class="sec"><div class="sec-t">وضعیت کلان</div>${macroHtml}</div>` : ''}
 
-      ${(topPosts || []).length > 0 ? `<div class="sec"><div class="sec-t">پربازدیدترین پست‌ها</div>${(topPosts || []).slice(0, 5).map(postCard).join('')}</div>` : ''}
+      ${(topPosts || []).length > 0 ? `<div class="sec"><div class="sec-t">پربازدیدترین پست‌ها <span style="font-weight:400;color:#919EAB;">(بر اساس بازدید، از ابتدای بازه)</span></div>${(topPosts || []).slice(0, 5).map(postCard).join('')}</div>` : ''}
 
       ${(topCommented || []).length > 0 ? `<div class="sec"><div class="sec-t">پربحث‌ترین پست‌ها</div>${(topCommented || []).slice(0, 4).map(postCard).join('')}</div>` : ''}
 

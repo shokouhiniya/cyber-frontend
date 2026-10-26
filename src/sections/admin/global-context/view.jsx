@@ -8,6 +8,7 @@ import Tab from '@mui/material/Tab';
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
 import Tabs from '@mui/material/Tabs';
+import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
@@ -25,7 +26,6 @@ import DialogTitle from '@mui/material/DialogTitle';
 import { alpha, useTheme } from '@mui/material/styles';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-import FormControlLabel from '@mui/material/FormControlLabel';
 
 import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
 import {
@@ -38,11 +38,13 @@ import {
   useUpsertGlobalContext,
 } from 'src/api/admin';
 
+import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 
 import { MacroRawContent, parseMacroValue } from 'src/sections/cyberspace/shared/macro-parsed-content';
 
 import { AdminPageHeader } from '../shared/page-header';
+import { getErrorText, AdminListState, RowActionsMenu } from '../shared/admin-ui';
 
 // ----------------------------------------------------------------------
 // Helpers
@@ -95,8 +97,16 @@ export function AdminGlobalContextView() {
   const openEdit = (r) => setDialog({ key: r.key, value: r.value ?? '', isNew: false });
   const openNew  = () => setDialog({ key: '', value: '', isNew: true });
 
+  const handleDelete = (r) => {
+    if (!window.confirm(`متغیر «${r.key}» حذف شود؟`)) return;
+    remove.mutate(r.key, {
+      onSuccess: () => toast.success('متغیر حذف شد'),
+      onError: (e) => toast.error(getErrorText(e, 'خطا در حذف متغیر')),
+    });
+  };
+
   return (
-    <Container maxWidth={desktopMode ? 'xl' : 'md'} sx={{ py: 4 }}>
+    <Container maxWidth={desktopMode ? 'xl' : 'lg'} sx={{ py: { xs: 3, md: 4 } }}>
       <AdminPageHeader
         title="تنظیمات"
         subtitle="متغیرهای عمومی، زمینه‌های تحلیل پروفایل‌ها و تنظیمات سیستم"
@@ -108,27 +118,37 @@ export function AdminGlobalContextView() {
       />
 
       {/* Tabs */}
-      <Card sx={{ mb: 2 }}>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ px: 2 }}>
-          <Tab label="متغیرهای عمومی" icon={<Iconify icon="solar:settings-bold" width={16} />} iconPosition="start" sx={{ fontSize: 12, minHeight: 48 }} />
-          <Tab label="زمینه‌های تحلیل پروفایل" icon={<Iconify icon="solar:user-id-bold" width={16} />} iconPosition="start" sx={{ fontSize: 12, minHeight: 48 }} />
-          <Tab label="تنظیمات جمع‌آوری" icon={<Iconify icon="solar:refresh-bold" width={16} />} iconPosition="start" sx={{ fontSize: 12, minHeight: 48 }} />
+      <Card sx={{ mb: 2.5 }}>
+        <Tabs
+          value={tab}
+          onChange={(_, v) => setTab(v)}
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
+          sx={{ px: { xs: 1, md: 2 } }}
+        >
+          <Tab label="متغیرهای عمومی" icon={<Iconify icon="solar:settings-bold" width={18} />} iconPosition="start" sx={{ fontSize: 13, minHeight: 52 }} />
+          <Tab label="زمینه‌های تحلیل پروفایل" icon={<Iconify icon="solar:user-id-bold" width={18} />} iconPosition="start" sx={{ fontSize: 13, minHeight: 52 }} />
+          <Tab label="تنظیمات جمع‌آوری" icon={<Iconify icon="solar:refresh-bold" width={18} />} iconPosition="start" sx={{ fontSize: 13, minHeight: 52 }} />
         </Tabs>
       </Card>
 
       {/* Tab 0: Global variables (existing) */}
       {tab === 0 && (
       <>
-      {isLoading ? (
-        <Card sx={{ p: 3 }}>در حال بارگذاری...</Card>
-      ) : rows.length === 0 ? (
-        <Card sx={{ p: 3 }}>هنوز متغیری اضافه نشده.</Card>
+      {isLoading || rows.length === 0 ? (
+        <AdminListState
+          loading={isLoading}
+          empty={!isLoading}
+          emptyText="هنوز متغیری اضافه نشده است."
+          icon="solar:settings-bold"
+        />
       ) : (
-        <Box sx={desktopMode ? {
+        <Box sx={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: 1.5,
-        } : {}}>
+          gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, 1fr)' },
+          gap: 2,
+        }}>
           {rows.map((r) => {
             const isMacro = MACRO_KEYS.includes(r.key);
             return (
@@ -140,14 +160,15 @@ export function AdminGlobalContextView() {
                       <Chip
                         size="small"
                         color="primary"
+                        variant="soft"
                         label={`global_${r.key}`}
-                        sx={{ fontFamily: 'monospace', fontSize: 11 }}
+                        sx={{ fontFamily: 'monospace', fontSize: 12, direction: 'ltr' }}
                       />
                       {isMacro && (
-                        <Chip size="small" label="وضعیت کلان" variant="outlined" sx={{ fontSize: 10, height: 20 }} />
+                        <Chip size="small" label="وضعیت کلان" variant="outlined" sx={{ fontSize: 12 }} />
                       )}
                       {r.updatedAt && (
-                        <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10 }}>
+                        <Typography variant="caption" sx={{ fontSize: 12, color: 'text.secondary' }}>
                           {new Date(r.updatedAt).toLocaleString('fa-IR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </Typography>
                       )}
@@ -161,23 +182,20 @@ export function AdminGlobalContextView() {
                   </Box>
 
                   {/* Actions */}
-                  <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0 }}>
-                    <IconButton size="small" onClick={() => openEdit(r)} title="ویرایش">
-                      <Iconify icon="solar:pen-bold" width={18} />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      color="error"
-                      onClick={() => {
-                        if (window.confirm(`متغیر «${r.key}» حذف شود؟`)) {
-                          remove.mutate(r.key);
-                        }
-                      }}
-                      title="حذف"
-                    >
-                      <Iconify icon="solar:trash-bin-2-bold" width={18} />
-                    </IconButton>
-                  </Stack>
+                  <Box sx={{ flexShrink: 0 }}>
+                    <RowActionsMenu
+                      items={[
+                        { label: 'ویرایش', icon: 'solar:pen-bold', onClick: () => openEdit(r) },
+                        {
+                          label: 'حذف',
+                          icon: 'solar:trash-bin-2-bold',
+                          color: 'error',
+                          divider: true,
+                          onClick: () => handleDelete(r),
+                        },
+                      ]}
+                    />
+                  </Box>
                 </Stack>
               </Card>
             );
@@ -197,8 +215,13 @@ export function AdminGlobalContextView() {
         value={dialog}
         onClose={() => setDialog(null)}
         onSave={async (row) => {
-          await upsert.mutateAsync(row);
-          setDialog(null);
+          try {
+            await upsert.mutateAsync(row);
+            toast.success('متغیر ذخیره شد');
+            setDialog(null);
+          } catch (e) {
+            toast.error(getErrorText(e, 'خطا در ذخیره متغیر'));
+          }
         }}
         saving={upsert.isPending}
       />
@@ -244,7 +267,10 @@ function ProfileContextsTab({ desktopMode, initialProfileId = '' }) {
         delete updated[editingKey]; // empty = use default
       }
       await updateProfile.mutateAsync({ id: selectedId, profileContexts: updated });
+      toast.success('زمینه تحلیل ذخیره شد');
       setEditingKey(null);
+    } catch (e) {
+      toast.error(getErrorText(e, 'خطا در ذخیره زمینه تحلیل'));
     } finally {
       setSaving(false);
     }
@@ -254,9 +280,9 @@ function ProfileContextsTab({ desktopMode, initialProfileId = '' }) {
     <Box>
       {/* Profile picker */}
       <Card sx={{ p: 2, mb: 2 }}>
-        <Stack direction="row" alignItems="center" spacing={2}>
-          <Iconify icon="solar:user-id-bold-duotone" width={20} sx={{ color: 'primary.main', flexShrink: 0 }} />
-          <FormControl size="small" sx={{ minWidth: 280, flex: 1 }}>
+        <Stack direction="row" alignItems="center" sx={{ flexWrap: 'wrap', gap: 1.5 }}>
+          <Iconify icon="solar:user-id-bold" width={20} sx={{ color: 'primary.main', flexShrink: 0 }} />
+          <FormControl size="small" sx={{ minWidth: { xs: 0, sm: 280 }, flex: 1 }}>
             <InputLabel>انتخاب پروفایل</InputLabel>
             <Select value={selectedId} label="انتخاب پروفایل" onChange={(e) => { setSelectedId(e.target.value); setEditingKey(null); }}>
               {profiles.map((p) => (
@@ -265,16 +291,16 @@ function ProfileContextsTab({ desktopMode, initialProfileId = '' }) {
             </Select>
           </FormControl>
           {selectedProfile && (
-            <Chip size="small" label={contexts.default ? 'دارای زمینه' : 'بدون زمینه'} color={contexts.default ? 'success' : 'warning'} variant="outlined" />
+            <Chip size="small" label={contexts.default ? 'دارای زمینه' : 'بدون زمینه'} color={contexts.default ? 'success' : 'warning'} variant="soft" sx={{ fontSize: 12 }} />
           )}
         </Stack>
       </Card>
 
       {/* Context sections */}
       {selectedProfile && (
-        <Box sx={desktopMode ? { display: 'grid', gridTemplateColumns: '280px 1fr', gap: 2 } : {}}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '300px 1fr' }, gap: 2 }}>
           {/* Section list */}
-          <Stack spacing={1} sx={desktopMode ? {} : { mb: 2 }}>
+          <Stack spacing={1}>
             {PROMPT_SECTIONS.map((sec) => {
               const hasOverride = !!contexts[sec.key];
               const isActive = editingKey === sec.key;
@@ -290,11 +316,11 @@ function ProfileContextsTab({ desktopMode, initialProfileId = '' }) {
                   <Stack direction="row" alignItems="center" spacing={1}>
                     <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: hasOverride ? 'success.main' : 'text.disabled', flexShrink: 0 }} />
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography variant="caption" fontWeight={700} sx={{ fontSize: 11, display: 'block' }}>{sec.label}</Typography>
-                      <Typography variant="caption" color="text.disabled" sx={{ fontSize: 9 }}>{sec.desc}</Typography>
+                      <Typography variant="body2" fontWeight={700} sx={{ fontSize: 13, display: 'block' }}>{sec.label}</Typography>
+                      <Typography variant="caption" sx={{ fontSize: 12, color: 'text.secondary' }}>{sec.desc}</Typography>
                     </Box>
                     {hasOverride && sec.key !== 'default' && (
-                      <Chip size="small" label="override" sx={{ height: 14, fontSize: 8, bgcolor: 'success.lighter', color: 'success.dark' }} />
+                      <Chip size="small" label="override" color="success" variant="soft" sx={{ fontSize: 12 }} />
                     )}
                   </Stack>
                 </Card>
@@ -311,7 +337,7 @@ function ProfileContextsTab({ desktopMode, initialProfileId = '' }) {
                     {PROMPT_SECTIONS.find((s) => s.key === editingKey)?.label}
                   </Typography>
                   {editingKey !== 'default' && (
-                    <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10 }}>
+                    <Typography variant="caption" sx={{ fontSize: 12, color: 'text.secondary' }}>
                       خالی = استفاده از زمینه پایه
                     </Typography>
                   )}
@@ -329,8 +355,8 @@ function ProfileContextsTab({ desktopMode, initialProfileId = '' }) {
                 />
                 <Stack direction="row" spacing={1.5} justifyContent="flex-end">
                   <Button variant="outlined" size="small" onClick={() => setEditingKey(null)}>انصراف</Button>
-                  <Button variant="contained" size="small" onClick={handleSave} disabled={saving}>
-                    {saving ? 'ذخیره...' : 'ذخیره'}
+                  <Button variant="contained" size="small" onClick={handleSave} loading={saving}>
+                    ذخیره
                   </Button>
                 </Stack>
               </Stack>
@@ -348,7 +374,7 @@ function ProfileContextsTab({ desktopMode, initialProfileId = '' }) {
 
       {!selectedProfile && (
         <Card sx={{ p: 3, textAlign: 'center' }}>
-          <Iconify icon="solar:user-id-bold-duotone" width={40} sx={{ color: 'text.disabled', mb: 1 }} />
+          <Iconify icon="solar:user-id-bold" width={40} sx={{ color: 'text.disabled', mb: 1 }} />
           <Typography variant="body2" color="text.secondary">ابتدا یک پروفایل انتخاب کنید</Typography>
         </Card>
       )}
@@ -361,7 +387,8 @@ function ProfileContextsTab({ desktopMode, initialProfileId = '' }) {
 // ----------------------------------------------------------------------
 
 const TIER_LABELS = { heavy: 'سنگین (Heavy)', medium: 'متوسط (Medium)', light: 'سبک (Light)' };
-const TIER_COLORS = { heavy: '#E03131', medium: '#F08C00', light: '#2F9E44' };
+// Palette keys so the tier cards follow light / dark mode.
+const TIER_COLORS = { heavy: 'error', medium: 'warning', light: 'success' };
 const TIER_DESCS = {
   heavy: 'پروفایل‌های پرترافیک — بیش از ۱۰k پست در روز',
   medium: 'پروفایل‌های متوسط — ۵۰۰ تا ۱۰k پست در روز',
@@ -391,38 +418,119 @@ function IngestSettingsTab() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
+    // Wait for the request to finish: seeding the form with DEFAULT while the
+    // settings are still loading meant the saved values never showed up, and a
+    // save would silently overwrite them with the defaults.
+    if (isLoading || form) return;
     // Use settings from API if available, otherwise use defaults
     const base = (settings && typeof settings === 'object' && settings.heavy) ? settings : DEFAULT;
-    if (!form) setForm(base);
+    setForm(base);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings]);
+  }, [settings, isLoading]);
 
   const setTier = (tier, patch) => setForm((f) => ({ ...f, [tier]: { ...f[tier], ...patch } }));
   const setGlobal = (patch) => setForm((f) => ({ ...f, ...patch }));
 
   const handleSave = async () => {
-    await save.mutateAsync(form);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    try {
+      await save.mutateAsync(form);
+      toast.success('تنظیمات جمع‌آوری ذخیره شد');
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (e) {
+      toast.error(getErrorText(e, 'خطا در ذخیره تنظیمات'));
+    }
   };
 
-  if (!form) return <Box sx={{ p: 2 }}>در حال بارگذاری...</Box>;
+  if (!form) return <AdminListState loading rows={3} />;
+
+  const autoEnabled = form.automaticCollectionEnabled !== false;
+  const savedAutoEnabled = settings?.automaticCollectionEnabled !== false;
+  const autoDirty = !!settings?.heavy && autoEnabled !== savedAutoEnabled;
+  const autoColor = autoEnabled ? 'success' : 'warning';
 
   return (
     <Box>
+      {/* Automatic collection — master switch */}
+      <Card
+        variant="outlined"
+        sx={{
+          p: { xs: 2, md: 2.5 },
+          mb: 3,
+          borderWidth: 1.5,
+          borderColor: alpha(theme.palette[autoColor].main, 0.4),
+          bgcolor: alpha(theme.palette[autoColor].main, 0.06),
+        }}
+      >
+        <Stack direction="row" spacing={2} alignItems="flex-start">
+          <Box
+            sx={{
+              width: 48,
+              height: 48,
+              borderRadius: 1.5,
+              flexShrink: 0,
+              display: { xs: 'none', sm: 'flex' },
+              alignItems: 'center',
+              justifyContent: 'center',
+              bgcolor: alpha(theme.palette[autoColor].main, 0.14),
+              color: `${autoColor}.main`,
+            }}
+          >
+            <Iconify icon={autoEnabled ? 'solar:play-circle-bold' : 'solar:stop-circle-bold'} width={28} />
+          </Box>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Stack direction="row" alignItems="center" sx={{ flexWrap: 'wrap', gap: 1, mb: 0.75 }}>
+              <Typography variant="h6" sx={{ fontWeight: 800, fontSize: { xs: 16, md: 18 } }}>
+                جمع‌آوری خودکار
+              </Typography>
+              <Chip
+                size="small"
+                variant="soft"
+                color={autoColor}
+                label={autoEnabled ? 'روشن' : 'متوقف'}
+                sx={{ fontSize: 12, fontWeight: 700 }}
+              />
+              {autoDirty && (
+                <Chip size="small" variant="outlined" color="info" label="ذخیره نشده" sx={{ fontSize: 12 }} />
+              )}
+            </Stack>
+            <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.9 }}>
+              وقتی روشن است، داده‌های همه پروفایل‌ها طبق زمان‌بندی هر سطح (پایین همین صفحه) به‌صورت خودکار جمع‌آوری می‌شوند
+              و تحلیل «وضعیت کلان سیاسی» نیز دو بار در روز به‌صورت خودکار تولید می‌شود.
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.9, mt: 0.5 }}>
+              با خاموش کردن آن، هم اجراهای زمان‌بندی‌شده جمع‌آوری و هم تولید دوبار‌در‌روز وضعیت کلان متوقف می‌شوند؛
+              اجرای دستی («اجرای فوری» در صفحه پروفایل‌ها) همچنان در دسترس است.
+            </Typography>
+          </Box>
+          <Switch
+            checked={autoEnabled}
+            onChange={(e) => setGlobal({ automaticCollectionEnabled: e.target.checked })}
+            color="success"
+            slotProps={{ input: { 'aria-label': 'جمع‌آوری خودکار' } }}
+            sx={{ flexShrink: 0, mt: 0.5 }}
+          />
+        </Stack>
+        {autoDirty && (
+          <Alert severity="info" sx={{ mt: 2 }}>
+            برای اعمال این تغییر، دکمه «ذخیره تنظیمات» را در پایین صفحه بزنید.
+          </Alert>
+        )}
+      </Card>
+
       {/* Tier configs */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 2, mb: 3 }}>
         {['heavy', 'medium', 'light'].map((tier) => {
           const t = form[tier] || {};
-          const color = TIER_COLORS[tier];
+          const color = theme.palette[TIER_COLORS[tier]].main;
           return (
-            <Card key={tier} variant="outlined" sx={{ p: 2, borderColor: alpha(color, 0.3), bgcolor: alpha(color, 0.03) }}>
+            <Card key={tier} variant="outlined" sx={{ p: 2, borderColor: alpha(color, 0.3), bgcolor: alpha(color, 0.04) }}>
               <Stack spacing={2}>
                 <Stack direction="row" alignItems="center" spacing={1}>
                   <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: color, flexShrink: 0 }} />
                   <Typography variant="subtitle2" fontWeight={800} sx={{ color }}>{TIER_LABELS[tier]}</Typography>
                 </Stack>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: 10, mt: -1 }}>{TIER_DESCS[tier]}</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: 12, mt: -1 }}>{TIER_DESCS[tier]}</Typography>
 
                 <TextField
                   label="تعداد پست نمونه"
@@ -467,26 +575,6 @@ function IngestSettingsTab() {
       {/* Global settings */}
       <Card variant="outlined" sx={{ p: 2, mb: 3 }}>
         <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2 }}>تنظیمات عمومی</Typography>
-        <Box sx={{ mb: 2, p: 1.5, borderRadius: 1.5, bgcolor: alpha(theme.palette.warning.main, 0.06) }}>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={form.automaticCollectionEnabled !== false}
-                onChange={(e) => setGlobal({ automaticCollectionEnabled: e.target.checked })}
-                color="warning"
-              />
-            }
-            label={
-              <Box>
-                <Typography variant="body2" fontWeight={700}>جمع‌آوری خودکار</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  با غیرفعال‌سازی، اجراهای زمان‌بندی‌شده متوقف می‌شوند؛ اجرای دستی همچنان انجام می‌شود.
-                </Typography>
-              </Box>
-            }
-            sx={{ alignItems: 'flex-start', m: 0 }}
-          />
-        </Box>
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
           <TextField
             label="حداقل فاصله بین اجراهای دستی (دقیقه)"
@@ -510,17 +598,20 @@ function IngestSettingsTab() {
       </Card>
 
       <Stack direction="row" spacing={1.5} justifyContent="flex-end">
-        <Button variant="outlined" size="small" onClick={() => setForm((settings && settings.heavy) ? settings : DEFAULT)}>بازنشانی</Button>
-        <Button variant="contained" size="small" onClick={handleSave} disabled={save.isPending}>
-          {saved ? '✓ ذخیره شد' : save.isPending ? 'در حال ذخیره...' : 'ذخیره تنظیمات'}
+        <Button variant="outlined" onClick={() => setForm((settings && settings.heavy) ? settings : DEFAULT)}>بازنشانی</Button>
+        <Button
+          variant="contained"
+          onClick={handleSave}
+          loading={save.isPending}
+          startIcon={saved ? <Iconify icon="solar:check-circle-bold" /> : null}
+        >
+          {saved ? 'ذخیره شد' : 'ذخیره تنظیمات'}
         </Button>
       </Stack>
 
-      <Box sx={{ mt: 2, p: 1.5, borderRadius: 1.5, bgcolor: alpha(theme.palette.warning.main, 0.06), border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}` }}>
-        <Typography variant="caption" sx={{ fontSize: 10, color: 'warning.dark' }}>
-          ⚠ تغییر زمان‌بندی Cron نیاز به ری‌استارت سرور دارد. تغییرات سایر تنظیمات بلافاصله اعمال می‌شوند.
-        </Typography>
-      </Box>
+      <Alert severity="warning" sx={{ mt: 2 }}>
+        تغییر زمان‌بندی Cron نیاز به ری‌استارت سرور دارد. تغییرات سایر تنظیمات بلافاصله اعمال می‌شوند.
+      </Alert>
     </Box>
   );
 }
@@ -538,8 +629,6 @@ const EMPTY_MACRO = {
 };
 
 function MacroEditor({ value, onChange }) {
-  const theme = useTheme();
-
   const parsed = tryParseJson(value) || { ...EMPTY_MACRO };
   const events = parsed.events || [];
   const tensions = parsed.tensions || {};
@@ -565,7 +654,7 @@ function MacroEditor({ value, onChange }) {
       <Box>
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
           <Typography variant="subtitle2" fontWeight={700}>رویدادها</Typography>
-          <Button size="small" variant="outlined" onClick={addEvent} startIcon={<Iconify icon="eva:plus-fill" width={14} />} sx={{ fontSize: 11, height: 28 }}>
+          <Button size="small" variant="outlined" onClick={addEvent} startIcon={<Iconify icon="eva:plus-fill" width={16} />} sx={{ fontSize: 12 }}>
             افزودن رویداد
           </Button>
         </Stack>
@@ -580,8 +669,8 @@ function MacroEditor({ value, onChange }) {
               >
                 <Iconify icon="solar:close-circle-bold" width={16} />
               </IconButton>
-              <Stack spacing={1} sx={{ pr: 0.5 }}>
-                <Stack direction="row" spacing={1}>
+              <Stack spacing={1} sx={{ pl: 4 }}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                   <TextField
                     label="عنوان"
                     value={ev.title}
@@ -626,7 +715,7 @@ function MacroEditor({ value, onChange }) {
             </Box>
           ))}
           {events.length === 0 && (
-            <Typography variant="caption" color="text.disabled" sx={{ fontSize: 11 }}>
+            <Typography variant="caption" sx={{ fontSize: 12, color: 'text.secondary' }}>
               رویدادی ثبت نشده — برای افزودن دکمه بالا را بزنید.
             </Typography>
           )}
@@ -807,9 +896,10 @@ function ContextDialog({ value, onClose, onSave, saving }) {
         <Button
           variant="contained"
           onClick={() => onSave(form)}
+          loading={saving}
           disabled={saving || !form.key}
         >
-          {saving ? 'در حال ذخیره...' : 'ذخیره'}
+          ذخیره
         </Button>
       </DialogActions>
     </Dialog>
@@ -881,8 +971,8 @@ function JsonBuilder({ value, onChange }) {
           size="small"
           variant="outlined"
           onClick={addField}
-          startIcon={<Iconify icon="eva:plus-fill" width={14} />}
-          sx={{ fontSize: 11, height: 28 }}
+          startIcon={<Iconify icon="eva:plus-fill" width={16} />}
+          sx={{ fontSize: 12 }}
         >
           افزودن فیلد
         </Button>
@@ -901,7 +991,7 @@ function JsonBuilder({ value, onChange }) {
           >
             <Iconify icon="solar:close-circle-bold" width={16} />
           </IconButton>
-          <Stack spacing={1}>
+          <Stack spacing={1} sx={{ pl: 4 }}>
             <Stack direction="row" spacing={1}>
               <TextField
                 label="کلید"
@@ -941,7 +1031,7 @@ function JsonBuilder({ value, onChange }) {
       ))}
 
       {fields.length === 0 && (
-        <Typography variant="caption" color="text.disabled" sx={{ fontSize: 11 }}>
+        <Typography variant="caption" sx={{ fontSize: 12, color: 'text.secondary' }}>
           فیلدی تعریف نشده — برای افزودن دکمه بالا را بزنید.
         </Typography>
       )}
@@ -949,14 +1039,14 @@ function JsonBuilder({ value, onChange }) {
       {/* Preview */}
       {fields.some((f) => f.key) && (
         <Box sx={{ mt: 0.5 }}>
-          <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10, display: 'block', mb: 0.5 }}>
+          <Typography variant="caption" sx={{ fontSize: 12, color: 'text.secondary', display: 'block', mb: 0.5 }}>
             پیش‌نمایش JSON:
           </Typography>
           <Box
             component="pre"
             sx={{
-              p: 1.5, borderRadius: 1, bgcolor: 'grey.100',
-              fontSize: 10, fontFamily: 'monospace', overflowX: 'auto',
+              p: 1.5, borderRadius: 1, bgcolor: 'background.neutral',
+              fontSize: 12, fontFamily: 'monospace', overflowX: 'auto', direction: 'ltr', textAlign: 'left',
               maxHeight: 120, m: 0, color: 'text.secondary',
             }}
           >

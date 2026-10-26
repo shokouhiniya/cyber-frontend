@@ -65,7 +65,13 @@ export function ChangePasswordDialog({ open, onClose }) {
       setSuccess(true);
       setTimeout(() => handleClose(), 1500);
     } catch (e) {
-      setError(e?.response?.data?.message || e?.message || 'خطا در تغییر رمز عبور');
+      // The axios interceptor rejects with the server's message as a plain string
+      setError(
+        (typeof e === 'string' && e) ||
+          e?.response?.data?.message ||
+          e?.message ||
+          'خطا در تغییر رمز عبور'
+      );
     } finally {
       setSubmitting(false);
     }
@@ -100,12 +106,13 @@ export function ChangePasswordDialog({ open, onClose }) {
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{ pr: 6 }}>
+      <DialogTitle sx={{ paddingInlineEnd: '56px' }}>
         تغییر رمز عبور
         <IconButton
           onClick={handleClose}
           disabled={submitting}
-          sx={{ position: 'absolute', left: 8, top: 8 }}
+          aria-label="بستن"
+          sx={{ position: 'absolute', insetInlineEnd: 12, top: 12 }}
         >
           <Iconify icon="solar:close-circle-bold" width={22} />
         </IconButton>
@@ -117,7 +124,7 @@ export function ChangePasswordDialog({ open, onClose }) {
             <Alert severity="success">رمز عبور با موفقیت تغییر کرد.</Alert>
           ) : (
             <>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.8 }}>
                 برای تغییر رمز عبور، رمز فعلی و رمز جدید را وارد کنید. رمز جدید حداقل ۶ کاراکتر باشد.
               </Typography>
 

@@ -13,7 +13,8 @@ export const themeConfig = {
    *************************************** */
   fontFamily: {
     primary: 'Vazirmatn Variable',
-    secondary: 'Barlow',
+    // Headings use Vazirmatn too, so Persian titles and digits match the body text
+    secondary: 'Vazirmatn Variable',
   },
   /** **************************************
    * Palette

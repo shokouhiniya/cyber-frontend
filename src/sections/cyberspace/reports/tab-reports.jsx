@@ -3,20 +3,27 @@
 import { useState } from 'react';
 
 import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
+import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
+import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 import { alpha, useTheme } from '@mui/material/styles';
 import CircularProgress from '@mui/material/CircularProgress';
 
+import { fDateFa } from 'src/utils/format-number-fa';
 import { buildReportHtml } from 'src/utils/report-templates';
 import { generatePdfFromHtml } from 'src/utils/generate-pdf-report';
 
 import axios from 'src/lib/axios';
 import { useProfile } from 'src/api/dashboard';
 
+import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
+
+import { WidgetCard } from '../shared/widget-card';
+import { PageHeader } from '../shared/page-header';
+import { GridItem, WidgetGrid } from '../shared/widget-grid';
 
 // ----------------------------------------------------------------------
 
@@ -24,38 +31,58 @@ const REPORTS = [
   {
     id: 'daily',
     title: 'گزارش روزانه',
-    description: 'خلاصه فعالیت‌ها، احساسات و تأثیرگذاران ۲۴ ساعت گذشته',
+    period: '۲۴ ساعت گذشته',
+    description: 'خلاصه فعالیت‌ها، احساسات و تأثیرگذاران ۲۴ ساعت گذشته، همراه با تحلیل‌های هوش مصنوعی.',
     icon: 'solar:calendar-bold-duotone',
-    color: '#667eea',
+    color: 'primary',
   },
   {
     id: 'weekly',
     title: 'گزارش هفتگی',
-    description: 'تحلیل جامع ۷ روز اخیر با نمودارها و تأثیرگذاران',
+    period: '۷ روز گذشته',
+    description: 'تحلیل جامع ۷ روز اخیر: آمار، احساسات، پلتفرم‌ها و پست‌های برتر هفته.',
     icon: 'solar:chart-2-bold-duotone',
-    color: '#51CF66',
+    color: 'success',
   },
   {
     id: 'monthly',
     title: 'گزارش ماهانه',
-    description: 'گزارش کامل عملکرد ۳۰ روزه',
+    period: '۳۰ روز گذشته',
+    description: 'گزارش کامل عملکرد ۳۰ روزه با تمرکز بر روندها و پست‌های اثرگذار.',
     icon: 'solar:document-text-bold-duotone',
-    color: '#FFA94D',
+    color: 'warning',
   },
   {
     id: 'quarterly',
     title: 'گزارش فصلی',
-    description: 'تحلیل جامع ۹۰ روزه با روندها و مقایسه‌ها',
+    period: '۹۰ روز گذشته',
+    description: 'تحلیل جامع ۹۰ روزه برای مقایسه و جمع‌بندی دوره‌ای.',
     icon: 'solar:graph-up-bold-duotone',
-    color: '#845EF7',
+    color: 'secondary',
   },
 ];
 
 // Map report period to hours back
 const PERIOD_HOURS = { daily: 24, weekly: 24 * 7, monthly: 24 * 30, quarterly: 24 * 90 };
 
-// Sections that only make sense for daily (single-run AI prompts)
-const DAILY_ONLY_SECTIONS = ['ai_summary', 'recommendations', 'political_spectrum', 'narrative_gap'];
+// What each report contains, so the period's effect is visible before downloading.
+const PERIOD_SECTIONS = [
+  'آمار کلی (پست، بازدید، لایک، بازنشر)',
+  'توزیع احساسات',
+  'خلاصه پلتفرم‌ها',
+  'هشتگ‌ها و واژگان پرتکرار',
+  'پربازدیدترین، پربحث‌ترین و پرتکرارترین پست‌ها',
+];
+
+const DAILY_SECTIONS = [
+  'خلاصه هوش مصنوعی',
+  'سلامت اعتبار و رادار بحران (لحظه‌ای)',
+  'طیف سیاسی و تحلیل شکاف روایت',
+  'پیشنهادات واکنش هوشمند',
+];
+
+// The backend endpoints for these don't accept `since` yet.
+const ALL_TIME_SECTIONS = ['موافقان و مخالفان برتر', 'تفکیک کاربران', 'رصد وعده‌ها'];
 
 function getSince(reportId) {
   const hours = PERIOD_HOURS[reportId];
@@ -68,23 +95,24 @@ function getSince(reportId) {
 async function fetchReportData(reportId) {
   const since = getSince(reportId);
   const sinceParam = since ? `&since=${encodeURIComponent(since)}` : '';
+  const sinceQuery = since ? `?since=${encodeURIComponent(since)}` : '';
   const isDaily = reportId === 'daily';
 
   const requests = [
-    axios.get(`/api/stats${since ? `?since=${encodeURIComponent(since)}` : ''}`),
-    axios.get(`/api/emotions${since ? `?since=${encodeURIComponent(since)}` : ''}`),
+    axios.get(`/api/stats${sinceQuery}`),
+    axios.get(`/api/emotions${sinceQuery}`),
     axios.get(`/api/stats/top-posts?limit=10${sinceParam}`),
     axios.get(`/api/stats/top-commented?limit=8${sinceParam}`),
     axios.get(`/api/stats/top-forwarded?limit=8${sinceParam}`),
-    axios.get('/api/influencers/map?limit=30'),           // all-time stance data
-    axios.get(`/api/stats/sources${since ? `?since=${encodeURIComponent(since)}` : ''}`),
+    axios.get('/api/influencers/map?limit=30'), // all-time stance data
+    axios.get(`/api/stats/sources${sinceQuery}`),
     isDaily ? axios.get('/api/ai-content/generate?section=ai_summary') : Promise.resolve(null),
-    isDaily ? axios.get('/api/stats/crisis') : Promise.resolve(null),  // crisis is real-time
-    axios.get('/api/stats/hashtags?limit=20'),
-    axios.get('/api/stats/promise-perception'),
+    isDaily ? axios.get('/api/stats/crisis') : Promise.resolve(null), // crisis is real-time
+    axios.get(`/api/stats/hashtags?limit=20${sinceParam}`),
+    axios.get('/api/stats/promise-perception'), // all-time
     axios.get('/api/admin/ingest/macro-context'),
     isDaily ? axios.get('/api/ai-content/generate?section=recommendations') : Promise.resolve(null),
-    axios.get('/api/stats/user-distribution'),
+    axios.get('/api/stats/user-distribution'), // all-time
     isDaily ? axios.get('/api/ai-content/generate?section=political_spectrum') : Promise.resolve(null),
     isDaily ? axios.get('/api/ai-content/generate?section=narrative_gap') : Promise.resolve(null),
   ];
@@ -124,8 +152,9 @@ async function fetchReportData(reportId) {
   };
 }
 
+// ----------------------------------------------------------------------
+
 export function TabReports() {
-  const theme = useTheme();
   const { data: profile } = useProfile();
   const [generating, setGenerating] = useState(null);
 
@@ -139,83 +168,183 @@ export function TabReports() {
       await generatePdfFromHtml(html, filename);
     } catch (err) {
       console.error('Report generation failed:', err);
+      toast.error(typeof err === 'string' ? err : 'تولید گزارش با خطا مواجه شد. لطفاً دوباره تلاش کنید.');
     } finally {
       setGenerating(null);
     }
   };
 
   return (
-    <Stack spacing={2.5} sx={{ pb: 10 }}>
-      {/* Header */}
-      <Card
+    <>
+      <PageHeader
+        title="گزارش‌گیری"
+        description={`دریافت گزارش PDF دوستونه برای ${profile?.name || 'پروفایل انتخاب‌شده'}. هر گزارش داده‌های بازه خودش را نشان می‌دهد.`}
+      />
+
+      <WidgetGrid sx={{ pb: { xs: 10, lg: 4 } }}>
+        {REPORTS.map((report) => (
+          <GridItem key={report.id} span={{ sm: 6, lg: 3 }}>
+            <ReportCard
+              report={report}
+              generating={generating === report.id}
+              disabled={!!generating}
+              onGenerate={() => handleGenerate(report.id)}
+            />
+          </GridItem>
+        ))}
+
+        <GridItem>
+          <ReportContents />
+        </GridItem>
+      </WidgetGrid>
+    </>
+  );
+}
+
+// ----------------------------------------------------------------------
+
+function ReportCard({ report, generating, disabled, onGenerate }) {
+  const theme = useTheme();
+  const tone = theme.palette[report.color].main;
+  const since = getSince(report.id);
+
+  return (
+    <WidgetCard
+      title={report.title}
+      icon={report.icon}
+      color={report.color}
+      subheader={`بازه: ${report.period}`}
+      contentSx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+    >
+      <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.8, flex: 1 }}>
+        {report.description}
+      </Typography>
+
+      <Stack spacing={0.75}>
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <Iconify icon="solar:calendar-date-bold" width={16} sx={{ color: 'text.disabled', flexShrink: 0 }} />
+          <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 12 }}>
+            از {fDateFa(since)} تا امروز
+          </Typography>
+        </Stack>
+        <Stack direction="row" alignItems="flex-start" spacing={1}>
+          <Iconify icon="solar:eye-linear" width={16} sx={{ color: 'text.disabled', flexShrink: 0, mt: 0.25 }} />
+          <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 12, lineHeight: 1.7 }}>
+            پست‌های برتر: پربازدیدترین پست‌ها از ابتدای این بازه
+          </Typography>
+        </Stack>
+        {report.id === 'daily' && (
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Iconify icon="solar:cpu-bolt-bold" width={16} sx={{ color: 'text.disabled', flexShrink: 0 }} />
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 12 }}>
+              شامل تحلیل‌های هوش مصنوعی
+            </Typography>
+          </Stack>
+        )}
+      </Stack>
+
+      <Button
+        fullWidth
+        variant="contained"
+        color={report.color}
+        disabled={disabled}
+        onClick={onGenerate}
+        startIcon={
+          generating ? (
+            <CircularProgress size={16} color="inherit" />
+          ) : (
+            <Iconify icon="solar:download-bold" width={18} />
+          )
+        }
         sx={{
-          p: 2.5, borderRadius: 2.5,
-          background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.12)} 0%, ${alpha(theme.palette.info.main, 0.08)} 100%)`,
-          border: `1px solid ${alpha(theme.palette.primary.main, 0.16)}`,
+          fontWeight: 700,
+          '&.Mui-disabled': generating ? { bgcolor: alpha(tone, 0.4), color: 'common.white' } : {},
         }}
       >
-        <Stack direction="row" alignItems="center" spacing={1.5}>
-          <Box sx={{ width: 48, height: 48, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: alpha(theme.palette.primary.main, 0.16) }}>
-            <Iconify icon="solar:document-text-bold-duotone" width={28} sx={{ color: theme.palette.primary.main }} />
-          </Box>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5 }}>گزارش‌گیری</Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 11 }}>
-              دریافت گزارش‌های PDF دوستونه برای {profile?.name || 'پروفایل انتخاب‌شده'}
+        {generating ? 'در حال تولید…' : 'دریافت PDF'}
+      </Button>
+    </WidgetCard>
+  );
+}
+
+// ----------------------------------------------------------------------
+
+function SectionList({ title, caption, items, color, icon }) {
+  const theme = useTheme();
+  const tone = theme.palette[color].main;
+
+  return (
+    <Box sx={{ minWidth: 0 }}>
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+          {title}
+        </Typography>
+        {caption && (
+          <Chip
+            label={caption}
+            size="small"
+            sx={{ height: 22, fontSize: 12, fontWeight: 700, color: tone, bgcolor: alpha(tone, 0.12) }}
+          />
+        )}
+      </Stack>
+      <Stack spacing={0.75} sx={{ mt: 1.25 }}>
+        {items.map((item) => (
+          <Stack key={item} direction="row" alignItems="flex-start" spacing={1}>
+            <Iconify icon={icon} width={16} sx={{ color: tone, flexShrink: 0, mt: 0.375 }} />
+            <Typography variant="body2" sx={{ lineHeight: 1.7 }}>
+              {item}
             </Typography>
-          </Box>
-        </Stack>
-      </Card>
+          </Stack>
+        ))}
+      </Stack>
+    </Box>
+  );
+}
 
-      {/* Reports Grid */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
-        {REPORTS.map((report) => {
-          const isGenerating = generating === report.id;
-          return (
-            <Card
-              key={report.id}
-              sx={{
-                borderRadius: 2, overflow: 'hidden', boxShadow: theme.shadows[2],
-                border: `1px solid ${alpha(report.color, 0.16)}`,
-                transition: 'all 0.3s ease',
-                '&:hover': { boxShadow: theme.shadows[8], transform: 'translateY(-2px)' },
-              }}
-            >
-              <Box sx={{ p: 2, background: `linear-gradient(135deg, ${alpha(report.color, 0.08)} 0%, ${alpha(report.color, 0.02)} 100%)` }}>
-                <Stack spacing={1.5}>
-                  <Stack direction="row" alignItems="center" spacing={1.5}>
-                    <Box sx={{ width: 40, height: 40, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: alpha(report.color, 0.16) }}>
-                      <Iconify icon={report.icon} width={22} sx={{ color: report.color }} />
-                    </Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{report.title}</Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 10 }}>{report.description}</Typography>
-                    </Box>
-                  </Stack>
-
-                  <Button
-                    variant="contained"
-                    size="small"
-                    disabled={isGenerating}
-                    onClick={() => handleGenerate(report.id)}
-                    startIcon={isGenerating
-                      ? <CircularProgress size={14} color="inherit" />
-                      : <Iconify icon="solar:download-bold" width={16} />
-                    }
-                    sx={{
-                      bgcolor: report.color, color: '#fff', fontWeight: 700, fontSize: 11, height: 32,
-                      '&:hover': { bgcolor: alpha(report.color, 0.8) },
-                      '&.Mui-disabled': { bgcolor: alpha(report.color, 0.4), color: '#fff' },
-                    }}
-                  >
-                    {isGenerating ? 'در حال تولید...' : 'دریافت PDF'}
-                  </Button>
-                </Stack>
-              </Box>
-            </Card>
-          );
-        })}
+function ReportContents() {
+  return (
+    <WidgetCard
+      title="محتوای گزارش‌ها"
+      icon="solar:checklist-bold-duotone"
+      color="info"
+      subheader="کدام بخش‌ها از بازه گزارش پیروی می‌کنند و کدام کل دوره را نشان می‌دهند"
+    >
+      <Box
+        sx={{
+          display: 'grid',
+          gap: 3,
+          gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' },
+        }}
+      >
+        <SectionList
+          title="بر اساس بازه گزارش"
+          caption="همه گزارش‌ها"
+          items={PERIOD_SECTIONS}
+          color="success"
+          icon="solar:check-circle-bold"
+        />
+        <SectionList
+          title="فقط در گزارش روزانه"
+          caption="روزانه"
+          items={DAILY_SECTIONS}
+          color="primary"
+          icon="solar:star-bold"
+        />
+        <SectionList
+          title="کل دوره"
+          caption="مستقل از بازه"
+          items={ALL_TIME_SECTIONS}
+          color="warning"
+          icon="solar:history-bold"
+        />
       </Box>
-    </Stack>
+
+      <Divider sx={{ my: 2.5, borderStyle: 'dashed' }} />
+
+      <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.8 }}>
+        بخش‌های «کل دوره» در فایل PDF هم با همین برچسب مشخص شده‌اند و با تغییر بازه گزارش تغییر
+        نمی‌کنند. وضعیت کلان همیشه مربوط به امروز است.
+      </Typography>
+    </WidgetCard>
   );
 }

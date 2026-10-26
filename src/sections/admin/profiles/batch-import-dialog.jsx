@@ -19,6 +19,8 @@ import { useBatchImportProfiles } from 'src/api/admin';
 
 import { Iconify } from 'src/components/iconify';
 
+import { getErrorText } from '../shared/admin-ui';
+
 // ── CSV parser ────────────────────────────────────────────────────────────────
 // Simple RFC-4180 compliant parser — handles quoted fields with embedded commas
 // and newlines, and strips the UTF-8 BOM if present.
@@ -115,7 +117,7 @@ export function BatchImportDialog({ open, onClose }) {
       const res = await batchImport(parsed);
       setResult(res);
     } catch (err) {
-      setParseError(err?.response?.data?.message || err?.message || 'خطای سرور');
+      setParseError(getErrorText(err, 'خطای سرور'));
     }
   };
 
@@ -128,8 +130,8 @@ export function BatchImportDialog({ open, onClose }) {
       a.download = 'profiles-import-template.csv';
       a.click();
       URL.revokeObjectURL(url);
-    } catch {
-      setParseError('خطا در دانلود فایل نمونه.');
+    } catch (err) {
+      setParseError(getErrorText(err, 'خطا در دانلود فایل نمونه.'));
     }
   };
 
@@ -137,7 +139,7 @@ export function BatchImportDialog({ open, onClose }) {
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ fontWeight: 700, fontSize: 15, pb: 1 }}>
         <Stack direction="row" alignItems="center" spacing={1}>
-          <Iconify icon="solar:import-bold-duotone" width={22} sx={{ color: 'primary.main' }} />
+          <Iconify icon="solar:import-bold" width={22} sx={{ color: 'primary.main' }} />
           <span>درج دسته‌جمعی پروفایل‌ها</span>
         </Stack>
       </DialogTitle>
@@ -157,7 +159,7 @@ export function BatchImportDialog({ open, onClose }) {
             <Button
               size="small"
               variant="outlined"
-              startIcon={<Iconify icon="solar:download-minimalistic-bold" width={15} />}
+              startIcon={<Iconify icon="solar:download-bold" width={15} />}
               onClick={handleDownloadTemplate}
             >
               دانلود نمونه CSV
@@ -217,7 +219,7 @@ export function BatchImportDialog({ open, onClose }) {
                 )}
               </Alert>
               {result.errors?.length > 0 && (
-                <Box sx={{ maxHeight: 150, overflow: 'auto', fontSize: 11, bgcolor: 'background.neutral', p: 1, borderRadius: 1 }}>
+                <Box sx={{ maxHeight: 150, overflow: 'auto', fontSize: 12, bgcolor: 'background.neutral', p: 1, borderRadius: 1 }}>
                   {result.errors.map((e, i) => (
                     <div key={i}>ردیف {e.row}: <strong>{e.name}</strong> — {e.error}</div>
                   ))}

@@ -30,8 +30,10 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
 import { useAdminUsers, useUpdateUser, useCreateProfile, useUpdateProfile } from 'src/api/admin';
 
+import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 
+import { getErrorText } from '../shared/admin-ui';
 import { ChannelsEditor, ChannelsGridEditor } from './channels-editor';
 
 // ----------------------------------------------------------------------
@@ -102,7 +104,7 @@ function SourceWeightsEditor({ weights, onChange }) {
           <Button
             size="small"
             variant="text"
-            sx={{ fontSize: 10, minWidth: 0, px: 1 }}
+            sx={{ fontSize: 12, minWidth: 0, px: 1 }}
             onClick={() => onChange({})}
           >
             بازنشانی
@@ -118,13 +120,13 @@ function SourceWeightsEditor({ weights, onChange }) {
             <Box key={src.key}>
               <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 0.5 }}>
                 <Iconify icon={src.icon} width={14} sx={{ color: src.color, flexShrink: 0 }} />
-                <Typography variant="caption" sx={{ flex: 1, fontWeight: 600, fontSize: 11 }}>
+                <Typography variant="caption" sx={{ flex: 1, fontWeight: 600, fontSize: 12 }}>
                   {src.label}
                 </Typography>
                 <Typography
                   variant="caption"
                   sx={{
-                    fontSize: 10, fontWeight: 700, minWidth: 52, textAlign: 'left',
+                    fontSize: 12, fontWeight: 700, minWidth: 52, textAlign: 'left',
                     color: quota === 0 ? 'text.disabled' : quota > src.quota ? 'success.main' : quota < src.quota ? 'warning.main' : 'text.secondary',
                   }}
                 >
@@ -161,7 +163,7 @@ function SourceWeightsEditor({ weights, onChange }) {
         })}
       </Stack>
 
-      <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 1, fontSize: 10 }}>
+      <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 1, fontSize: 12 }}>
         ۱.۰ = پیش‌فرض سیستم | ۰ = حذف از نمونه | بیشتر از ۱ = افزایش سهم
       </Typography>
     </Box>
@@ -173,13 +175,13 @@ function SourceWeightsEditor({ weights, onChange }) {
 // ── Widget registry ───────────────────────────────────────────────────────────
 
 export const DASHBOARD_WIDGETS = [
-  { key: 'reputation_gauge',   label: 'شاخص سلامت اعتبار',        tab: 'نمای کلی' },
-  { key: 'ai_summary',         label: 'خلاصه هوش مصنوعی',          tab: 'نمای کلی' },
-  { key: 'crisis_radar',       label: 'رادار بحران',                tab: 'نمای کلی' },
-  { key: 'trend_chart',        label: 'روند احساسات',               tab: 'نمای کلی' },
-  { key: 'political_spectrum', label: 'طیف سیاسی',                  tab: 'نمای کلی' },
-  { key: 'hot_topics',         label: 'هشتگ‌های داغ',               tab: 'نمای کلی' },
-  { key: 'important_posts',    label: 'پربازدیدترین محتواها',        tab: 'نمای کلی' },
+  { key: 'reputation_gauge',   label: 'شاخص سلامت اعتبار',        tab: 'داشبورد' },
+  { key: 'ai_summary',         label: 'خلاصه هوش مصنوعی',          tab: 'داشبورد' },
+  { key: 'crisis_radar',       label: 'رادار بحران',                tab: 'داشبورد' },
+  { key: 'trend_chart',        label: 'روند احساسات',               tab: 'داشبورد' },
+  { key: 'political_spectrum', label: 'طیف سیاسی',                  tab: 'داشبورد' },
+  { key: 'hot_topics',         label: 'هشتگ‌های داغ',               tab: 'داشبورد' },
+  { key: 'important_posts',    label: 'پربازدیدترین محتواها',        tab: 'داشبورد' },
   { key: 'macro_context',      label: 'وضعیت کلان',                 tab: 'تحلیل' },
   { key: 'emotion_chart',      label: 'چشم‌انداز عمومی',            tab: 'تحلیل' },
   { key: 'semantic_cloud',     label: 'ابر واژگان هوشمند',           tab: 'تحلیل' },
@@ -207,6 +209,9 @@ function UserAccessEditor({ profileId, allUsers, linkedUsers }) {
     setSaving(user.id);
     try {
       await updateUser.mutateAsync({ id: user.id, profileIds: (user.profileIds || []).filter((id) => id !== profileId) });
+      toast.success(`دسترسی «${user.name}» حذف شد`);
+    } catch (e) {
+      toast.error(getErrorText(e, 'خطا در حذف دسترسی کاربر'));
     } finally { setSaving(null); }
   };
 
@@ -214,6 +219,9 @@ function UserAccessEditor({ profileId, allUsers, linkedUsers }) {
     setSaving(user.id);
     try {
       await updateUser.mutateAsync({ id: user.id, profileIds: [...(user.profileIds || []), profileId] });
+      toast.success(`دسترسی به «${user.name}» داده شد`);
+    } catch (e) {
+      toast.error(getErrorText(e, 'خطا در افزودن کاربر'));
     } finally { setSaving(null); setAddOpen(false); }
   };
 
@@ -235,10 +243,10 @@ function UserAccessEditor({ profileId, allUsers, linkedUsers }) {
             return (
               <Stack key={u.id} direction="row" alignItems="center" spacing={1.5}
                 sx={{ px: 1.5, py: 0.75, borderRadius: 1.5, border: '1px solid', borderColor: 'primary.light', bgcolor: 'primary.lighter', opacity: isSaving ? 0.6 : 1 }}>
-                <Avatar sx={{ width: 26, height: 26, fontSize: 11, fontWeight: 700, bgcolor: 'primary.main', color: '#fff' }}>{u.name?.charAt(0)}</Avatar>
+                <Avatar sx={{ width: 26, height: 26, fontSize: 12, fontWeight: 700, bgcolor: 'primary.main', color: '#fff' }}>{u.name?.charAt(0)}</Avatar>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography variant="caption" fontWeight={700} sx={{ fontSize: 12, display: 'block' }}>{u.name}</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: 10 }}>@{u.username}</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: 12 }}>@{u.username}</Typography>
                 </Box>
                 <IconButton size="small" onClick={() => !isSaving && remove(u)} sx={{ p: 0.25 }}>
                   <Iconify icon={isSaving ? 'solar:refresh-bold' : 'solar:close-circle-bold'} width={16} sx={{ color: 'error.light' }} />
@@ -260,10 +268,10 @@ function UserAccessEditor({ profileId, allUsers, linkedUsers }) {
                 <Stack key={u.id} direction="row" alignItems="center" spacing={1.5}
                   sx={{ px: 1.5, py: 0.75, borderRadius: 1.5, border: '1px solid', borderColor: 'divider', cursor: 'pointer', transition: 'all 0.15s', '&:hover': { borderColor: 'primary.main', bgcolor: 'primary.lighter' }, opacity: saving === u.id ? 0.6 : 1 }}
                   onClick={() => saving !== u.id && add(u)}>
-                  <Avatar sx={{ width: 26, height: 26, fontSize: 11, fontWeight: 700, bgcolor: 'grey.300', color: 'text.secondary' }}>{u.name?.charAt(0)}</Avatar>
+                  <Avatar sx={{ width: 26, height: 26, fontSize: 12, fontWeight: 700, bgcolor: 'action.selected', color: 'text.secondary' }}>{u.name?.charAt(0)}</Avatar>
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography variant="caption" fontWeight={700} sx={{ fontSize: 12, display: 'block' }}>{u.name}</Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: 10 }}>@{u.username}</Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: 12 }}>@{u.username}</Typography>
                   </Box>
                   <Iconify icon={saving === u.id ? 'solar:refresh-bold' : 'solar:add-circle-bold'} width={16} sx={{ color: 'primary.main' }} />
                 </Stack>
@@ -299,11 +307,11 @@ function WidgetVisibilityEditor({ hiddenWidgets, onChange }) {
         variant="outlined"
         startIcon={<Iconify icon="solar:eye-bold" width={15} />}
         onClick={() => setOpen(true)}
-        sx={{ fontSize: 11, alignSelf: 'flex-start' }}
+        sx={{ fontSize: 12, alignSelf: 'flex-start' }}
       >
         مدیریت نمایش بخش‌ها
         {hiddenCount > 0 && (
-          <Box component="span" sx={{ ml: 0.75, px: 0.75, py: 0.1, borderRadius: 1, bgcolor: 'error.lighter', color: 'error.dark', fontSize: 10, fontWeight: 700 }}>
+          <Box component="span" sx={{ ml: 0.75, px: 0.75, py: 0.1, borderRadius: 1, bgcolor: (t) => alpha(t.palette.error.main, 0.14), color: 'error.main', fontSize: 12, fontWeight: 700 }}>
             {hiddenCount} پنهان
           </Box>
         )}
@@ -317,12 +325,12 @@ function WidgetVisibilityEditor({ hiddenWidgets, onChange }) {
           </Stack>
         </DialogTitle>
         <DialogContent sx={{ pb: 2 }}>
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5, fontSize: 11 }}>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5, fontSize: 12 }}>
             بخش‌های پنهان برای کاربران این پروفایل نمایش داده نمی‌شوند.
           </Typography>
           {tabs.map((tab) => (
             <Box key={tab} sx={{ mb: 2 }}>
-              <Typography variant="caption" fontWeight={800} sx={{ color: 'text.disabled', textTransform: 'uppercase', fontSize: 9, letterSpacing: 1, display: 'block', mb: 0.75 }}>
+              <Typography variant="caption" fontWeight={800} sx={{ color: 'text.disabled', textTransform: 'uppercase', fontSize: 12, letterSpacing: 1, display: 'block', mb: 0.75 }}>
                 {tab}
               </Typography>
               <Stack spacing={0.5}>
@@ -381,8 +389,9 @@ export function ProfileFormDialog({ open, onClose, profile, mode = 'admin' }) {
     try {
       if (profile?.id) { await update.mutateAsync({ id: profile.id, ...form }); }
       else { await create.mutateAsync(form); }
+      toast.success(profile?.id ? 'پروفایل ذخیره شد' : 'پروفایل جدید ایجاد شد');
       onClose();
-    } catch (e) { setError(typeof e === 'string' ? e : e?.message || 'خطا در ذخیره‌سازی'); }
+    } catch (e) { setError(getErrorText(e, 'خطا در ذخیره‌سازی')); }
   };
 
   const submitting = create.isPending || update.isPending;
@@ -409,7 +418,7 @@ export function ProfileFormDialog({ open, onClose, profile, mode = 'admin' }) {
   // ── Identity section ───────────────────────────────────────────────────────
   const identitySection = (
     <Stack spacing={2}>
-      {desktopMode && <Typography variant="subtitle2" fontWeight={800} sx={{ color: 'text.secondary', textTransform: 'uppercase', fontSize: 10, letterSpacing: 1 }}>هویت</Typography>}
+      {desktopMode && <Typography variant="subtitle2" fontWeight={800} sx={{ color: 'text.secondary', textTransform: 'uppercase', fontSize: 12, letterSpacing: 1 }}>هویت</Typography>}
       <Stack direction="row" spacing={2} alignItems="flex-start">
         {avatarUpload}
         <TextField label="آدرس تصویر (URL)" value={form.avatar?.startsWith('data:') ? '' : (form.avatar ?? '')} onChange={(e) => set({ avatar: e.target.value })} fullWidth size="small" placeholder="https://..." helperText={form.avatar?.startsWith('data:') ? 'تصویر آپلود شده' : 'یا روی تصویر کلیک کنید'} />
@@ -441,8 +450,8 @@ export function ProfileFormDialog({ open, onClose, profile, mode = 'admin' }) {
             </Select>
           </FormControl>
           <Box sx={{ flex: 1, p: 1, borderRadius: 1.5, bgcolor: alpha(tierConfig.color, 0.06), border: `1px solid ${alpha(tierConfig.color, 0.2)}` }}>
-            <Typography variant="caption" sx={{ color: tierConfig.color, fontWeight: 700, fontSize: 10, display: 'block' }}>{tierConfig.desc}</Typography>
-            {form.dailyAvgPosts != null && <Typography variant="caption" color="text.disabled" sx={{ fontSize: 9 }}>میانگین: {Math.round(form.dailyAvgPosts).toLocaleString('fa-IR')} پست/روز</Typography>}
+            <Typography variant="caption" sx={{ color: tierConfig.color, fontWeight: 700, fontSize: 12, display: 'block' }}>{tierConfig.desc}</Typography>
+            {form.dailyAvgPosts != null && <Typography variant="caption" color="text.disabled" sx={{ fontSize: 12 }}>میانگین: {Math.round(form.dailyAvgPosts).toLocaleString('fa-IR')} پست/روز</Typography>}
           </Box>
         </Stack>
       )}
@@ -455,7 +464,7 @@ export function ProfileFormDialog({ open, onClose, profile, mode = 'admin' }) {
           <Divider />
           <Button size="small" variant="outlined" startIcon={<Iconify icon="solar:document-text-bold" width={16} />}
             onClick={() => { onClose(); window.location.href = `/dashboard/admin/global-context?tab=1&profile=${profile.id}`; }}
-            sx={{ fontSize: 11, alignSelf: 'flex-start' }}>
+            sx={{ fontSize: 12, alignSelf: 'flex-start' }}>
             ویرایش زمینه تحلیل
           </Button>
         </>
@@ -466,7 +475,7 @@ export function ProfileFormDialog({ open, onClose, profile, mode = 'admin' }) {
   // ── Data section ───────────────────────────────────────────────────────────
   const dataSection = (
     <Stack spacing={2}>
-      {desktopMode && <Typography variant="subtitle2" fontWeight={800} sx={{ color: 'text.secondary', textTransform: 'uppercase', fontSize: 10, letterSpacing: 1 }}>جمع‌آوری داده</Typography>}
+      {desktopMode && <Typography variant="subtitle2" fontWeight={800} sx={{ color: 'text.secondary', textTransform: 'uppercase', fontSize: 12, letterSpacing: 1 }}>جمع‌آوری داده</Typography>}
       <Autocomplete multiple freeSolo options={[]} value={form.keywords || []} onChange={(_, val) => set({ keywords: val })} size="small"
         renderTags={(val, props) => val.map((opt, i) => { const { key, ...tagProps } = props({ index: i }); return <Chip key={key} label={opt} size="small" {...tagProps} />; })}
         renderInput={(params) => <TextField {...params} label="کلیدواژه‌ها (include)" placeholder="Enter برای افزودن" />}
@@ -481,12 +490,12 @@ export function ProfileFormDialog({ open, onClose, profile, mode = 'admin' }) {
           <Box>
             <Stack direction="row" alignItems="center" justifyContent="space-between">
               <Typography variant="subtitle2" fontWeight={700}>وزن منابع داده</Typography>
-              <Button size="small" variant="text" endIcon={<Iconify icon={showWeights ? 'solar:alt-arrow-up-bold' : 'solar:alt-arrow-down-bold'} width={14} />} onClick={() => setShowWeights((p) => !p)} sx={{ fontSize: 11 }}>{showWeights ? 'بستن' : 'تنظیم'}</Button>
+              <Button size="small" variant="text" endIcon={<Iconify icon={showWeights ? 'solar:alt-arrow-up-bold' : 'solar:alt-arrow-down-bold'} width={14} />} onClick={() => setShowWeights((p) => !p)} sx={{ fontSize: 12 }}>{showWeights ? 'بستن' : 'تنظیم'}</Button>
             </Stack>
             {!showWeights && (
               <Stack direction="row" flexWrap="wrap" gap={0.75} sx={{ mt: 0.75 }}>
-                {SOURCE_DEFAULTS.map((src) => { const w = (form.sourceWeights || {})[src.key] ?? 1.0; if (w === 1.0) return null; return <Chip key={src.key} size="small" label={`${src.label}: ×${w.toFixed(1)}`} sx={{ height: 20, fontSize: 9, bgcolor: alpha(src.color, 0.1), color: src.color, border: `1px solid ${alpha(src.color, 0.3)}` }} />; })}
-                {Object.keys(form.sourceWeights || {}).length === 0 && <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10 }}>همه منابع روی پیش‌فرض سیستم</Typography>}
+                {SOURCE_DEFAULTS.map((src) => { const w = (form.sourceWeights || {})[src.key] ?? 1.0; if (w === 1.0) return null; return <Chip key={src.key} size="small" label={`${src.label}: ×${w.toFixed(1)}`} sx={{ height: 20, fontSize: 12, bgcolor: alpha(src.color, 0.1), color: src.color, border: `1px solid ${alpha(src.color, 0.3)}` }} />; })}
+                {Object.keys(form.sourceWeights || {}).length === 0 && <Typography variant="caption" color="text.disabled" sx={{ fontSize: 12 }}>همه منابع روی پیش‌فرض سیستم</Typography>}
               </Stack>
             )}
             {showWeights && <Box sx={{ mt: 1.5 }}><SourceWeightsEditor weights={form.sourceWeights || {}} onChange={(w) => set({ sourceWeights: w })} /></Box>}
@@ -503,10 +512,10 @@ export function ProfileFormDialog({ open, onClose, profile, mode = 'admin' }) {
       <Box>
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
           <Typography variant="subtitle2" fontWeight={700}>وعده‌های عمومی</Typography>
-          <Button size="small" variant="outlined" startIcon={<Iconify icon="solar:add-circle-bold" width={14} />} onClick={() => set({ promises: [...(form.promises || []), { text: '', addedAt: new Date().toISOString() }] })} sx={{ fontSize: 10, height: 26 }}>افزودن</Button>
+          <Button size="small" variant="outlined" startIcon={<Iconify icon="solar:add-circle-bold" width={14} />} onClick={() => set({ promises: [...(form.promises || []), { text: '', addedAt: new Date().toISOString() }] })} sx={{ fontSize: 12, height: 26 }}>افزودن</Button>
         </Stack>
         {(form.promises || []).length === 0 ? (
-          <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10 }}>وعده‌ای ثبت نشده است.</Typography>
+          <Typography variant="caption" color="text.disabled" sx={{ fontSize: 12 }}>وعده‌ای ثبت نشده است.</Typography>
         ) : (
           <Stack spacing={1}>
             {(form.promises || []).map((p, idx) => (

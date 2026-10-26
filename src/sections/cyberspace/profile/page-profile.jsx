@@ -9,10 +9,11 @@ import Stack from '@mui/material/Stack';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
-import Tooltip from '@mui/material/Tooltip';
+import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
-import IconButton from '@mui/material/IconButton';
 import { alpha, useTheme } from '@mui/material/styles';
+
+import { fNum, toFaDigits } from 'src/utils/format-number-fa';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -20,14 +21,18 @@ import { ProfileFormDialog } from 'src/sections/admin/profiles/profile-form-dial
 
 import { useAuthContext } from 'src/auth/hooks';
 
+import { WidgetCard } from '../shared/widget-card';
+import { PageHeader } from '../shared/page-header';
+import { GridItem, WidgetGrid } from '../shared/widget-grid';
 import { ChangePasswordDialog } from './change-password-dialog';
 
 // ----------------------------------------------------------------------
 
+// Brand colors; `null` means "use the text color" (X's black logo is invisible in dark mode)
 const PLATFORM_ICONS = {
   telegram:  { icon: 'ic:baseline-telegram',                   color: '#0088cc', label: 'تلگرام' },
-  twitter:   { icon: 'ri:twitter-x-fill',                      color: '#000000', label: 'ایکس' },
-  x:         { icon: 'ri:twitter-x-fill',                      color: '#000000', label: 'ایکس' },
+  twitter:   { icon: 'ri:twitter-x-fill',                      color: null,      label: 'ایکس' },
+  x:         { icon: 'ri:twitter-x-fill',                      color: null,      label: 'ایکس' },
   instagram: { icon: 'mdi:instagram',                          color: '#E4405F', label: 'اینستاگرام' },
   news:      { icon: 'solar:document-text-bold',               color: '#4CAF50', label: 'خبرگزاری' },
   newspaper: { icon: 'solar:global-bold-duotone',              color: '#78909C', label: 'روزنامه' },
@@ -35,212 +40,128 @@ const PLATFORM_ICONS = {
   rubika:    { icon: 'solar:chat-square-bold',                 color: '#7C3AED', label: 'روبیکا' },
   eitaa:     { icon: 'solar:chat-line-bold',                   color: '#F57C00', label: 'ایتا' },
   aparat:    { icon: 'solar:videocamera-record-bold-duotone',  color: '#FF5722', label: 'آپارات' },
-  web:       { icon: 'solar:global-bold-duotone',              color: '#637381', label: 'وب' },
+  web:       { icon: 'solar:global-bold-duotone',              color: null,      label: 'وب' },
+};
+
+const TIER_LABELS = {
+  heavy: { label: 'سنگین', color: 'error' },
+  light: { label: 'سبک', color: 'success' },
+  medium: { label: 'متوسط', color: 'warning' },
 };
 
 // ----------------------------------------------------------------------
 
 export function PageProfile({ profileData, rawProfile, loading }) {
-  const theme = useTheme();
   const { user } = useAuthContext();
-  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  // Profile edits go through /admin/profiles, which the backend allows for super_admin only
+  const isAdmin = ['admin', 'super_admin'].includes(user?.role);
   const [editOpen, setEditOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
 
-  if (loading) {
-    return (
-      <Stack spacing={2.5} sx={{ pb: 10 }}>
-        <Card sx={{ p: 3, borderRadius: 2.5 }}>
-          <Typography>در حال بارگذاری...</Typography>
-        </Card>
-      </Stack>
-    );
-  }
-
   const channels = profileData?.officialChannels || [];
   const keywords = profileData?.keywords || [];
+  const tier = TIER_LABELS[profileData?.tier] || (profileData?.tier ? TIER_LABELS.medium : null);
 
   return (
     <>
-      <Stack spacing={2.5} sx={{ pb: 10 }}>
-        {/* Profile Header */}
-        <Card sx={{ borderRadius: 2.5, overflow: 'hidden', boxShadow: theme.shadows[8] }}>
-          {/* Cover */}
-          <Box
-            sx={{
-              height: 120,
-              background: `linear-gradient(135deg, ${profileData?.primaryColor || theme.palette.primary.main} 0%, ${alpha(profileData?.primaryColor || theme.palette.primary.dark, 0.7)} 100%)`,
-              position: 'relative',
-            }}
-          />
+      <PageHeader
+        title="پروفایل"
+        description="مشخصات شخصیت تحت رصد، کلیدواژه‌ها، کانال‌های رسمی و تنظیمات حساب کاربری شما."
+        actions={
+          isAdmin && (
+            <Button
+              variant="contained"
+              onClick={() => setEditOpen(true)}
+              disabled={!rawProfile}
+              startIcon={<Iconify icon="solar:pen-bold" width={18} />}
+            >
+              ویرایش پروفایل
+            </Button>
+          )
+        }
+      />
 
-          {/* Avatar & Info */}
-          <Box sx={{ p: 3, mt: -6 }}>
-            <Stack spacing={2}>
-              <Stack direction="row" alignItems="flex-end" justifyContent="space-between">
-                <Avatar
-                  src={profileData?.avatar || undefined}
-                  sx={{
-                    width: 100,
-                    height: 100,
-                    border: `4px solid ${theme.palette.background.paper}`,
-                    boxShadow: theme.shadows[8],
-                    fontSize: 36,
-                    fontWeight: 700,
-                    bgcolor: alpha(profileData?.primaryColor || theme.palette.primary.main, 0.16),
-                    color: profileData?.primaryColor || theme.palette.primary.main,
-                  }}
-                >
-                  {profileData?.name?.charAt(0) || 'م'}
-                </Avatar>
+      <WidgetGrid sx={{ pb: { xs: 10, lg: 4 } }}>
+        <GridItem span={{ md: 5, lg: 4 }}>
+          <IdentityCard profileData={profileData} keywords={keywords} loading={loading} />
+        </GridItem>
 
-                {isAdmin && (
-                  <Tooltip title="ویرایش پروفایل">
-                    <IconButton
-                      size="small"
-                      onClick={() => setEditOpen(true)}
-                      sx={{
-                        bgcolor: alpha(theme.palette.primary.main, 0.08),
-                        '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.16) },
-                      }}
-                    >
-                      <Iconify icon="solar:pen-bold" width={18} sx={{ color: 'primary.main' }} />
-                    </IconButton>
-                  </Tooltip>
-                )}
-              </Stack>
+        <GridItem span={{ md: 7, lg: 8 }}>
+          <WidgetCard
+            title="کانال‌ها و صفحات رسمی"
+            icon="solar:share-circle-bold-duotone"
+            color="info"
+            subheader={channels.length ? `${fNum(channels.length)} کانال ثبت‌شده` : undefined}
+            loading={loading}
+            empty={!channels.length}
+            emptyIcon="solar:share-circle-bold-duotone"
+            emptyText="کانال رسمی برای این پروفایل ثبت نشده است."
+          >
+            <Box
+              sx={{
+                display: 'grid',
+                gap: 1.5,
+                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
+              }}
+            >
+              {channels.map((ch, i) => (
+                <ChannelItem key={`${ch.platform || ch.sourceType}-${ch.handle || i}`} channel={ch} />
+              ))}
+            </Box>
+          </WidgetCard>
+        </GridItem>
 
-              <Box>
-                <Typography variant="h5" sx={{ fontWeight: 800, mb: 0.5 }}>
-                  {profileData?.name || '—'}
-                </Typography>
-                {profileData?.role && (
-                  <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.5 }}>
-                    {profileData.role}
-                  </Typography>
-                )}
-                {profileData?.organization && (
-                  <Typography variant="caption" sx={{ color: 'text.disabled' }}>
-                    {profileData.organization}
-                  </Typography>
-                )}
-              </Box>
-
-              {/* Keywords */}
-              {keywords.length > 0 && (
-                <Stack direction="row" flexWrap="wrap" gap={0.75}>
-                  {keywords.map((kw) => (
-                    <Chip
-                      key={kw}
-                      label={kw}
-                      size="small"
-                      sx={{
-                        height: 22,
-                        fontSize: 11,
-                        bgcolor: alpha(profileData?.primaryColor || theme.palette.primary.main, 0.08),
-                        color: profileData?.primaryColor || theme.palette.primary.main,
-                        border: `1px solid ${alpha(profileData?.primaryColor || theme.palette.primary.main, 0.2)}`,
-                      }}
-                    />
-                  ))}
-                </Stack>
-              )}
-            </Stack>
-          </Box>
-        </Card>
-
-        {/* Official Channels */}
-        {channels.length > 0 && (
-          <Card sx={{ p: 3, borderRadius: 2.5 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
-              کانال‌ها و صفحات رسمی
-            </Typography>
-            <Stack spacing={1.5}>
-              {channels.map((ch, i) => {
-                const platform = PLATFORM_ICONS[ch.platform] || PLATFORM_ICONS[ch.sourceType] || { icon: 'solar:link-bold', color: '#637381', label: ch.platform || ch.sourceType || '?' };
-                return (
-                  <Stack key={i} direction="row" alignItems="center" spacing={1.5}>
-                    <Box
-                      sx={{
-                        width: 36, height: 36, borderRadius: 1.5,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        bgcolor: alpha(platform.color, 0.1),
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Iconify icon={platform.icon} width={20} sx={{ color: platform.color }} />
-                    </Box>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {ch.name || ch.handle || platform.label}
-                      </Typography>
-                      {ch.handle && (
-                        <Typography variant="caption" sx={{ color: 'text.disabled' }}>
-                          @{ch.handle.replace(/^@/, '')}
-                        </Typography>
-                      )}
-                    </Box>
-                    <Chip
-                      label={platform.label}
-                      size="small"
-                      sx={{
-                        height: 20, fontSize: 10,
-                        bgcolor: alpha(platform.color, 0.08),
-                        color: platform.color,
-                        border: `1px solid ${alpha(platform.color, 0.2)}`,
-                      }}
-                    />
-                  </Stack>
-                );
-              })}
-            </Stack>
-          </Card>
-        )}
-
-        {/* Profile metadata */}
-        {(profileData?.lastUpdate || profileData?.tier) && (
-          <Card sx={{ p: 3, borderRadius: 2.5 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
-              اطلاعات سیستمی
-            </Typography>
-            <Stack spacing={1} divider={<Divider flexItem />}>
-              {profileData?.tier && (
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography variant="body2" color="text.secondary">سطح پروفایل</Typography>
-                  <Chip
-                    label={profileData.tier === 'heavy' ? 'سنگین' : profileData.tier === 'light' ? 'سبک' : 'متوسط'}
-                    size="small"
-                    color={profileData.tier === 'heavy' ? 'error' : profileData.tier === 'light' ? 'success' : 'warning'}
-                    variant="outlined"
-                  />
-                </Stack>
+        <GridItem span={{ md: 6 }}>
+          <WidgetCard
+            title="اطلاعات سیستمی"
+            icon="solar:server-bold-duotone"
+            color="secondary"
+            loading={loading}
+            loadingHeight={80}
+            empty={!tier && !profileData?.lastUpdate}
+            emptyText="اطلاعاتی ثبت نشده است."
+          >
+            <Stack spacing={1.5} divider={<Divider flexItem sx={{ borderStyle: 'dashed' }} />}>
+              {tier && (
+                <InfoRow label="سطح پروفایل">
+                  <Chip label={tier.label} size="small" color={tier.color} variant="soft" sx={{ fontWeight: 700 }} />
+                </InfoRow>
               )}
               {profileData?.lastUpdate && (
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography variant="body2" color="text.secondary">آخرین به‌روزرسانی</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{profileData.lastUpdate}</Typography>
-                </Stack>
+                <InfoRow label="آخرین به‌روزرسانی">
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {toFaDigits(profileData.lastUpdate)}
+                  </Typography>
+                </InfoRow>
               )}
             </Stack>
-          </Card>
-        )}
+          </WidgetCard>
+        </GridItem>
 
-        {/* Account settings — available to anyone signed in */}
-        <Card sx={{ p: 3, borderRadius: 2.5 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
-            تنظیمات حساب کاربری
-          </Typography>
-          <Button
-            fullWidth
-            variant="outlined"
-            onClick={() => setPwOpen(true)}
-            startIcon={<Iconify icon="solar:lock-password-bold-duotone" width={20} />}
-            sx={{ justifyContent: 'flex-start', py: 1.5, borderRadius: 1.5 }}
-          >
-            تغییر رمز عبور
-          </Button>
-        </Card>
-      </Stack>
+        <GridItem span={{ md: 6 }}>
+          <WidgetCard title="تنظیمات حساب کاربری" icon="solar:shield-user-bold-duotone" color="primary">
+            <Stack spacing={2}>
+              {user?.email && (
+                <InfoRow label="حساب">
+                  <Typography variant="body2" sx={{ fontWeight: 600, direction: 'ltr' }} noWrap>
+                    {user.email}
+                  </Typography>
+                </InfoRow>
+              )}
+              <Button
+                fullWidth
+                variant="outlined"
+                color="inherit"
+                onClick={() => setPwOpen(true)}
+                startIcon={<Iconify icon="solar:lock-password-bold-duotone" width={20} />}
+                sx={{ justifyContent: 'flex-start', py: 1.25 }}
+              >
+                تغییر رمز عبور
+              </Button>
+            </Stack>
+          </WidgetCard>
+        </GridItem>
+      </WidgetGrid>
 
       {/* Edit dialog — admin only */}
       {isAdmin && (
@@ -258,3 +179,169 @@ export function PageProfile({ profileData, rawProfile, loading }) {
   );
 }
 
+// ----------------------------------------------------------------------
+
+function InfoRow({ label, children }) {
+  return (
+    <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
+      <Typography variant="body2" sx={{ color: 'text.secondary', flexShrink: 0 }}>
+        {label}
+      </Typography>
+      <Box sx={{ minWidth: 0 }}>{children}</Box>
+    </Stack>
+  );
+}
+
+function IdentityCard({ profileData, keywords, loading }) {
+  const theme = useTheme();
+  const accent = profileData?.primaryColor || theme.palette.primary.main;
+
+  return (
+    <Card
+      sx={{
+        height: '100%',
+        borderRadius: 2,
+        overflow: 'hidden',
+        border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
+        boxShadow: theme.vars?.customShadows?.card ?? theme.shadows[1],
+      }}
+    >
+      <Box
+        sx={{
+          height: 96,
+          background: `linear-gradient(135deg, ${accent} 0%, ${alpha(accent, 0.6)} 100%)`,
+        }}
+      />
+
+      <Stack alignItems="center" sx={{ px: 2.5, pb: 3, mt: -6, textAlign: 'center' }}>
+        {loading ? (
+          <>
+            <Skeleton variant="circular" width={96} height={96} />
+            <Skeleton variant="text" width="60%" sx={{ mt: 2, fontSize: 24 }} />
+            <Skeleton variant="text" width="40%" />
+          </>
+        ) : (
+          <>
+            <Avatar
+              src={profileData?.avatar || undefined}
+              alt={profileData?.name || ''}
+              sx={{
+                width: 96,
+                height: 96,
+                border: `4px solid ${theme.vars?.palette.background.paper ?? theme.palette.background.paper}`,
+                boxShadow: theme.shadows[4],
+                fontSize: 36,
+                fontWeight: 700,
+                bgcolor: 'background.paper',
+                color: accent,
+              }}
+            >
+              {profileData?.name?.charAt(0) || 'م'}
+            </Avatar>
+
+            <Typography variant="h5" sx={{ fontWeight: 800, mt: 2 }}>
+              {profileData?.name || '—'}
+            </Typography>
+            {profileData?.role && (
+              <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                {profileData.role}
+              </Typography>
+            )}
+            {profileData?.organization && (
+              <Typography variant="body2" sx={{ color: 'text.disabled', mt: 0.25 }}>
+                {profileData.organization}
+              </Typography>
+            )}
+
+            {keywords.length > 0 && (
+              <Box sx={{ width: 1, mt: 2.5, pt: 2.5, borderTop: `1px dashed ${alpha(theme.palette.grey[500], 0.24)}` }}>
+                <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontWeight: 700, mb: 1.25, fontSize: 12 }}>
+                  کلیدواژه‌های رصد ({fNum(keywords.length)})
+                </Typography>
+                <Stack direction="row" flexWrap="wrap" justifyContent="center" gap={0.75}>
+                  {keywords.map((kw) => (
+                    <Chip
+                      key={kw}
+                      label={kw}
+                      size="small"
+                      sx={{
+                        height: 26,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: 'text.primary',
+                        bgcolor: alpha(accent, 0.1),
+                        border: `1px solid ${alpha(accent, 0.24)}`,
+                      }}
+                    />
+                  ))}
+                </Stack>
+              </Box>
+            )}
+          </>
+        )}
+      </Stack>
+    </Card>
+  );
+}
+
+function ChannelItem({ channel: ch }) {
+  const theme = useTheme();
+  const platform = PLATFORM_ICONS[ch.platform] ||
+    PLATFORM_ICONS[ch.sourceType] || {
+      icon: 'solar:link-bold',
+      color: null,
+      label: ch.platform || ch.sourceType || '?',
+    };
+  // Brand color when it has one, otherwise the theme's text color (works in dark mode)
+  const iconColor = platform.color || theme.vars?.palette.text.primary || theme.palette.text.primary;
+  const tileBg = alpha(platform.color || theme.palette.grey[500], platform.color ? 0.1 : 0.12);
+
+  return (
+    <Stack
+      direction="row"
+      alignItems="center"
+      spacing={1.5}
+      sx={{
+        p: 1.5,
+        borderRadius: 1.5,
+        border: `1px solid ${alpha(theme.palette.grey[500], 0.16)}`,
+        minWidth: 0,
+      }}
+    >
+      <Box
+        sx={{
+          width: 40,
+          height: 40,
+          borderRadius: 1.25,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          bgcolor: tileBg,
+          flexShrink: 0,
+        }}
+      >
+        <Iconify icon={platform.icon} width={22} sx={{ color: iconColor }} />
+      </Box>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
+          {ch.name || ch.handle || platform.label}
+        </Typography>
+        {ch.handle && (
+          <Typography
+            variant="caption"
+            component="div"
+            sx={{ color: 'text.secondary', fontSize: 12, direction: 'ltr', textAlign: 'end' }}
+            noWrap
+          >
+            @{ch.handle.replace(/^@/, '')}
+          </Typography>
+        )}
+      </Box>
+      <Chip
+        label={platform.label}
+        size="small"
+        sx={{ height: 24, fontSize: 12, flexShrink: 0, color: 'text.secondary', bgcolor: alpha(theme.palette.grey[500], 0.1) }}
+      />
+    </Stack>
+  );
+}

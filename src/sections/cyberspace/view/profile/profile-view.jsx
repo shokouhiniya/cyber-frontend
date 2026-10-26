@@ -1,5 +1,7 @@
 'use client';
 
+import { fDateFa } from 'src/utils/format-number-fa';
+
 import { useProfile } from 'src/api/dashboard';
 import { DashboardContent } from 'src/layouts/dashboard';
 
@@ -20,9 +22,7 @@ export function ProfileView() {
         primaryColor: profileRes.primaryColor,
         tier: profileRes.tier,
         officialChannels: profileRes.officialChannels || [],
-        lastUpdate: profileRes.lastUpdate
-          ? new Date(profileRes.lastUpdate).toLocaleDateString('fa-IR')
-          : '',
+        lastUpdate: profileRes.lastUpdate ? fDateFa(profileRes.lastUpdate) : '',
       }
     : null;
 

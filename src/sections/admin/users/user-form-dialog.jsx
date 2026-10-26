@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
+import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Dialog from '@mui/material/Dialog';
 import Select from '@mui/material/Select';
@@ -20,6 +21,10 @@ import DialogContent from '@mui/material/DialogContent';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
 import { useCreateUser, useUpdateUser, useAdminProfiles } from 'src/api/admin';
+
+import { toast } from 'src/components/snackbar';
+
+import { getErrorText } from '../shared/admin-ui';
 
 // ----------------------------------------------------------------------
 
@@ -82,9 +87,10 @@ export function UserFormDialog({ open, onClose, user }) {
       } else {
         await create.mutateAsync(form);
       }
+      toast.success(user?.id ? 'تغییرات کاربر ذخیره شد' : 'کاربر جدید ایجاد شد');
       onClose();
     } catch (e) {
-      setError(typeof e === 'string' ? e : e?.message || 'خطا در ذخیره‌سازی');
+      setError(getErrorText(e, 'خطا در ذخیره‌سازی'));
     }
   };
 
@@ -93,7 +99,7 @@ export function UserFormDialog({ open, onClose, user }) {
       <DialogTitle>{user?.id ? 'ویرایش کاربر' : 'کاربر جدید'}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
-          <Stack direction="row" spacing={2}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <TextField
               label="نام کامل"
               value={form.name}
@@ -131,7 +137,7 @@ export function UserFormDialog({ open, onClose, user }) {
             />
           )}
 
-          <Stack direction="row" spacing={2}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <FormControl fullWidth>
               <InputLabel>نقش</InputLabel>
               <Select
@@ -192,7 +198,7 @@ export function UserFormDialog({ open, onClose, user }) {
             />
           )}
 
-          {error && <Box sx={{ color: 'error.main', fontSize: 13 }}>{error}</Box>}
+          {error && <Alert severity="error">{error}</Alert>}
         </Stack>
       </DialogContent>
       <DialogActions>
@@ -200,6 +206,7 @@ export function UserFormDialog({ open, onClose, user }) {
         <Button
           variant="contained"
           onClick={submit}
+          loading={submitting}
           disabled={submitting || !form.name || !form.username || (!user?.id && !form.password)}
         >
           {user?.id ? 'ذخیره' : 'ایجاد'}

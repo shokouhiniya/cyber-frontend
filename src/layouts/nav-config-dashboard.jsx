@@ -29,7 +29,7 @@ export const navData = [
   {
     subheader: 'داشبورد',
     items: [
-      { title: 'نمای کلی', path: paths.dashboard.root, icon: ICONS.dashboard },
+      { title: 'داشبورد', path: paths.dashboard.root, icon: ICONS.dashboard },
       { title: 'رسانه', path: paths.dashboard.mypages, icon: ICONS.blog },
       { title: 'پست‌ها', path: paths.dashboard.posts, icon: ICONS.chat },
       { title: 'تحلیل', path: paths.dashboard.analytics, icon: ICONS.analytics },

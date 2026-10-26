@@ -1,198 +1,151 @@
 import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { alpha, useTheme } from '@mui/material/styles';
-import CircularProgress from '@mui/material/CircularProgress';
+
+import { fNum } from 'src/utils/format-number-fa';
 
 import { Iconify } from 'src/components/iconify';
-import { InfoTooltip } from 'src/components/info-tooltip';
 import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
+
+import { WidgetCard } from '../shared/widget-card';
 
 // ----------------------------------------------------------------------
 
-const getHealthStatus = (score) => {
-  if (score >= 65) return { 
-    label: 'مطلوب', 
-    color: '#00AB55', 
-    icon: 'solar:shield-check-bold-duotone',
-    gradient: ['#00AB55', '#007B55']
-  };
-  if (score >= 45) return { 
-    label: 'متوسط', 
-    color: '#FFAB00', 
-    icon: 'solar:shield-warning-bold-duotone',
-    gradient: ['#FFAB00', '#B76E00']
-  };
-  return { 
-    label: 'نامطلوب', 
-    color: '#FF5630', 
-    icon: 'solar:shield-cross-bold-duotone',
-    gradient: ['#FF5630', '#B71D18']
-  };
+// Bands shown under the gauge, so the reader can see where the cut-offs are
+const BANDS = [
+  { from: 0, to: 45, label: 'نامطلوب', color: 'error' },
+  { from: 45, to: 65, label: 'متوسط', color: 'warning' },
+  { from: 65, to: 100, label: 'مطلوب', color: 'success' },
+];
+
+const getBand = (score) => BANDS.find((b) => score < b.to) ?? BANDS[BANDS.length - 1];
+
+const BAND_ICON = {
+  error: 'solar:shield-cross-bold-duotone',
+  warning: 'solar:shield-warning-bold-duotone',
+  success: 'solar:shield-check-bold-duotone',
 };
 
-  // Score is derived from the stats API (positive / total).
-  // Passed as a prop; defaults to null when not yet available.
+// Score = 50 + (positive − negative) ÷ total × 50, computed in OverviewView.
 export function ReputationGauge({ loading, healthScore = null }) {
   const theme = useTheme();
 
-  const score = healthScore ?? 0;
-  const status = getHealthStatus(score);
-  const percentage = score;
+  const hasScore = healthScore !== null && healthScore !== undefined;
+  const score = hasScore ? healthScore : 0;
+  const band = getBand(score);
+  const tone = theme.palette[band.color].main;
 
-  if (loading) {
-    return (
-      <Card
-        sx={{
-          p: 3,
-          borderRadius: 3,
-          boxShadow: theme.shadows[8],
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: 280,
-        }}
-      >
-        <CircularProgress size={40} />
-      </Card>
-    );
-  }
+  // 240° arc gauge
+  const size = 180;
+  const stroke = 14;
+  const r = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * r;
+  const arc = circumference * (240 / 360);
+  const filled = hasScore ? arc * (score / 100) : 0;
 
   return (
-    <Card
-      sx={{
-        position: 'relative',
-        borderRadius: 3,
-        overflow: 'hidden',
-        boxShadow: theme.shadows[8],
-        background: `linear-gradient(135deg, ${alpha(status.color, 0.08)} 0%, ${alpha(status.color, 0.02)} 100%)`,
-      }}
+    <WidgetCard
+      title="شاخص سلامت اعتبار"
+      icon={BAND_ICON[band.color]}
+      color={hasScore ? band.color : 'primary'}
+      tooltip={WIDGET_TOOLTIPS.reputationGauge}
+      subheader="تراز احساسات مثبت و منفی، از ۰ تا ۱۰۰"
+      loading={loading}
+      loadingHeight={220}
+      empty={!loading && !hasScore}
+      emptyText="هنوز پست تحلیل‌شده‌ای برای محاسبه شاخص وجود ندارد."
     >
-      <Box sx={{ p: 2 }}>
-        <Stack spacing={2} alignItems="center">
-          {/* Title */}
-          <Stack direction="row" alignItems="center" spacing={1.5}>
-            <Box
-              sx={{
-                width: 40,
-                height: 40,
-                borderRadius: 2,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: `linear-gradient(135deg, ${status.gradient[0]} 0%, ${status.gradient[1]} 100%)`,
-                boxShadow: `0 8px 16px ${alpha(status.color, 0.24)}`,
-              }}
-            >
-              <Iconify icon={status.icon} width={24} sx={{ color: '#fff' }} />
-            </Box>
-            <Box>
-              <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                شاخص سلامت اعتبار
-              </Typography>
-            </Box>
-            <InfoTooltip title={WIDGET_TOOLTIPS.reputationGauge} />
-          </Stack>
-
-          {/* Gauge Chart - Smaller */}
-          <Box sx={{ position: 'relative', width: 140, height: 140 }}>
-            {/* Background Circle */}
-            <svg width="140" height="140" style={{ transform: 'rotate(-90deg)' }}>
-              <circle
-                cx="70"
-                cy="70"
-                r="60"
-                fill="none"
-                stroke={alpha(theme.palette.grey[500], 0.12)}
-                strokeWidth="14"
-              />
-              {/* Progress Circle */}
-              <circle
-                cx="70"
-                cy="70"
-                r="60"
-                fill="none"
-                stroke={`url(#gradient-${healthScore})`}
-                strokeWidth="14"
-                strokeLinecap="round"
-                strokeDasharray={`${(percentage / 100) * 377} 377`}
-                style={{
-                  transition: 'stroke-dasharray 1s ease-in-out',
-                }}
-              />
-              <defs>
-                <linearGradient id={`gradient-${healthScore}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor={status.gradient[0]} />
-                  <stop offset="100%" stopColor={status.gradient[1]} />
-                </linearGradient>
-              </defs>
-            </svg>
-
-            {/* Center Content */}
-            <Box
-              sx={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                textAlign: 'center',
-              }}
-            >
-              <Typography
-                variant="h1"
-                sx={{
-                  fontWeight: 900,
-                  fontSize: 40,
-                  lineHeight: 1,
-                  background: `linear-gradient(135deg, ${status.gradient[0]} 0%, ${status.gradient[1]} 100%)`,
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                }}
-              >
-                {healthScore ?? '—'}
-              </Typography>
-              <Typography
-                variant="caption"
-                sx={{
-                  color: 'text.secondary',
-                  fontWeight: 600,
-                  fontSize: 10,
-                  mt: 0.5,
-                  display: 'block',
-                }}
-              >
-                از ۱۰۰
-              </Typography>
-            </Box>
-          </Box>
-
-          {/* Status Badge - Smaller */}
+      <Stack alignItems="center" spacing={2}>
+        <Box sx={{ position: 'relative', width: size, height: size * 0.82 }}>
+          <svg width={size} height={size} style={{ transform: 'scaleX(-1) rotate(150deg)' }} aria-hidden>
+            <circle
+              cx={size / 2}
+              cy={size / 2}
+              r={r}
+              fill="none"
+              stroke={alpha(theme.palette.grey[500], 0.16)}
+              strokeWidth={stroke}
+              strokeLinecap="round"
+              strokeDasharray={`${arc} ${circumference}`}
+            />
+            <circle
+              cx={size / 2}
+              cy={size / 2}
+              r={r}
+              fill="none"
+              stroke={tone}
+              strokeWidth={stroke}
+              strokeLinecap="round"
+              strokeDasharray={`${filled} ${circumference}`}
+              style={{ transition: 'stroke-dasharray 0.8s ease' }}
+            />
+          </svg>
           <Box
             sx={{
-              px: 2,
-              py: 1,
-              borderRadius: 1.5,
-              background: `linear-gradient(135deg, ${status.gradient[0]} 0%, ${status.gradient[1]} 100%)`,
-              boxShadow: `0 4px 12px ${alpha(status.color, 0.32)}`,
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              pb: 2,
             }}
           >
-            <Typography
-              variant="subtitle2"
-              sx={{
-                color: '#fff',
-                fontWeight: 700,
-                textAlign: 'center',
-              }}
-            >
-              وضعیت: {status.label}
+            <Typography sx={{ fontSize: 44, fontWeight: 800, lineHeight: 1, color: tone }}>
+              {fNum(score)}
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5 }}>
+              از ۱۰۰
             </Typography>
           </Box>
+        </Box>
 
-          {/* Description - Removed */}
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={0.75}
+          sx={{
+            px: 1.5,
+            py: 0.75,
+            borderRadius: 1,
+            color: theme.palette[band.color].dark,
+            bgcolor: alpha(tone, 0.12),
+            ...theme.applyStyles('dark', { color: theme.palette[band.color].light }),
+          }}
+        >
+          <Iconify icon={BAND_ICON[band.color]} width={18} />
+          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+            وضعیت: {band.label}
+          </Typography>
         </Stack>
-      </Box>
-    </Card>
+
+        {/* Scale legend */}
+        <Stack direction="row" sx={{ width: '100%', gap: 0.5 }}>
+          {BANDS.map((b) => (
+            <Box key={b.label} sx={{ flex: b.to - b.from, minWidth: 0 }}>
+              <Box
+                sx={{
+                  height: 6,
+                  borderRadius: 1,
+                  bgcolor: alpha(theme.palette[b.color].main, b === band ? 0.9 : 0.25),
+                }}
+              />
+              <Typography
+                variant="caption"
+                component="div"
+                noWrap
+                sx={{ mt: 0.5, fontSize: 12, color: b === band ? 'text.primary' : 'text.secondary', fontWeight: b === band ? 700 : 400 }}
+              >
+                {b.label}
+              </Typography>
+              <Typography variant="caption" component="div" noWrap sx={{ fontSize: 11, color: 'text.disabled' }}>
+                {fNum(b.from)} تا {fNum(b.to)}
+              </Typography>
+            </Box>
+          ))}
+        </Stack>
+      </Stack>
+    </WidgetCard>
   );
 }

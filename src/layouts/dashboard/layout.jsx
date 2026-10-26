@@ -9,10 +9,6 @@ import Tooltip from '@mui/material/Tooltip';
 import { useTheme, useColorScheme } from '@mui/material/styles';
 import IconButton, { iconButtonClasses } from '@mui/material/IconButton';
 
-import { usePathname } from 'src/routes/hooks';
-
-import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
-
 import { Logo } from 'src/components/logo';
 import { Iconify } from 'src/components/iconify';
 import { useSettingsContext } from 'src/components/settings';
@@ -35,19 +31,12 @@ import { MainSection , layoutClasses , HeaderSection , LayoutSection } from '../
 
 export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery = 'lg' }) {
   const theme = useTheme();
-  const pathname = usePathname();
   const { mode, setMode } = useColorScheme();
   const { user } = useAuthContext();
   const settings = useSettingsContext();
-  const { desktopMode, toggleDesktopMode } = useAdminDesktopMode();
 
   const isDark = mode === 'dark';
-  const isAdminPage = pathname?.includes('/admin/');
-  const showDesktopToggle = isAdminPage && user?.role === 'super_admin';
-
-  // When desktop mode is active, use 'xs' as the breakpoint so sidebar
-  // always shows and bottom nav always hides, regardless of screen width.
-  const effectiveLayoutQuery = desktopMode && isAdminPage ? 'xs' : layoutQuery;
+  const effectiveLayoutQuery = layoutQuery;
 
   const navVars = dashboardNavColorVars(theme, settings.state.navColor, settings.state.navLayout);
 
@@ -136,30 +125,6 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0, sm: 0.75 } }}>
           {/** @slot Ingest refresh */}
           <IngestRefreshButton />
-
-          {/** @slot Desktop mode toggle — admin pages only */}
-          {showDesktopToggle && (
-            <Tooltip title={desktopMode ? 'بازگشت به نمای موبایل' : 'نمای دسکتاپ'}>
-              <IconButton
-                onClick={toggleDesktopMode}
-                size="small"
-                sx={{
-                  color: desktopMode ? 'primary.main' : 'text.secondary',
-                  bgcolor: desktopMode ? 'primary.lighter' : 'transparent',
-                  border: '1px solid',
-                  borderColor: desktopMode ? 'primary.light' : 'divider',
-                  borderRadius: 1,
-                  width: 34,
-                  height: 34,
-                }}
-              >
-                <Iconify
-                  icon={desktopMode ? 'solar:monitor-bold' : 'solar:monitor-line-duotone'}
-                  width={18}
-                />
-              </IconButton>
-            </Tooltip>
-          )}
 
           {/** @slot Dark mode toggle */}
           <Tooltip title={isDark ? 'حالت روشن' : 'حالت تاریک'}>

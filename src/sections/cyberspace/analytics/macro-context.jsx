@@ -1,27 +1,42 @@
 import { useState } from 'react';
 
 import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
+import Tooltip from '@mui/material/Tooltip';
 import Collapse from '@mui/material/Collapse';
 import Typography from '@mui/material/Typography';
 import { alpha, useTheme } from '@mui/material/styles';
 import CircularProgress from '@mui/material/CircularProgress';
 
+import { fRelativeFa } from 'src/utils/format-number-fa';
+
 import axios from 'src/lib/axios';
 import { useMacroContext } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
-import { InfoTooltip } from 'src/components/info-tooltip';
 import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 
 import { useAuthContext } from 'src/auth/hooks';
 
+import { WidgetCard } from '../shared/widget-card';
 import { SectionLabel, MacroRawContent } from '../shared/macro-parsed-content';
 
 // ----------------------------------------------------------------------
+
+function formatExact(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString('fa-IR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
 export function MacroContext() {
   const theme = useTheme();
@@ -44,97 +59,101 @@ export function MacroContext() {
     }
   };
 
-  const raw       = data?.today || null;
-  const raw7d     = data?.rolling7d || null;
-  const updatedAt = data?.updatedAt
-    ? new Date(data.updatedAt).toLocaleString('fa-IR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-    : null;
+  const raw = data?.today || null;
+  const raw7d = data?.rolling7d || null;
+  const updatedAt = data?.updatedAt || null;
+
+  const renderAction = () => (
+    <Stack direction="row" alignItems="center" spacing={1}>
+      {updatedAt && (
+        <Tooltip title={`آخرین به‌روزرسانی: ${formatExact(updatedAt)}`} arrow>
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={0.5}
+            sx={{
+              display: { xs: 'none', sm: 'flex' },
+              px: 1,
+              py: 0.5,
+              borderRadius: 1,
+              color: 'text.secondary',
+              bgcolor: alpha(theme.palette.grey[500], 0.08),
+            }}
+          >
+            <Iconify icon="solar:clock-circle-linear" width={14} />
+            <Typography variant="caption" sx={{ fontSize: 12, whiteSpace: 'nowrap' }}>
+              {fRelativeFa(updatedAt)}
+            </Typography>
+          </Stack>
+        </Tooltip>
+      )}
+      {isSuperAdmin && (
+        <Button
+          size="small"
+          variant="outlined"
+          color="inherit"
+          onClick={handleGenerate}
+          disabled={generating}
+          startIcon={
+            generating ? <CircularProgress size={14} color="inherit" /> : <Iconify icon="solar:refresh-bold" width={16} />
+          }
+          sx={{ fontSize: 12, whiteSpace: 'nowrap' }}
+        >
+          {generating ? 'در حال تولید…' : 'بروزرسانی'}
+        </Button>
+      )}
+    </Stack>
+  );
 
   return (
-    <Card sx={{ borderRadius: 2.5, overflow: 'hidden', boxShadow: theme.shadows[2] }}>
-      {/* Header */}
-      <Box sx={{ p: 2, background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.08)} 0%, ${alpha(theme.palette.warning.main, 0.07)} 100%)` }}>
-        <Stack direction="row" alignItems="center" justifyContent="space-between">
-          <Stack direction="row" alignItems="center" spacing={1.5}>
-            <Box sx={{ width: 36, height: 36, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: alpha(theme.palette.primary.main, 0.14) }}>
-              <Iconify icon="solar:globe-bold-duotone" width={22} sx={{ color: theme.palette.primary.main }} />
-            </Box>
-            <Box>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>وضعیت کلان</Typography>
-              <InfoTooltip title={WIDGET_TOOLTIPS.macroContext} />
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 10 }}>بستر سیاسی-اجتماعی حاکم بر فضای رصد</Typography>
-            </Box>
-          </Stack>
-          <Stack direction="row" alignItems="center" spacing={1}>
-            {updatedAt && (
-              <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: 9 }}>
-                {updatedAt}
-              </Typography>
-            )}
-            {isSuperAdmin && (
-              <Button
-                size="small"
-                variant="outlined"
-                onClick={handleGenerate}
-                disabled={generating}
-                startIcon={generating ? <CircularProgress size={12} /> : <Iconify icon="solar:refresh-bold" width={14} />}
-                sx={{ fontSize: 9, height: 26, minWidth: 0, px: 1 }}
-              >
-                {generating ? 'در حال تولید...' : 'بروزرسانی'}
-              </Button>
-            )}
-          </Stack>
-        </Stack>
-      </Box>
+    <WidgetCard
+      title="وضعیت کلان"
+      icon="solar:globe-bold-duotone"
+      color="primary"
+      tooltip={WIDGET_TOOLTIPS.macroContext}
+      subheader={
+        updatedAt
+          ? `بستر سیاسی-اجتماعی حاکم بر فضای رصد · به‌روزشده در ${formatExact(updatedAt)}`
+          : 'بستر سیاسی-اجتماعی حاکم بر فضای رصد'
+      }
+      action={renderAction()}
+      loading={isLoading}
+      empty={!raw}
+      emptyIcon="solar:globe-bold-duotone"
+      emptyText="گزارش وضعیت کلان هنوز تولید نشده است."
+    >
+      <MacroRawContent raw={raw} />
 
-      <Box sx={{ p: 2 }}>
-        {isLoading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-            <CircularProgress size={24} />
-          </Box>
-        )}
+      {raw7d && (
+        <>
+          <Divider sx={{ my: 2, borderStyle: 'dashed' }} />
+          <Button
+            size="small"
+            color="inherit"
+            onClick={() => setShowRolling((p) => !p)}
+            endIcon={
+              <Iconify icon={showRolling ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width={16} />
+            }
+            sx={{ fontSize: 13, color: 'text.secondary', mb: showRolling ? 1.5 : 0 }}
+          >
+            {showRolling ? 'بستن روند ۷ روزه' : 'نمایش روند ۷ روزه'}
+          </Button>
 
-        {!isLoading && !raw && (
-          <Box sx={{ py: 3, textAlign: 'center' }}>
-            <Iconify icon="solar:globe-bold-duotone" width={36} sx={{ color: 'text.disabled', mb: 1 }} />
-            <Typography variant="body2" color="text.secondary">گزارش وضعیت کلان هنوز تولید نشده است.</Typography>
-            <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.5 }}>
-              هر ۱۲ ساعت به‌صورت خودکار تولید می‌شود.
-            </Typography>
-          </Box>
-        )}
-
-        {/* Today — structured or plain text */}
-        {!isLoading && raw && <MacroRawContent raw={raw} />}
-
-        {/* Rolling 7-day section */}
-        {!isLoading && raw7d && (
-          <>
-            <Divider sx={{ my: 2, opacity: 0.4 }} />
-            <Button
-              size="small"
-              variant="text"
-              onClick={() => setShowRolling((p) => !p)}
-              endIcon={
-                <Iconify
-                  icon={showRolling ? 'solar:alt-arrow-up-bold' : 'solar:alt-arrow-down-bold'}
-                  width={14}
-                />
-              }
-              sx={{ fontSize: 10, color: 'text.secondary', px: 0, mb: showRolling ? 1.5 : 0 }}
+          <Collapse in={showRolling} unmountOnExit>
+            <Box
+              sx={{
+                p: 2,
+                borderRadius: 1.5,
+                bgcolor: alpha(theme.palette.grey[500], 0.04),
+                border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
+              }}
             >
-              {showRolling ? 'بستن' : 'نمایش'} روند ۷ روزه
-            </Button>
-
-            <Collapse in={showRolling}>
-              <Box sx={{ p: 1.5, borderRadius: 1.5, bgcolor: alpha(theme.palette.grey[500], 0.04), border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}` }}>
-                <SectionLabel icon="solar:history-bold-duotone" label="خلاصه ۷ روز گذشته" color={theme.palette.info.main} />
-                <MacroRawContent raw={raw7d} />
-              </Box>
-            </Collapse>
-          </>
-        )}
-      </Box>
-    </Card>
+              <SectionLabel icon="solar:history-bold-duotone" label="خلاصه ۷ روز گذشته" color={theme.palette.info.main} />
+              <MacroRawContent raw={raw7d} />
+            </Box>
+          </Collapse>
+        </>
+      )}
+    </WidgetCard>
   );
 }

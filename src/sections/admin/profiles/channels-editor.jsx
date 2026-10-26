@@ -358,15 +358,15 @@ export function ChannelsGridEditor({ value = [], onChange }) {
                 <Box sx={{ width: 36, height: 36, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: configured ? alpha(cfg.color, 0.15) : alpha('#607D8B', 0.08) }}>
                   <PlatformIcon cfg={cfg} size={22} />
                 </Box>
-                <Typography variant="caption" fontWeight={700} sx={{ fontSize: 10, textAlign: 'center', color: configured ? 'text.primary' : 'text.disabled' }}>
+                <Typography variant="caption" fontWeight={700} sx={{ fontSize: 12, textAlign: 'center', color: configured ? 'text.primary' : 'text.disabled' }}>
                   {cfg.label}
                 </Typography>
                 {configured ? (
-                  <Typography variant="caption" noWrap sx={{ fontSize: 9, color: cfg.color, maxWidth: '100%', direction: 'ltr', textAlign: 'center' }}>
+                  <Typography variant="caption" noWrap sx={{ fontSize: 12, color: cfg.color, maxWidth: '100%', direction: 'ltr', textAlign: 'center' }}>
                     {ch.handle}
                   </Typography>
                 ) : (
-                  <Typography variant="caption" sx={{ fontSize: 9, color: 'text.disabled' }}>تنظیم نشده</Typography>
+                  <Typography variant="caption" sx={{ fontSize: 12, color: 'text.disabled' }}>تنظیم نشده</Typography>
                 )}
               </Stack>
 

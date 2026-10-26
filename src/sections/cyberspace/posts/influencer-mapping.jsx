@@ -1,122 +1,138 @@
 'use client';
 
-
 import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
 import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import { alpha, useTheme } from '@mui/material/styles';
-import CircularProgress from '@mui/material/CircularProgress';
+
+import { fNum, fShort, fPercent } from 'src/utils/format-number-fa';
 
 import { useInfluencerMap } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
-import { InfoTooltip } from 'src/components/info-tooltip';
+import { SENTIMENT_COLORS } from 'src/components/chart';
 import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
+
+import { WidgetCard } from '../shared/widget-card';
+import { getPlatform, PlatformIcon } from './platforms';
 
 // ----------------------------------------------------------------------
 
-const SUPPORTER_COLOR = '#51CF66';
-const CRITIC_COLOR    = '#FF6B6B';
+const SUPPORTER_COLOR = SENTIMENT_COLORS.positive;
+const CRITIC_COLOR = SENTIMENT_COLORS.negative;
+const PER_SIDE = 8;
 
-const SOURCE_META = {
-  telegram:  { icon: 'ic:baseline-telegram',                  color: '#0088cc', urlPrefix: 'https://t.me/' },
-  twitter:   { icon: 'ri:twitter-x-fill',                    color: '#000000', urlPrefix: 'https://x.com/' },
-  instagram: { icon: 'mdi:instagram',                         color: '#E4405F', urlPrefix: 'https://instagram.com/' },
-  news:      { icon: 'solar:document-text-bold',              color: '#4CAF50', urlPrefix: null },
-  newspaper: { icon: 'solar:global-bold-duotone',             color: '#78909C', urlPrefix: null },
-  media:     { icon: 'solar:tv-bold-duotone',                 color: '#FF5722', urlPrefix: null },
-  bale:      { icon: 'solar:chat-round-bold-duotone',         color: '#00A86B', urlPrefix: null },
-  rubika:    { icon: 'solar:play-circle-bold-duotone',        color: '#7C3AED', urlPrefix: null },
-  forum:     { icon: 'solar:chat-square-bold-duotone',        color: '#795548', urlPrefix: null },
-  aparat:    { icon: 'solar:videocamera-record-bold-duotone', color: '#FF5722', urlPrefix: 'https://aparat.com/' },
-};
-
-const formatNum = (n) => {
-  if (!n) return '۰';
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}k`;
-  return n.toLocaleString('fa-IR');
-};
-
-function getProfileUrl(username, sourceType) {
-  const meta = SOURCE_META[sourceType];
-  if (!meta?.urlPrefix || !username) return null;
-  // Strip leading @ if present
-  const handle = username.replace(/^@/, '');
-  return `${meta.urlPrefix}${handle}`;
+function getProfileUrl(username, platform) {
+  if (!platform.urlPrefix || !username) return null;
+  return `${platform.urlPrefix}${username.replace(/^@/, '')}`;
 }
 
 // ----------------------------------------------------------------------
 
 function AccountRow({ account, accentColor, rank }) {
   const theme = useTheme();
-  const src = SOURCE_META[account.sourceType] || { icon: 'solar:global-bold', color: '#868E96' };
-  const profileUrl = getProfileUrl(account.username, account.sourceType);
+  const platform = getPlatform(account.sourceType);
+  const profileUrl = getProfileUrl(account.username, platform);
 
   const sentTotal = account.sentimentTotal || 0;
-  const posW = sentTotal > 0 ? Math.round((account.posCount / sentTotal) * 100) : 0;
-  const negW = sentTotal > 0 ? Math.round((account.negCount / sentTotal) * 100) : 0;
+  const posW = sentTotal > 0 ? Math.round(((account.posCount || 0) / sentTotal) * 100) : 0;
+  const negW = sentTotal > 0 ? Math.round(((account.negCount || 0) / sentTotal) * 100) : 0;
+  const neuW = Math.max(0, 100 - posW - negW);
+
+  const handle = account.username ? `@${account.username.replace(/^@/, '')}` : '—';
+  const handleSx = {
+    fontWeight: 600,
+    fontSize: 13,
+    color: 'text.primary',
+    display: 'block',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    direction: 'ltr',
+    textAlign: 'right',
+  };
 
   return (
     <Stack
       direction="row"
       alignItems="center"
-      spacing={1}
+      spacing={1.25}
       sx={{
-        p: 1, borderRadius: 1.5,
-        bgcolor: alpha(accentColor, 0.04),
-        border: `1px solid ${alpha(accentColor, 0.1)}`,
-        '&:hover': { bgcolor: alpha(accentColor, 0.08) },
-        transition: 'background 0.15s',
+        px: 1.25,
+        py: 1,
+        borderRadius: 1.5,
+        bgcolor: alpha(accentColor, 0.05),
+        border: `1px solid ${alpha(accentColor, 0.14)}`,
+        transition: theme.transitions.create('background-color'),
+        '&:hover': { bgcolor: alpha(accentColor, 0.1) },
       }}
     >
-      {/* Rank */}
-      <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: 9, fontWeight: 700, minWidth: 14, textAlign: 'center' }}>
-        {rank}
+      <Typography sx={{ color: 'text.secondary', fontSize: 12, fontWeight: 700, minWidth: 18, textAlign: 'center' }}>
+        {fNum(rank)}
       </Typography>
 
-      {/* Source icon */}
-      <Iconify icon={src.icon} width={13} sx={{ color: src.color, flexShrink: 0 }} />
+      <Tooltip title={platform.label} arrow>
+        <Box
+          sx={{
+            width: 28,
+            height: 28,
+            flexShrink: 0,
+            borderRadius: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            bgcolor: alpha(platform.color ?? theme.palette.grey[500], 0.12),
+          }}
+        >
+          <PlatformIcon platform={platform} width={16} />
+        </Box>
+      </Tooltip>
 
-      {/* Username + bar */}
       <Box sx={{ flex: 1, minWidth: 0 }}>
         {profileUrl ? (
-          <Link
-            href={profileUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            underline="hover"
-            sx={{ fontWeight: 600, fontSize: 10, color: 'text.primary', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', direction: 'ltr', textAlign: 'right' }}
-          >
-            @{account.username}
+          <Link href={profileUrl} target="_blank" rel="noopener noreferrer" underline="hover" sx={handleSx}>
+            {handle}
           </Link>
         ) : (
-          <Typography variant="caption" sx={{ fontWeight: 600, fontSize: 10, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', direction: 'ltr', textAlign: 'right' }}>
-            @{account.username}
-          </Typography>
+          <Typography sx={handleSx}>{handle}</Typography>
         )}
 
-        {/* Sentiment bar */}
-        {sentTotal > 0 && (
-          <Tooltip title={`مثبت ${posW}% · منفی ${negW}%`} placement="top" arrow>
-            <Box sx={{ display: 'flex', height: 3, borderRadius: 2, overflow: 'hidden', mt: 0.4, cursor: 'default' }}>
+        {sentTotal > 0 ? (
+          <Tooltip
+            title={`مثبت ${fPercent(posW)} · خنثی ${fPercent(neuW)} · منفی ${fPercent(negW)} (از ${fNum(sentTotal)} پست تحلیل‌شده)`}
+            placement="top"
+            arrow
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                height: 6,
+                mt: 0.75,
+                borderRadius: 3,
+                overflow: 'hidden',
+                bgcolor: alpha(theme.palette.grey[500], 0.16),
+              }}
+            >
               <Box sx={{ width: `${posW}%`, bgcolor: SUPPORTER_COLOR }} />
-              <Box sx={{ width: `${100 - posW - negW}%`, bgcolor: alpha('#868E96', 0.3) }} />
+              <Box sx={{ width: `${neuW}%`, bgcolor: alpha(SENTIMENT_COLORS.neutral, 0.5) }} />
               <Box sx={{ width: `${negW}%`, bgcolor: CRITIC_COLOR }} />
             </Box>
           </Tooltip>
+        ) : (
+          <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>{platform.label}</Typography>
         )}
       </Box>
 
-      {/* Views */}
-      <Stack direction="row" alignItems="center" spacing={0.3} sx={{ flexShrink: 0 }}>
-        <Iconify icon="solar:eye-bold" width={9} sx={{ color: 'text.disabled' }} />
-        <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 9, fontWeight: 600 }}>
-          {formatNum(account.totalViews)}
+      <Stack alignItems="flex-end" sx={{ flexShrink: 0, minWidth: 56 }}>
+        <Typography sx={{ fontSize: 13, fontWeight: 700, lineHeight: 1.3 }}>
+          {fPercent(accentColor === SUPPORTER_COLOR ? posW : negW)}
         </Typography>
+        <Stack direction="row" alignItems="center" spacing={0.375} sx={{ color: 'text.secondary' }}>
+          <Iconify icon="solar:eye-linear" width={13} />
+          <Typography sx={{ fontSize: 12 }}>{fShort(account.totalViews || 0)}</Typography>
+        </Stack>
       </Stack>
     </Stack>
   );
@@ -124,115 +140,113 @@ function AccountRow({ account, accentColor, rank }) {
 
 // ----------------------------------------------------------------------
 
-export function InfluencerMapping() {
-  const theme = useTheme();
+function StanceColumn({ title, icon, color, accounts, total, emptyText }) {
+  return (
+    <Box sx={{ minWidth: 0 }}>
+      <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 1.25 }}>
+        <Iconify icon={icon} width={18} sx={{ color }} />
+        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+          {title}
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+          ({fNum(total)})
+        </Typography>
+      </Stack>
+      <Stack spacing={0.75}>
+        {accounts.length > 0 ? (
+          accounts.map((a, i) => (
+            <AccountRow key={`${a.username}-${a.sourceType}`} account={a} accentColor={color} rank={i + 1} />
+          ))
+        ) : (
+          <Typography variant="body2" sx={{ color: 'text.secondary', py: 2, textAlign: 'center' }}>
+            {emptyText}
+          </Typography>
+        )}
+      </Stack>
+    </Box>
+  );
+}
 
+// ----------------------------------------------------------------------
+
+export function InfluencerMapping() {
   const { data: allAccounts = [], isLoading } = useInfluencerMap(40);
 
-  // Only show accounts with a clear stance (≥60% in one direction)
+  // Only accounts with a clear stance (≥60% of analysed posts in one direction)
   const supporters = allAccounts.filter((a) => a.stance === 'supporter');
-  const critics    = allAccounts.filter((a) => a.stance === 'critic');
+  const critics = allAccounts.filter((a) => a.stance === 'critic');
+  const neutralCount = allAccounts.length - supporters.length - critics.length;
 
   const totalReach = allAccounts.reduce((s, a) => s + (a.totalViews || 0), 0);
-
-  // Show top 8 per side
-  const topSupporters = supporters.slice(0, 8);
-  const topCritics    = critics.slice(0, 8);
-
   const hasData = supporters.length > 0 || critics.length > 0;
 
   return (
-    <Card sx={{ borderRadius: 2.5, overflow: 'hidden', boxShadow: theme.shadows[2] }}>
-      {/* Header */}
-      <Box sx={{ p: 2, background: `linear-gradient(135deg, ${alpha(SUPPORTER_COLOR, 0.07)} 0%, ${alpha(CRITIC_COLOR, 0.07)} 100%)` }}>
-        <Stack direction="row" alignItems="center" spacing={1.5}>
-          <Box sx={{ width: 36, height: 36, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: alpha(theme.palette.warning.main, 0.14) }}>
-            <Iconify icon="solar:users-group-two-rounded-bold-duotone" width={22} sx={{ color: theme.palette.warning.main }} />
-          </Box>
-          <Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>نقشه تأثیرگذاران</Typography>
-            <InfoTooltip title={WIDGET_TOOLTIPS.influencerMapping} />
-            {!isLoading && hasData && (
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 10 }}>
-                {supporters.length} موافق · {critics.length} مخالف · {formatNum(totalReach)} بازدید
-              </Typography>
-            )}
-          </Box>
-        </Stack>
+    <WidgetCard
+      title="نقشه تأثیرگذاران"
+      icon="solar:users-group-two-rounded-bold-duotone"
+      color="warning"
+      tooltip={WIDGET_TOOLTIPS.influencerMapping}
+      subheader="موافق: حسابی که دست‌کم ۶۰٪ پست‌های تحلیل‌شده‌اش مثبت است · مخالف: دست‌کم ۶۰٪ منفی"
+      loading={isLoading}
+      empty={!hasData}
+      emptyIcon="solar:users-group-rounded-line-duotone"
+      emptyText="داده کافی برای تحلیل موضع‌گیری وجود ندارد. پس از تحلیل احساسات پست‌های بیشتر، نتایج اینجا نمایش داده می‌شود."
+    >
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{ mb: 2, flexWrap: 'wrap', rowGap: 0.5, color: 'text.secondary' }}
+      >
+        <Typography variant="body2">
+          <Box component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>
+            {fNum(supporters.length)}
+          </Box>{' '}
+          موافق
+        </Typography>
+        <Typography variant="body2">
+          <Box component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>
+            {fNum(critics.length)}
+          </Box>{' '}
+          مخالف
+        </Typography>
+        <Typography variant="body2">
+          <Box component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>
+            {fShort(totalReach)}
+          </Box>{' '}
+          بازدید مجموع حساب‌ها
+        </Typography>
+      </Stack>
+
+      <Box
+        sx={{
+          display: 'grid',
+          gap: { xs: 2.5, md: 3 },
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
+        }}
+      >
+        <StanceColumn
+          title="موافقان"
+          icon="solar:like-bold"
+          color={SUPPORTER_COLOR}
+          accounts={supporters.slice(0, PER_SIDE)}
+          total={supporters.length}
+          emptyText="موافقی یافت نشد"
+        />
+        <StanceColumn
+          title="مخالفان"
+          icon="solar:dislike-bold"
+          color={CRITIC_COLOR}
+          accounts={critics.slice(0, PER_SIDE)}
+          total={critics.length}
+          emptyText="مخالفی یافت نشد"
+        />
       </Box>
 
-      {isLoading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-          <CircularProgress size={24} />
-        </Box>
+      {neutralCount > 0 && (
+        <Typography variant="caption" component="div" sx={{ color: 'text.secondary', mt: 2, textAlign: 'center', fontSize: 12 }}>
+          {fNum(neutralCount)} حساب بدون موضع روشن نمایش داده نمی‌شوند.
+        </Typography>
       )}
-
-      {!isLoading && !hasData && (
-        <Box sx={{ py: 3, textAlign: 'center' }}>
-          <Typography variant="body2" color="text.secondary">
-            داده کافی برای تحلیل موضع‌گیری وجود ندارد.
-          </Typography>
-          <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.5 }}>
-            پس از تحلیل احساسات پست‌های بیشتر، نتایج اینجا نمایش داده می‌شود.
-          </Typography>
-        </Box>
-      )}
-
-      {!isLoading && hasData && (
-        <Box sx={{ p: 2 }}>
-          {/* Two-column grid */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
-            {/* Supporters column */}
-            <Box>
-              <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 1 }}>
-                <Iconify icon="solar:like-bold" width={14} sx={{ color: SUPPORTER_COLOR }} />
-                <Typography variant="caption" sx={{ fontWeight: 700, color: SUPPORTER_COLOR, fontSize: 11 }}>
-                  موافقان ({supporters.length})
-                </Typography>
-              </Stack>
-              <Stack spacing={0.5}>
-                {topSupporters.length > 0 ? (
-                  topSupporters.map((a, i) => (
-                    <AccountRow key={`${a.username}-${a.sourceType}`} account={a} accentColor={SUPPORTER_COLOR} rank={i + 1} />
-                  ))
-                ) : (
-                  <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10, py: 1, textAlign: 'center', display: 'block' }}>
-                    موافقی یافت نشد
-                  </Typography>
-                )}
-              </Stack>
-            </Box>
-
-            {/* Critics column */}
-            <Box>
-              <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 1 }}>
-                <Iconify icon="solar:dislike-bold" width={14} sx={{ color: CRITIC_COLOR }} />
-                <Typography variant="caption" sx={{ fontWeight: 700, color: CRITIC_COLOR, fontSize: 11 }}>
-                  مخالفان ({critics.length})
-                </Typography>
-              </Stack>
-              <Stack spacing={0.5}>
-                {topCritics.length > 0 ? (
-                  topCritics.map((a, i) => (
-                    <AccountRow key={`${a.username}-${a.sourceType}`} account={a} accentColor={CRITIC_COLOR} rank={i + 1} />
-                  ))
-                ) : (
-                  <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10, py: 1, textAlign: 'center', display: 'block' }}>
-                    مخالفی یافت نشد
-                  </Typography>
-                )}
-              </Stack>
-            </Box>
-          </Box>
-
-          {/* Note about neutral accounts */}
-          {allAccounts.length > supporters.length + critics.length && (
-            <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 1.5, textAlign: 'center', fontSize: 9 }}>
-              {(allAccounts.length - supporters.length - critics.length).toLocaleString('fa-IR')} حساب با موضع خنثی نمایش داده نمی‌شوند
-            </Typography>
-          )}
-        </Box>
-      )}
-    </Card>
+    </WidgetCard>
   );
 }

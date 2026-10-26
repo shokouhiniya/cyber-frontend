@@ -5,7 +5,7 @@ import packageJson from '../package.json';
 // ----------------------------------------------------------------------
 
 export const UI_CONFIG = {
-  mobileOnly: true,
+  mobileOnly: false,
 };
 
 export const CONFIG = {

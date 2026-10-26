@@ -1,178 +1,193 @@
 'use client';
 
-import { useState } from 'react';
-
 import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Tooltip from '@mui/material/Tooltip';
-import Collapse from '@mui/material/Collapse';
+import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
-import ButtonBase from '@mui/material/ButtonBase';
 import { alpha, useTheme } from '@mui/material/styles';
-import LinearProgress from '@mui/material/LinearProgress';
-import CircularProgress from '@mui/material/CircularProgress';
+
+import { fNum, fDateFa, fPercent } from 'src/utils/format-number-fa';
 
 import { useProfile, usePromisePerception } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
-import { InfoTooltip } from 'src/components/info-tooltip';
+import { SENTIMENT_COLORS } from 'src/components/chart';
 import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
+
+import { WidgetCard } from '../shared/widget-card';
 
 // ----------------------------------------------------------------------
 
-// Score thresholds for perception label
-function getPerceptionLabel(score) {
-  if (score === null || score === undefined) return { label: 'داده کافی نیست', color: '#868E96' };
-  if (score >= 65) return { label: 'دیدگاه مثبت',   color: '#00AB55' };
-  if (score >= 40) return { label: 'دیدگاه خنثی',   color: '#FFAB00' };
-  return                  { label: 'دیدگاه منفی',   color: '#FF5630' };
+// Score thresholds for perception label (score: positive=100, neutral=50, negative=0)
+function getPerception(score, theme) {
+  if (score === null || score === undefined) {
+    return { label: 'داده کافی نیست', color: theme.palette.text.disabled, tone: theme.palette.grey[500] };
+  }
+  if (score >= 65) return { label: 'دیدگاه مثبت', color: SENTIMENT_COLORS.positive, tone: SENTIMENT_COLORS.positive };
+  if (score >= 40) return { label: 'دیدگاه خنثی', color: theme.palette.warning.main, tone: theme.palette.warning.main };
+  return { label: 'دیدگاه منفی', color: SENTIMENT_COLORS.negative, tone: SENTIMENT_COLORS.negative };
+}
+
+// Date the promise was recorded — the profile data uses `addedAt`; accept a
+// few other spellings in case the admin import used them.
+function getPromiseDate(promise) {
+  return promise?.addedAt || promise?.date || promise?.createdAt || null;
 }
 
 export function PromiseTracker() {
   const theme = useTheme();
   const { data: profile, isLoading: profileLoading } = useProfile();
   const { data: perceptions = [], isLoading: perceptionLoading } = usePromisePerception();
-  const [open, setOpen] = useState(false);
 
-  const promises = profile?.promises || [];
-  const isLoading = profileLoading;
+  const promises = (profile?.promises || []).filter((p) => p?.text?.trim());
 
-  if (isLoading) {
-    return (
-      <Card sx={{ p: 2.5, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 80, borderRadius: 2.5, boxShadow: theme.shadows[2] }}>
-        <CircularProgress size={24} />
-      </Card>
-    );
-  }
-
-  // Build a map from promise text to perception data
+  // Map from promise text to perception data
   const perceptionMap = {};
   for (const p of perceptions) {
     perceptionMap[p.text] = p;
   }
 
-  // Summary stats
-  const withData = perceptions.filter(p => p.score !== null);
-  const avgScore = withData.length > 0
+  // Overall perception across promises that have data
+  const withData = perceptions.filter((p) => p.score !== null && p.score !== undefined);
+  const avgScore = withData.length
     ? Math.round(withData.reduce((s, p) => s + p.score, 0) / withData.length)
     : null;
-  const overallPerception = getPerceptionLabel(avgScore);
+  const overall = getPerception(avgScore, theme);
+
+  const dates = promises.map(getPromiseDate).filter(Boolean);
+  const hasDates = dates.length > 0;
+
+  let subheader;
+  if (hasDates) {
+    const sorted = dates.map((d) => new Date(d)).sort((a, b) => a - b);
+    const first = sorted[0];
+    const last = sorted[sorted.length - 1];
+    const span =
+      fDateFa(first) === fDateFa(last) ? `ثبت‌شده در ${fDateFa(first)}` : `ثبت‌شده از ${fDateFa(first)} تا ${fDateFa(last)}`;
+    subheader = `${fNum(promises.length)} وعده عمومی · ${span}`;
+  } else {
+    subheader = `${fNum(promises.length)} وعده عمومی · تاریخ ثبت وعده‌ها مشخص نشده است`;
+  }
 
   return (
-    <Card sx={{ borderRadius: 2.5, overflow: 'hidden', boxShadow: theme.shadows[2] }}>
-      <ButtonBase
-        component="div"
-        onClick={() => setOpen(p => !p)}
+    <WidgetCard
+      title="رصد وعده‌ها"
+      icon="solar:checklist-bold-duotone"
+      color="warning"
+      tooltip={WIDGET_TOOLTIPS.promiseTracker}
+      subheader={promises.length ? subheader : undefined}
+      loading={profileLoading}
+      empty={!promises.length}
+      emptyIcon="solar:checklist-bold-duotone"
+      emptyText="وعده عمومی ثبت‌شده‌ای برای این پروفایل وجود ندارد."
+      action={
+        avgScore !== null && (
+          <Box
+            sx={{
+              px: 1.25,
+              py: 0.5,
+              borderRadius: 1,
+              bgcolor: alpha(overall.tone, 0.14),
+              color: overall.color,
+            }}
+          >
+            <Typography variant="caption" sx={{ fontWeight: 700, color: 'inherit', whiteSpace: 'nowrap' }}>
+              {overall.label}
+            </Typography>
+          </Box>
+        )
+      }
+    >
+      <Typography variant="caption" component="p" sx={{ color: 'text.secondary', mb: 2, mt: -0.5 }}>
+        واکنش‌ها از همه پست‌های مرتبطی که تاکنون جمع‌آوری شده محاسبه می‌شود و به بازه زمانی خاصی محدود نیست.
+      </Typography>
+
+      <Box
         sx={{
-          width: '100%', p: 2.5, display: 'block', textAlign: 'start',
-          background: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.08)} 0%, ${alpha(theme.palette.primary.main, 0.08)} 100%)`,
+          display: 'grid',
+          gap: 1.5,
+          gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
         }}
       >
-        <Stack direction="row" alignItems="center" justifyContent="space-between">
-          <Stack direction="row" alignItems="center" spacing={1.5}>
-            <Box sx={{ width: 40, height: 40, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: alpha(theme.palette.warning.main, 0.16) }}>
-              <Iconify icon="solar:checklist-bold-duotone" width={24} sx={{ color: theme.palette.warning.main }} />
-            </Box>
-            <Box>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>رصد وعده‌ها</Typography>
-              <InfoTooltip title={WIDGET_TOOLTIPS.promiseTracker} />
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                {promises.length === 0
-                  ? 'وعده عمومی ثبت‌شده‌ای وجود ندارد'
-                  : `${promises.length} وعده عمومی`}
-              </Typography>
-            </Box>
-          </Stack>
-          <Stack direction="row" alignItems="center" spacing={1}>
-            {avgScore !== null && (
-              <Chip
-                size="small"
-                label={overallPerception.label}
-                sx={{ height: 20, fontSize: 9, fontWeight: 700, bgcolor: alpha(overallPerception.color, 0.12), color: overallPerception.color }}
-              />
-            )}
-            <Iconify icon={open ? 'solar:alt-arrow-up-bold' : 'solar:alt-arrow-down-bold'} width={18} sx={{ color: 'text.secondary' }} />
-          </Stack>
-        </Stack>
-      </ButtonBase>
+        {promises.map((promise, idx) => {
+          const perc = perceptionMap[promise.text];
+          const perception = getPerception(perc?.score, theme);
+          const hasData = perc && perc.postCount > 0 && perc.breakdown;
+          const addedAt = getPromiseDate(promise);
 
-      <Collapse in={open} timeout={300}>
-        <Box sx={{ p: 2 }}>
-          {promises.length === 0 ? (
-            <Box sx={{ py: 3, textAlign: 'center' }}>
-              <Iconify icon="solar:checklist-bold-duotone" width={36} sx={{ color: 'text.disabled', mb: 1 }} />
-              <Typography variant="body2" color="text.secondary">
-                وعده عمومی ثبت‌شده‌ای برای این پروفایل وجود ندارد.
-              </Typography>
-            </Box>
-          ) : (
-            <Stack spacing={1.25}>
-              {promises.map((promise, idx) => {
-                const perc = perceptionMap[promise.text];
-                const perception = getPerceptionLabel(perc?.score);
-                const hasData = perc && perc.postCount > 0;
-
-                return (
-                  <Box
-                    key={idx}
-                    sx={{
-                      p: 1.5, borderRadius: 1.5,
-                      bgcolor: alpha(perception.color, 0.04),
-                      border: `1px solid ${alpha(perception.color, 0.14)}`,
-                    }}
-                  >
-                    <Stack direction="row" alignItems="flex-start" spacing={1.25}>
-                      <Iconify
-                        icon="solar:checklist-minimalistic-bold"
-                        width={15}
-                        sx={{ color: perception.color, flexShrink: 0, mt: 0.3 }}
-                      />
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography variant="body2" sx={{ fontSize: 12, lineHeight: 1.7, mb: hasData ? 1 : 0 }}>
-                          {promise.text}
-                        </Typography>
-
-                        {/* Perception bar */}
-                        {perceptionLoading ? (
-                          <LinearProgress sx={{ height: 3, borderRadius: 2 }} />
-                        ) : hasData ? (
-                          <>
-                            <Tooltip
-                              title={`مثبت ${perc.breakdown.positive}% · خنثی ${perc.breakdown.neutral}% · منفی ${perc.breakdown.negative}% (${perc.postCount} پست)`}
-                              placement="top"
-                              arrow
-                            >
-                              <Box sx={{ display: 'flex', height: 5, borderRadius: 3, overflow: 'hidden', cursor: 'default' }}>
-                                <Box sx={{ width: `${perc.breakdown.positive}%`, bgcolor: '#00AB55' }} />
-                                <Box sx={{ width: `${perc.breakdown.neutral}%`, bgcolor: alpha('#868E96', 0.4) }} />
-                                <Box sx={{ width: `${perc.breakdown.negative}%`, bgcolor: '#FF5630' }} />
-                              </Box>
-                            </Tooltip>
-                            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mt: 0.5 }}>
-                              <Typography variant="caption" sx={{ fontSize: 9, color: 'text.disabled' }}>
-                                {perc.postCount.toLocaleString('fa-IR')} پست مرتبط
-                              </Typography>
-                              <Typography variant="caption" sx={{ fontSize: 9, fontWeight: 700, color: perception.color }}>
-                                {perception.label}
-                              </Typography>
-                            </Stack>
-                          </>
-                        ) : (
-                          <Typography variant="caption" sx={{ fontSize: 9, color: 'text.disabled' }}>
-                            داده کافی برای تحلیل وجود ندارد
-                          </Typography>
-                        )}
-                      </Box>
-                    </Stack>
+          let perceptionBody;
+          if (perceptionLoading) {
+            perceptionBody = <Skeleton variant="rounded" height={8} />;
+          } else if (hasData) {
+            perceptionBody = (
+              <>
+                <Tooltip
+                  title={`مثبت ${fPercent(perc.breakdown.positive)} · خنثی ${fPercent(perc.breakdown.neutral)} · منفی ${fPercent(perc.breakdown.negative)}`}
+                  placement="top"
+                  arrow
+                >
+                  <Box sx={{ display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', cursor: 'default' }}>
+                    <Box sx={{ width: `${perc.breakdown.positive}%`, bgcolor: SENTIMENT_COLORS.positive }} />
+                    <Box sx={{ width: `${perc.breakdown.neutral}%`, bgcolor: alpha(SENTIMENT_COLORS.neutral, 0.6) }} />
+                    <Box sx={{ width: `${perc.breakdown.negative}%`, bgcolor: SENTIMENT_COLORS.negative }} />
                   </Box>
-                );
-              })}
-            </Stack>
-          )}
-        </Box>
-      </Collapse>
-    </Card>
+                </Tooltip>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mt: 0.75 }}>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    {fNum(perc.postCount)} پست مرتبط
+                  </Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: perception.color }}>
+                    {perception.label}
+                  </Typography>
+                </Stack>
+              </>
+            );
+          } else {
+            perceptionBody = (
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                هنوز پست مرتبطی برای تحلیل جمع‌آوری نشده است.
+              </Typography>
+            );
+          }
+
+          return (
+            <Box
+              key={`${idx}-${promise.text}`}
+              sx={{
+                p: 2,
+                borderRadius: 1.5,
+                bgcolor: alpha(perception.tone, 0.05),
+                border: `1px solid ${alpha(perception.tone, 0.18)}`,
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <Stack direction="row" alignItems="flex-start" spacing={1.25} sx={{ mb: 1.5 }}>
+                <Iconify
+                  icon="solar:checklist-minimalistic-bold"
+                  width={18}
+                  sx={{ color: perception.color, flexShrink: 0, mt: 0.25 }}
+                />
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="body2" sx={{ lineHeight: 1.8, wordBreak: 'break-word' }}>
+                    {promise.text}
+                  </Typography>
+                  {addedAt && (
+                    <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mt: 0.5, color: 'text.secondary' }}>
+                      <Iconify icon="solar:calendar-linear" width={14} />
+                      <Typography variant="caption" sx={{ color: 'inherit' }}>
+                        ثبت: {fDateFa(addedAt)}
+                      </Typography>
+                    </Stack>
+                  )}
+                </Box>
+              </Stack>
+              <Box sx={{ mt: 'auto' }}>{perceptionBody}</Box>
+            </Box>
+          );
+        })}
+      </Box>
+    </WidgetCard>
   );
 }

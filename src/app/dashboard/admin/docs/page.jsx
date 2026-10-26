@@ -17,6 +17,8 @@ import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
 
 import { Iconify } from 'src/components/iconify';
 
+import { AdminPageHeader } from 'src/sections/admin/shared/page-header';
+
 // ----------------------------------------------------------------------
 
 const BACKEND_URL = CONFIG.serverUrl;
@@ -61,14 +63,14 @@ function DocCard({ doc, selected, compact, onSelect, onDownload }) {
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Stack direction="row" alignItems="center" spacing={0.75}>
             <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: compact ? 12 : 13 }}>{doc.title}</Typography>
-            <Chip label=".md" size="small" sx={{ height: 16, fontSize: 9, fontWeight: 700, bgcolor: alpha('#607D8B', 0.08), color: 'text.disabled' }} />
+            <Chip label=".md" size="small" variant="outlined" sx={{ height: 20, fontSize: 12, fontWeight: 700, direction: 'ltr' }} />
           </Stack>
-          {!compact && <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 11 }}>{doc.description}</Typography>}
+          {!compact && <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 12 }}>{doc.description}</Typography>}
         </Box>
         {!compact && (
           <Button size="small" variant="outlined"
-            startIcon={<Iconify icon="solar:download-bold" width={13} />}
-            sx={{ fontSize: 10, height: 26, flexShrink: 0, borderColor: alpha(doc.color, 0.3), color: doc.color }}
+            startIcon={<Iconify icon="solar:download-bold" width={16} />}
+            sx={{ fontSize: 12, flexShrink: 0, borderColor: alpha(doc.color, 0.3), color: doc.color }}
             onClick={(e) => { e.stopPropagation(); onDownload(); }}>
             دانلود
           </Button>
@@ -129,20 +131,20 @@ function PreviewPane({ item, onDownload }) {
         </Box>
         <Box sx={{ flex: 1 }}>
           <Typography variant="subtitle2" fontWeight={700}>{item.title}</Typography>
-          {item.description && <Typography variant="caption" color="text.secondary" sx={{ fontSize: 10 }}>{item.description}</Typography>}
+          {item.description && <Typography variant="caption" color="text.secondary" sx={{ fontSize: 12 }}>{item.description}</Typography>}
         </Box>
         <Stack direction="row" spacing={1}>
           {onDownload && (
             <Button size="small" variant="outlined"
-              startIcon={<Iconify icon="solar:download-bold" width={13} />}
-              sx={{ fontSize: 10, height: 28, borderColor: alpha(item.color, 0.3), color: item.color }}
+              startIcon={<Iconify icon="solar:download-bold" width={16} />}
+              sx={{ fontSize: 12, borderColor: alpha(item.color, 0.3), color: item.color }}
               onClick={onDownload}>
               دانلود
             </Button>
           )}
           <Button size="small" variant="outlined"
-            startIcon={<Iconify icon="solar:square-arrow-right-up-bold" width={13} />}
-            sx={{ fontSize: 10, height: 28 }}
+            startIcon={<Iconify icon="solar:arrow-right-up-bold" width={16} />}
+            sx={{ fontSize: 12 }}
             onClick={() => window.open(url, '_blank')}>
             باز کردن
           </Button>
@@ -173,10 +175,15 @@ export default function AdminDocsPage() {
   // ── Desktop two-pane ─────────────────────────────────────────────────────────
   if (desktopMode) {
     return (
-      <Box sx={{ display: 'flex', height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
-        {/* Left pane — document list */}
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+      <AdminPageHeader
+        title="مستندات فنی"
+        subtitle="مستندات قراردادی و فنی پروژه و راهنماهای کاربری — برای پیش‌نمایش روی هر سند کلیک کنید"
+      />
+      <Card sx={{ display: 'flex', height: 'calc(100vh - 240px)', minHeight: 480, overflow: 'hidden' }}>
+        {/* Side pane — document list */}
         <Box sx={{ width: 320, flexShrink: 0, borderLeft: '1px solid', borderColor: 'divider', overflow: 'auto', p: 2 }}>
-          <Typography variant="subtitle2" fontWeight={800} sx={{ color: 'text.secondary', textTransform: 'uppercase', fontSize: 10, letterSpacing: 1, mb: 1.5 }}>
+          <Typography variant="subtitle2" fontWeight={800} sx={{ color: 'text.secondary', textTransform: 'uppercase', fontSize: 12, letterSpacing: 1, mb: 1.5 }}>
             مستندات فنی
           </Typography>
           <Stack spacing={1} sx={{ mb: 2.5 }}>
@@ -194,7 +201,7 @@ export default function AdminDocsPage() {
 
           <Divider sx={{ mb: 2 }} />
 
-          <Typography variant="subtitle2" fontWeight={800} sx={{ color: 'text.secondary', textTransform: 'uppercase', fontSize: 10, letterSpacing: 1, mb: 1.5 }}>
+          <Typography variant="subtitle2" fontWeight={800} sx={{ color: 'text.secondary', textTransform: 'uppercase', fontSize: 12, letterSpacing: 1, mb: 1.5 }}>
             راهنماهای کاربری
           </Typography>
           <Stack spacing={1}>
@@ -217,22 +224,18 @@ export default function AdminDocsPage() {
             onDownload={selected && !selected.file.endsWith('.html') ? () => handleDownload(selected.file) : null}
           />
         </Box>
-      </Box>
+      </Card>
+      </Container>
     );
   }
 
   // ── Mobile single-column ─────────────────────────────────────────────────────
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
-      <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
-        <Box sx={{ width: 48, height: 48, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: alpha(theme.palette.primary.main, 0.12) }}>
-          <Iconify icon="solar:document-text-bold-duotone" width={28} sx={{ color: theme.palette.primary.main }} />
-        </Box>
-        <Box>
-          <Typography variant="h5" sx={{ fontWeight: 800 }}>مستندات فنی</Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>مستندات قراردادی و فنی پروژه — برای دانلود روی هر سند کلیک کنید</Typography>
-        </Box>
-      </Stack>
+    <Container maxWidth="lg" sx={{ py: { xs: 3, md: 4 } }}>
+      <AdminPageHeader
+        title="مستندات فنی"
+        subtitle="مستندات قراردادی و فنی پروژه — برای دانلود روی هر سند کلیک کنید"
+      />
 
       <Stack spacing={1.5}>
         {DOCS.map((doc) => (

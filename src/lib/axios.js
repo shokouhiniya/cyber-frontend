@@ -55,11 +55,39 @@ axiosInstance.interceptors.response.use(
     return response;
   },
   (error) => {
-    const message =
+    const status = error.response?.status;
+
+    // Expired or revoked session: send the user back to sign-in instead of
+    // leaving every widget in an error state. Sign-in itself returns 401 for
+    // wrong credentials, so it is excluded.
+    if (status === 401 && typeof window !== 'undefined' && !error.config?.url?.includes('/auth/sign-in')) {
+      try {
+        sessionStorage.removeItem('jwt_access_token');
+      } catch {
+        /* ignore */
+      }
+      if (!window.location.pathname.startsWith('/auth/')) {
+        const returnTo = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = `/auth/jwt/sign-in/?returnTo=${returnTo}`;
+      }
+    }
+
+    let message =
       error.response?.data?.error?.message ||
       error.response?.data?.message ||
       'خطایی رخ داده است';
-    return Promise.reject(message);
+
+    if (!error.response) {
+      // Network failure, CORS or proxy timeout — the request never got a reply
+      message = error.code === 'ECONNABORTED'
+        ? 'پاسخ سرور بیش از حد طول کشید. لطفاً دوباره تلاش کنید.'
+        : 'ارتباط با سرور برقرار نشد. اتصال اینترنت را بررسی کنید.';
+    } else if (status >= 500 && !error.response?.data?.error?.message) {
+      message = 'خطای داخلی سرور. لطفاً کمی بعد دوباره تلاش کنید.';
+    }
+
+    // Callers expect a plain string message
+    return Promise.reject(Array.isArray(message) ? message.join('، ') : message);
   }
 );
 
