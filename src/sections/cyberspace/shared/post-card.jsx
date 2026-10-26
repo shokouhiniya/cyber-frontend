@@ -113,7 +113,14 @@ const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://127.0.0.1:3000'
 // Social CDN links expire / refuse hot-linking, so they go through the backend
 // media cache (GET /api/media), which fetches each URL once and serves it from
 // disk. Must match MEDIA_HOST_ALLOWLIST in the backend media.service.ts.
-const CACHED_MEDIA_HOSTS = ['cdninstagram.com', 'fbcdn.net', 'twimg.com', 'telesco.pe', 'telegram.org', 'telegram-cdn.org', '8tag.ir'];
+// Must match MEDIA_HOST_ALLOWLIST in dashboard-backend/src/modules/media/media.service.ts
+const CACHED_MEDIA_HOSTS = [
+  'cdninstagram.com', 'fbcdn.net', 'twimg.com',
+  'telesco.pe', 'telegram.org', 'telegram-cdn.org',
+  'ble.ir', 'iranlms.ir',
+  'aparat.cloud', 'ytimg.com', 'ggpht.com', 'yt3.googleusercontent.com',
+  'virasty.com', 's3.adcore.ir', 'multimedia.hel1.your-objectstorage.com', '8tag.ir',
+];
 const MEDIA_PROXY_PREFIX = `${CONFIG.serverUrl}/api/media?url=`;
 
 function isCachedMediaHost(url) {
