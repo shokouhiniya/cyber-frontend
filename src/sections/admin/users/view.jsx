@@ -18,8 +18,8 @@ import Typography from '@mui/material/Typography';
 
 import { toFaDigits } from 'src/utils/format-number-fa';
 
+import { useAdminUsers, useDeactivateUser } from 'src/api/admin';
 import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
-import { useAdminUsers, useAdminProfiles, useDeactivateUser } from 'src/api/admin';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
@@ -27,6 +27,7 @@ import { Iconify } from 'src/components/iconify';
 import { UserFormDialog } from './user-form-dialog';
 import { AdminPageHeader } from '../shared/page-header';
 import { ResetPasswordDialog } from './reset-password-dialog';
+import { ROLE_LABELS, useUsersScope } from './use-users-scope';
 import {
   getErrorText,
   adminTableSx,
@@ -37,12 +38,6 @@ import {
 
 // ----------------------------------------------------------------------
 
-const ROLE_LABELS = {
-  super_admin: 'مدیرکل',
-  client_admin: 'مدیر کلاینت',
-  client_viewer: 'بازدیدکننده',
-};
-
 const ROLE_COLORS = {
   super_admin: 'error',
   client_admin: 'primary',
@@ -51,7 +46,7 @@ const ROLE_COLORS = {
 
 export function AdminUsersView() {
   const { data: users = [], isLoading } = useAdminUsers();
-  const { data: profiles = [] } = useAdminProfiles();
+  const { profiles, isSuperAdmin, isSelf } = useUsersScope();
   const deactivate = useDeactivateUser();
   const { desktopMode } = useAdminDesktopMode();
 
@@ -95,7 +90,8 @@ export function AdminUsersView() {
           icon: 'solar:user-block-bold',
           color: 'error',
           divider: true,
-          hidden: !u.isActive,
+          // The backend refuses self-deactivation for client admins
+          hidden: !u.isActive || (!isSuperAdmin && isSelf(u)),
           onClick: () => handleDeactivate(u),
         },
       ]}
@@ -178,11 +174,16 @@ export function AdminUsersView() {
     <Container maxWidth={desktopMode ? 'xl' : 'lg'} sx={{ py: { xs: 3, md: 4 } }}>
       <AdminPageHeader
         title="مدیریت کاربران"
-        subtitle={
+        subtitle={[
+          isSuperAdmin
+            ? 'حساب‌ها را ایجاد، به پروفایل‌ها متصل و رمز عبور را مدیریت کنید'
+            : 'کاربران سازمان خود و دسترسی آن‌ها به پروفایل‌هایتان را مدیریت کنید',
           users.length
-            ? `حساب‌ها را ایجاد، به پروفایل‌ها متصل و رمز عبور را مدیریت کنید · ${toFaDigits(users.length)} کاربر، ${toFaDigits(activeCount)} فعال`
-            : 'حساب‌ها را ایجاد، به پروفایل‌ها متصل و رمز عبور را مدیریت کنید.'
-        }
+            ? `${toFaDigits(users.length)} کاربر، ${toFaDigits(activeCount)} فعال`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')}
         action={
           <Button variant="contained" startIcon={<Iconify icon="eva:plus-fill" />} onClick={openNew}>
             کاربر جدید

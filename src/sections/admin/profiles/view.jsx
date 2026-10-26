@@ -134,7 +134,7 @@ function Sparkline({ data, color = '#1976d2', height = 32 }) {
 
 // ── Profile usage dialog ──────────────────────────────────────────────────────
 
-function ProfileUsageDialog({ profileId, profileName, open, onClose }) {
+export function ProfileUsageDialog({ profileId, profileName, open, onClose }) {
   const theme = useTheme();
   const { data: rows = [], isLoading } = useProfileUsage(open ? profileId : null);
 

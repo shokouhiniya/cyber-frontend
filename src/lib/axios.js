@@ -155,6 +155,7 @@ export const endpoints = {
   usageEvents: '/api/usage/events',
   adminUsage: {
     summary:          (qs) => `/api/admin/usage/summary${qs ? `?${qs}` : ''}`,
+    profilesRanking:  (qs) => `/api/admin/usage/profiles-ranking${qs ? `?${qs}` : ''}`,
     featuresRanking:  (qs) => `/api/admin/usage/features-ranking${qs ? `?${qs}` : ''}`,
     daily:            (qs) => `/api/admin/usage/daily${qs ? `?${qs}` : ''}`,
     byProfile:        (profileId, qs) => `/api/admin/usage/by-profile/${profileId}${qs ? `?${qs}` : ''}`,

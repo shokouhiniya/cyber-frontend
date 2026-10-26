@@ -20,11 +20,12 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
-import { useCreateUser, useUpdateUser, useAdminProfiles } from 'src/api/admin';
+import { useCreateUser, useUpdateUser } from 'src/api/admin';
 
 import { toast } from 'src/components/snackbar';
 
 import { getErrorText } from '../shared/admin-ui';
+import { useUsersScope } from './use-users-scope';
 
 // ----------------------------------------------------------------------
 
@@ -33,20 +34,16 @@ const EMPTY = {
   username: '',
   email: '',
   password: '',
-  role: 'client_admin',
+  role: 'client_viewer',
   organization: '',
   isActive: true,
   profileIds: [],
 };
 
-const ROLES = [
-  { value: 'super_admin', label: 'مدیرکل' },
-  { value: 'client_admin', label: 'مدیر کلاینت' },
-  { value: 'client_viewer', label: 'بازدیدکننده' },
-];
-
 export function UserFormDialog({ open, onClose, user }) {
-  const { data: profiles = [] } = useAdminProfiles();
+  const { profiles, roleOptions, canEditOrganization, isSuperAdmin, isSelf } = useUsersScope();
+  // client admins cannot change their own role (backend refuses it)
+  const roleLocked = !isSuperAdmin && isSelf(user);
 
   const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState(null);
@@ -81,16 +78,23 @@ export function UserFormDialog({ open, onClose, user }) {
   const submit = async () => {
     setError(null);
     try {
+      // Organisation is set by the backend for client admins
+      const { password, organization, ...rest } = form;
+      const body = canEditOrganization ? { ...rest, organization } : rest;
+      // An empty email fails the backend's @IsEmail; null means "no email"
+      body.email = body.email?.trim() || null;
+      if (roleLocked) delete body.role;
       if (user?.id) {
-        const { password, ...rest } = form;
-        await update.mutateAsync({ id: user.id, ...rest });
+        await update.mutateAsync({ id: user.id, ...body });
       } else {
-        await create.mutateAsync(form);
+        await create.mutateAsync({ ...body, password });
       }
       toast.success(user?.id ? 'تغییرات کاربر ذخیره شد' : 'کاربر جدید ایجاد شد');
       onClose();
     } catch (e) {
-      setError(getErrorText(e, 'خطا در ذخیره‌سازی'));
+      const msg = getErrorText(e, 'خطا در ذخیره‌سازی');
+      setError(msg);
+      toast.error(msg);
     }
   };
 
@@ -138,26 +142,28 @@ export function UserFormDialog({ open, onClose, user }) {
           )}
 
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <FormControl fullWidth>
+            <FormControl fullWidth disabled={roleLocked}>
               <InputLabel>نقش</InputLabel>
               <Select
                 value={form.role}
                 label="نقش"
                 onChange={(e) => set({ role: e.target.value })}
               >
-                {ROLES.map((r) => (
+                {roleOptions.map((r) => (
                   <MenuItem key={r.value} value={r.value}>
                     {r.label}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
-            <TextField
-              label="سازمان"
-              value={form.organization}
-              onChange={(e) => set({ organization: e.target.value })}
-              fullWidth
-            />
+            {canEditOrganization && (
+              <TextField
+                label="سازمان"
+                value={form.organization}
+                onChange={(e) => set({ organization: e.target.value })}
+                fullWidth
+              />
+            )}
           </Stack>
 
           {form.role !== 'super_admin' && (
@@ -186,7 +192,7 @@ export function UserFormDialog({ open, onClose, user }) {
             </FormControl>
           )}
 
-          {user?.id && (
+          {user?.id && !roleLocked && (
             <FormControlLabel
               control={
                 <Switch

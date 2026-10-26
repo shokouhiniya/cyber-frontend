@@ -28,6 +28,7 @@ export const paths = {
       root: `${ROOTS.DASHBOARD}/admin`,
       profiles: `${ROOTS.DASHBOARD}/admin/profiles`,
       users: `${ROOTS.DASHBOARD}/admin/users`,
+      usage: `${ROOTS.DASHBOARD}/admin/usage`,
       dataSources: `${ROOTS.DASHBOARD}/admin/data-sources`,
       globalContext: `${ROOTS.DASHBOARD}/admin/global-context`,
       auditLog: `${ROOTS.DASHBOARD}/admin/audit-log`,

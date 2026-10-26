@@ -107,14 +107,14 @@ export function MacroContext() {
 
   return (
     <WidgetCard
-      title="وضعیت کلان"
+      title="وضعیت کلان کشور"
       icon="solar:globe-bold-duotone"
       color="primary"
       tooltip={WIDGET_TOOLTIPS.macroContext}
       subheader={
         updatedAt
-          ? `بستر سیاسی-اجتماعی حاکم بر فضای رصد · به‌روزشده در ${formatExact(updatedAt)}`
-          : 'بستر سیاسی-اجتماعی حاکم بر فضای رصد'
+          ? `گزارش مشترک برای همه شخصیت‌ها · به‌روزشده در ${formatExact(updatedAt)}`
+          : 'گزارش مشترک برای همه شخصیت‌ها'
       }
       action={renderAction()}
       loading={isLoading}

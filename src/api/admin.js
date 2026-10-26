@@ -20,9 +20,10 @@ function sortByFamilyName(profiles) {
   });
 }
 
-export function useAdminProfiles() {
+export function useAdminProfiles({ enabled = true } = {}) {
   return useQuery({
     queryKey: ['admin', 'profiles'],
+    enabled,
     queryFn: async () => {
       const data = (await axios.get(endpoints.admin.profiles)).data;
       // Sort client-side as well — backend sorts by sort_name but this ensures
@@ -315,6 +316,13 @@ export function useUsageSummary(filters) {
   return useQuery({
     queryKey: ['admin', 'usage', 'summary', filters],
     queryFn: async () => (await axios.get(endpoints.adminUsage.summary(buildQs(filters)))).data,
+  });
+}
+
+export function useUsageProfilesRanking(filters) {
+  return useQuery({
+    queryKey: ['admin', 'usage', 'profiles', filters],
+    queryFn: async () => (await axios.get(endpoints.adminUsage.profilesRanking(buildQs(filters)))).data,
   });
 }
 
