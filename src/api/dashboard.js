@@ -96,12 +96,16 @@ export function useInfluencers(limit = 10) {
 
 // ----------------------------------------------------------------------
 
-export function useInfluencerMap(limit = 20) {
+export function useInfluencerMap(limit = 20, timeframe = 'all') {
   const profileId = useActiveProfileId();
   return useQuery({
-    queryKey: ['influencer-map', profileId, limit],
+    queryKey: ['influencer-map', profileId, limit, timeframe],
+    placeholderData: keepSameProfileData,
     queryFn: async () => {
-      const res = await axios.get(`${endpoints.influencers}/map?limit=${limit}`);
+      const params = new URLSearchParams({ limit: String(limit) });
+      const since = timeframeToSince(timeframe);
+      if (since) params.set('since', since);
+      const res = await axios.get(`${endpoints.influencers}/map?${params.toString()}`);
       return res.data;
     },
   });
@@ -239,12 +243,14 @@ export function useSourceStats(timeframe) {
 
 // ----------------------------------------------------------------------
 
-export function useUserDistribution() {
+export function useUserDistribution(timeframe = 'all') {
   const profileId = useActiveProfileId();
   return useQuery({
-    queryKey: ['user-distribution', profileId],
+    queryKey: ['user-distribution', profileId, timeframe],
+    placeholderData: keepSameProfileData,
     queryFn: async () => {
-      const res = await axios.get(endpoints.userDistribution);
+      const since = timeframeToSince(timeframe);
+      const res = await axios.get(endpoints.userDistribution, { params: since ? { since } : undefined });
       return res.data;
     },
   });
@@ -336,12 +342,30 @@ export function useOfficialPosts({ limit = 50, offset = 0, source } = {}) {
 
 // ----------------------------------------------------------------------
 
-export function usePromisePerception() {
+export function usePromisePerception(timeframe = 'all') {
   const profileId = useActiveProfileId();
   return useQuery({
-    queryKey: ['promise-perception', profileId],
+    queryKey: ['promise-perception', profileId, timeframe],
+    placeholderData: keepSameProfileData,
     queryFn: async () => {
-      const res = await axios.get('/api/stats/promise-perception');
+      const since = timeframeToSince(timeframe);
+      const res = await axios.get('/api/stats/promise-perception', { params: since ? { since } : undefined });
+      return res.data;
+    },
+    enabled: !!profileId,
+    staleTime: 10 * 60 * 1000,
+  });
+}
+
+// ----------------------------------------------------------------------
+
+/** Latest post date per official channel: [{ source, handle, lastPublishedAt, postCount }] */
+export function useOfficialStatus() {
+  const profileId = useActiveProfileId();
+  return useQuery({
+    queryKey: ['official-status', profileId],
+    queryFn: async () => {
+      const res = await axios.get('/api/posts/official/status');
       return res.data;
     },
     enabled: !!profileId,

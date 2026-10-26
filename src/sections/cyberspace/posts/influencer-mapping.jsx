@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+
 import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
@@ -15,14 +17,22 @@ import { Iconify } from 'src/components/iconify';
 import { SENTIMENT_COLORS } from 'src/components/chart';
 import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 
-import { WidgetCard } from '../shared/widget-card';
 import { getPlatform, PlatformIcon } from './platforms';
+import { WidgetCard, WidgetToggle } from '../shared/widget-card';
 
 // ----------------------------------------------------------------------
 
 const SUPPORTER_COLOR = SENTIMENT_COLORS.positive;
 const CRITIC_COLOR = SENTIMENT_COLORS.negative;
 const PER_SIDE = 8;
+
+const TIME_FILTERS = [
+  { value: '7d', label: '۷ روز' },
+  { value: '30d', label: '۳۰ روز' },
+  { value: 'all', label: 'همه' },
+];
+
+const TIMEFRAME_LABEL = { '7d': '۷ روز گذشته', '30d': '۳۰ روز گذشته', all: 'کل دوره' };
 
 function getProfileUrl(username, platform) {
   if (!platform.urlPrefix || !username) return null;
@@ -170,7 +180,8 @@ function StanceColumn({ title, icon, color, accounts, total, emptyText }) {
 // ----------------------------------------------------------------------
 
 export function InfluencerMapping() {
-  const { data: allAccounts = [], isLoading } = useInfluencerMap(40);
+  const [timeframe, setTimeframe] = useState('all');
+  const { data: allAccounts = [], isLoading } = useInfluencerMap(40, timeframe);
 
   // Only accounts with a clear stance (≥60% of analysed posts in one direction)
   const supporters = allAccounts.filter((a) => a.stance === 'supporter');
@@ -186,7 +197,8 @@ export function InfluencerMapping() {
       icon="solar:users-group-two-rounded-bold-duotone"
       color="warning"
       tooltip={WIDGET_TOOLTIPS.influencerMapping}
-      subheader="موافق: حسابی که دست‌کم ۶۰٪ پست‌های تحلیل‌شده‌اش مثبت است · مخالف: دست‌کم ۶۰٪ منفی"
+      subheader={`${TIMEFRAME_LABEL[timeframe]} · موافق: دست‌کم ۶۰٪ پست‌های تحلیل‌شده مثبت · مخالف: دست‌کم ۶۰٪ منفی`}
+      action={<WidgetToggle value={timeframe} onChange={setTimeframe} options={TIME_FILTERS} />}
       loading={isLoading}
       empty={!hasData}
       emptyIcon="solar:users-group-rounded-line-duotone"

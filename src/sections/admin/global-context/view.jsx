@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
@@ -27,6 +28,7 @@ import { alpha, useTheme } from '@mui/material/styles';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 
+import axios from 'src/lib/axios';
 import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
 import {
   useGlobalContext,
@@ -44,6 +46,7 @@ import { Iconify } from 'src/components/iconify';
 import { MacroRawContent, parseMacroValue } from 'src/sections/cyberspace/shared/macro-parsed-content';
 
 import { AdminPageHeader } from '../shared/page-header';
+import { BlockedAccountsCard } from './blocked-accounts-card';
 import { getErrorText, AdminListState, RowActionsMenu } from '../shared/admin-ui';
 
 // ----------------------------------------------------------------------
@@ -209,7 +212,7 @@ export function AdminGlobalContextView() {
       {tab === 1 && <ProfileContextsTab desktopMode={desktopMode} initialProfileId={searchParams?.get('profile') || ''} />}
 
       {/* Tab 2: Ingest settings */}
-      {tab === 2 && <IngestSettingsTab />}
+      {tab === 2 && (<><IngestSettingsTab /><BlockedAccountsCard /></>)}
 
       <ContextDialog
         value={dialog}
@@ -400,9 +403,78 @@ const RANGE_OPTIONS = [
   { value: 'month', label: 'ماه گذشته' },
 ];
 
+// Effective schedule as registered on the server (Asia/Tehran). Reading it also
+// makes the server re-sync its cron jobs with the saved settings.
+const SCHEDULE_QUERY_KEY = ['admin', 'ingest-schedule'];
+function useIngestSchedule() {
+  return useQuery({
+    queryKey: SCHEDULE_QUERY_KEY,
+    queryFn: async () => (await axios.get('/api/admin/ingest/schedule')).data,
+    staleTime: 60 * 1000,
+  });
+}
+
+const fRunTime = (iso) =>
+  new Date(iso).toLocaleString('fa-IR', {
+    timeZone: 'Asia/Tehran',
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+function TierScheduleInfo({ entry, dirty, enabled }) {
+  if (!entry) return null;
+  return (
+    <Box
+      sx={{
+        p: 1.25,
+        borderRadius: 1,
+        bgcolor: (th) => alpha(th.palette.grey[500], 0.08),
+        opacity: enabled ? 1 : 0.6,
+      }}
+    >
+      <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 0.5 }}>
+        <Iconify icon="solar:clock-circle-bold" width={16} sx={{ color: 'text.secondary', flexShrink: 0 }} />
+        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+          {entry.description}
+        </Typography>
+      </Stack>
+      {entry.error && (
+        <Typography variant="caption" component="p" sx={{ color: 'error.main', mb: 0.5 }}>
+          {entry.error}
+        </Typography>
+      )}
+      {dirty ? (
+        <Typography variant="caption" sx={{ color: 'info.main' }}>
+          زمان‌بندی تغییر کرده است؛ پس از ذخیره اعمال می‌شود.
+        </Typography>
+      ) : enabled ? (
+        <Stack spacing={0.25}>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            اجراهای بعدی (به وقت تهران):
+          </Typography>
+          {entry.nextRuns.map((iso) => (
+            <Typography key={iso} variant="caption" sx={{ color: 'text.primary' }}>
+              {fRunTime(iso)}
+            </Typography>
+          ))}
+        </Stack>
+      ) : (
+        <Typography variant="caption" sx={{ color: 'warning.main' }}>
+          جمع‌آوری خودکار متوقف است؛ اجرایی انجام نمی‌شود.
+        </Typography>
+      )}
+    </Box>
+  );
+}
+
 function IngestSettingsTab() {
   const theme = useTheme();
+  const queryClient = useQueryClient();
   const { data: settings, isLoading } = useIngestSettings();
+  const { data: schedule } = useIngestSchedule();
   const save = useSaveIngestSettings();
 
   const DEFAULT = {
@@ -434,6 +506,8 @@ function IngestSettingsTab() {
   const handleSave = async () => {
     try {
       await save.mutateAsync(form);
+      // Re-reading the schedule re-registers the cron jobs on the server
+      queryClient.invalidateQueries({ queryKey: SCHEDULE_QUERY_KEY });
       toast.success('تنظیمات جمع‌آوری ذخیره شد');
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -555,16 +629,14 @@ function IngestSettingsTab() {
                   onChange={(e) => setTier(tier, { cron: e.target.value })}
                   size="small"
                   placeholder="0 0,6,12,18 * * *"
-                  helperText={t.description || 'فرمت: دقیقه ساعت روز ماه روزهفته'}
+                  helperText="فرمت: دقیقه ساعت روز‌ماه ماه روز‌هفته — به وقت تهران"
                   sx={{ '& .MuiInputBase-root': { fontFamily: 'monospace', direction: 'ltr', fontSize: 12 } }}
                 />
 
-                <TextField
-                  label="توضیح زمان‌بندی"
-                  value={t.description ?? ''}
-                  onChange={(e) => setTier(tier, { description: e.target.value })}
-                  size="small"
-                  placeholder="مثال: هر ۶ ساعت"
+                <TierScheduleInfo
+                  entry={schedule?.tiers?.find((s) => s.tier === tier)}
+                  dirty={(t.cron ?? '').trim() !== (settings?.[tier]?.cron ?? '').trim()}
+                  enabled={schedule ? schedule.automaticCollectionEnabled : savedAutoEnabled}
                 />
               </Stack>
             </Card>
@@ -592,7 +664,7 @@ function IngestSettingsTab() {
             onChange={(e) => setGlobal({ retentionDays: parseInt(e.target.value) || 90 })}
             size="small"
             inputProps={{ min: 7, max: 365 }}
-            helperText="پست‌های قدیمی‌تر از این تعداد روز حذف می‌شوند"
+            helperText="پست‌ها، اجراها و کش تحلیل‌های قدیمی‌تر از این تعداد روز حذف می‌شوند (پاک‌سازی هفتگی، یکشنبه‌ها ساعت ۰۲:۰۰)"
           />
         </Box>
       </Card>
@@ -609,8 +681,8 @@ function IngestSettingsTab() {
         </Button>
       </Stack>
 
-      <Alert severity="warning" sx={{ mt: 2 }}>
-        تغییر زمان‌بندی Cron نیاز به ری‌استارت سرور دارد. تغییرات سایر تنظیمات بلافاصله اعمال می‌شوند.
+      <Alert severity="info" sx={{ mt: 2 }}>
+        تغییرات پس از ذخیره بلافاصله اعمال می‌شوند و نیازی به راه‌اندازی مجدد سرور نیست. همه زمان‌بندی‌ها به وقت تهران هستند.
       </Alert>
     </Box>
   );

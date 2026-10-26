@@ -72,6 +72,9 @@ const PERIOD_SECTIONS = [
   'خلاصه پلتفرم‌ها',
   'هشتگ‌ها و واژگان پرتکرار',
   'پربازدیدترین، پربحث‌ترین و پرتکرارترین پست‌ها',
+  'موافقان و مخالفان برتر',
+  'تفکیک کاربران',
+  'رصد وعده‌ها',
 ];
 
 const DAILY_SECTIONS = [
@@ -80,9 +83,6 @@ const DAILY_SECTIONS = [
   'طیف سیاسی و تحلیل شکاف روایت',
   'پیشنهادات واکنش هوشمند',
 ];
-
-// The backend endpoints for these don't accept `since` yet.
-const ALL_TIME_SECTIONS = ['موافقان و مخالفان برتر', 'تفکیک کاربران', 'رصد وعده‌ها'];
 
 function getSince(reportId) {
   const hours = PERIOD_HOURS[reportId];
@@ -104,15 +104,15 @@ async function fetchReportData(reportId) {
     axios.get(`/api/stats/top-posts?limit=10${sinceParam}`),
     axios.get(`/api/stats/top-commented?limit=8${sinceParam}`),
     axios.get(`/api/stats/top-forwarded?limit=8${sinceParam}`),
-    axios.get('/api/influencers/map?limit=30'), // all-time stance data
+    axios.get(`/api/influencers/map?limit=30${sinceParam}`),
     axios.get(`/api/stats/sources${sinceQuery}`),
     isDaily ? axios.get('/api/ai-content/generate?section=ai_summary') : Promise.resolve(null),
     isDaily ? axios.get('/api/stats/crisis') : Promise.resolve(null), // crisis is real-time
     axios.get(`/api/stats/hashtags?limit=20${sinceParam}`),
-    axios.get('/api/stats/promise-perception'), // all-time
+    axios.get(`/api/stats/promise-perception${sinceQuery}`),
     axios.get('/api/admin/ingest/macro-context'),
     isDaily ? axios.get('/api/ai-content/generate?section=recommendations') : Promise.resolve(null),
-    axios.get('/api/stats/user-distribution'), // all-time
+    axios.get(`/api/stats/user-distribution${sinceQuery}`),
     isDaily ? axios.get('/api/ai-content/generate?section=political_spectrum') : Promise.resolve(null),
     isDaily ? axios.get('/api/ai-content/generate?section=narrative_gap') : Promise.resolve(null),
   ];
@@ -307,13 +307,13 @@ function ReportContents() {
       title="محتوای گزارش‌ها"
       icon="solar:checklist-bold-duotone"
       color="info"
-      subheader="کدام بخش‌ها از بازه گزارش پیروی می‌کنند و کدام کل دوره را نشان می‌دهند"
+      subheader="کدام بخش‌ها در هر گزارش آمده‌اند"
     >
       <Box
         sx={{
           display: 'grid',
           gap: 3,
-          gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' },
+          gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
         }}
       >
         <SectionList
@@ -330,20 +330,13 @@ function ReportContents() {
           color="primary"
           icon="solar:star-bold"
         />
-        <SectionList
-          title="کل دوره"
-          caption="مستقل از بازه"
-          items={ALL_TIME_SECTIONS}
-          color="warning"
-          icon="solar:history-bold"
-        />
       </Box>
 
       <Divider sx={{ my: 2.5, borderStyle: 'dashed' }} />
 
       <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.8 }}>
-        بخش‌های «کل دوره» در فایل PDF هم با همین برچسب مشخص شده‌اند و با تغییر بازه گزارش تغییر
-        نمی‌کنند. وضعیت کلان همیشه مربوط به امروز است.
+        همه بخش‌های جدول‌ها و آمار فقط پست‌های منتشرشده در بازه گزارش را در نظر می‌گیرند. رادار بحران
+        لحظه‌ای است و وضعیت کلان همیشه مربوط به امروز است.
       </Typography>
     </WidgetCard>
   );

@@ -25,6 +25,7 @@ import { ProfileSwitcher } from '../components/profile-switcher';
 import { navData as dashboardNavData } from '../nav-config-dashboard';
 import { dashboardLayoutVars, dashboardNavColorVars } from './css-vars';
 import { IngestRefreshButton } from '../components/ingest-refresh-button';
+import { NotificationsPopover } from '../components/notifications-popover';
 import { MainSection , layoutClasses , HeaderSection , LayoutSection } from '../core';
 
 // ----------------------------------------------------------------------
@@ -122,9 +123,12 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
         </>
       ),
       rightArea: (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0, sm: 0.75 } }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 0.75 }, minWidth: 0 }}>
           {/** @slot Ingest refresh */}
           <IngestRefreshButton />
+
+          {/** @slot Notifications */}
+          <NotificationsPopover />
 
           {/** @slot Dark mode toggle */}
           <Tooltip title={isDark ? 'حالت روشن' : 'حالت تاریک'}>
@@ -148,7 +152,7 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
           </Tooltip>
 
           {/** @slot Profile switcher */}
-          <ProfileSwitcher sx={{ mr: { xs: 0.5, sm: 1 } }} />
+          <ProfileSwitcher sx={{ mr: { xs: 0, sm: 1 } }} />
         </Box>
       ),
     };

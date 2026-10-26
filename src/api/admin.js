@@ -8,9 +8,12 @@ import axios, { endpoints } from 'src/lib/axios';
 // Profiles
 // --------------------------------------------------------------------
 
-// Helper: sort profiles by sort_name (family name), falling back to last word of name
+// Helper: sort profiles by priority (higher first), then sort_name (family name),
+// falling back to last word of name
 function sortByFamilyName(profiles) {
   return [...profiles].sort((a, b) => {
+    const byPriority = (b.priority ?? 0) - (a.priority ?? 0);
+    if (byPriority) return byPriority;
     const ka = a.sortName || (a.name || '').split(/\s+/).pop() || '';
     const kb = b.sortName || (b.name || '').split(/\s+/).pop() || '';
     return ka.localeCompare(kb, 'fa');
@@ -51,6 +54,33 @@ export function useUpdateProfile() {
     mutationFn: async ({ id, ...body }) =>
       (await axios.patch(endpoints.admin.profile(id), body)).data,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'profiles'] }),
+  });
+}
+
+/** Multipart upload (field `file`) — jpg/png/webp, max 2 MB. Resolves to { id, avatar }. */
+export function useUploadProfileAvatar() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, file }) => {
+      const body = new FormData();
+      body.append('file', file);
+      return (await axios.post(`${endpoints.admin.profile(id)}/avatar`, body)).data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'profiles'] });
+      qc.invalidateQueries({ queryKey: ['accessible-profiles'] });
+    },
+  });
+}
+
+export function useRemoveProfileAvatar() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id) => (await axios.delete(`${endpoints.admin.profile(id)}/avatar`)).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'profiles'] });
+      qc.invalidateQueries({ queryKey: ['accessible-profiles'] });
+    },
   });
 }
 

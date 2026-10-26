@@ -26,9 +26,19 @@ import { alpha, useTheme } from '@mui/material/styles';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import CircularProgress from '@mui/material/CircularProgress';
+
+import { fNum } from 'src/utils/format-number-fa';
 
 import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
-import { useAdminUsers, useUpdateUser, useCreateProfile, useUpdateProfile } from 'src/api/admin';
+import {
+  useAdminUsers,
+  useUpdateUser,
+  useCreateProfile,
+  useUpdateProfile,
+  useUploadProfileAvatar,
+  useRemoveProfileAvatar,
+} from 'src/api/admin';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
@@ -69,6 +79,16 @@ const SOURCE_DEFAULTS = [
   { key: 'forum',     label: 'فروم',              quota: 4,  icon: 'solar:chat-square-bold-duotone',       color: '#795548' },
   { key: 'eitaa',     label: 'ایتا',              quota: 0,  icon: 'solar:chat-line-bold',                 color: '#F57C00' },
 ];
+
+// Higher first in every profile list. Stored as an integer (migration 016).
+const PRIORITY_OPTIONS = [
+  { value: 100, label: 'ویژه', desc: 'همیشه بالای فهرست', icon: 'solar:star-bold', color: 'warning.main' },
+  { value: 50,  label: 'بالا', desc: 'پس از ویژه‌ها',      icon: 'solar:star-bold-duotone', color: 'info.main' },
+  { value: 0,   label: 'عادی', desc: 'ترتیب الفبایی',      icon: 'solar:star-bold-duotone', color: 'text.disabled' },
+];
+
+const AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
 
 const TIER_OPTIONS = [
   { value: 'heavy',  label: 'سنگین (Heavy)',  desc: '>۱۰k پست/روز — ۴ بار در روز', color: '#E03131' },
@@ -367,10 +387,14 @@ export function ProfileFormDialog({ open, onClose, profile, mode = 'admin' }) {
   const [form, setForm] = useState({ name:'',sortName:'',role:'',organization:'',avatar:'',keywords:[],excludedKeywords:[],sortCriteria:'recent',primaryColor:'#1e6091',isActive:true,officialChannels:[],tier:'medium',dailyAvgPosts:null,sourceWeights:{},hiddenWidgets:[] });
   const [error, setError] = useState(null);
   const [showWeights, setShowWeights] = useState(false);
+  const [pendingAvatar, setPendingAvatar] = useState(null);
+  const [pendingPreview, setPendingPreview] = useState(null);
 
   const isAdminMode = mode === 'admin';
   const create = useCreateProfile();
   const update = useUpdateProfile();
+  const uploadAvatar = useUploadProfileAvatar();
+  const removeAvatar = useRemoveProfileAvatar();
   const { data: allUsers = [] } = useAdminUsers();
   const linkedUsers = profile?.id ? allUsers.filter((u) => u.profileIds?.includes(profile.id)) : [];
 
@@ -378,9 +402,14 @@ export function ProfileFormDialog({ open, onClose, profile, mode = 'admin' }) {
     if (open) {
       setError(null);
       setShowWeights(false);
+      setPendingAvatar(null);
+      setPendingPreview(null);
       setForm(profile ? { name:'',sortName:'',role:'',organization:'',avatar:'',keywords:[],excludedKeywords:[],sortCriteria:'recent',primaryColor:'#1e6091',isActive:true,officialChannels:[],tier:'medium',dailyAvgPosts:null,sourceWeights:{},hiddenWidgets:[], ...profile } : { name:'',sortName:'',role:'',organization:'',avatar:'',keywords:[],excludedKeywords:[],sortCriteria:'recent',primaryColor:'#1e6091',isActive:true,officialChannels:[],tier:'medium',dailyAvgPosts:null,sourceWeights:{},hiddenWidgets:[] });
     }
   }, [open, profile]);
+
+  // Release the object URL used for a not-yet-uploaded avatar preview.
+  useEffect(() => () => { if (pendingPreview) URL.revokeObjectURL(pendingPreview); }, [pendingPreview]);
 
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
 
@@ -388,40 +417,86 @@ export function ProfileFormDialog({ open, onClose, profile, mode = 'admin' }) {
     setError(null);
     try {
       if (profile?.id) { await update.mutateAsync({ id: profile.id, ...form }); }
-      else { await create.mutateAsync(form); }
+      else {
+        const created = await create.mutateAsync(form);
+        if (pendingAvatar && created?.id) {
+          try { await uploadAvatar.mutateAsync({ id: created.id, file: pendingAvatar }); }
+          catch (e) { toast.error(getErrorText(e, 'پروفایل ایجاد شد ولی بارگذاری تصویر ناموفق بود')); }
+        }
+      }
       toast.success(profile?.id ? 'پروفایل ذخیره شد' : 'پروفایل جدید ایجاد شد');
       onClose();
     } catch (e) { setError(getErrorText(e, 'خطا در ذخیره‌سازی')); }
   };
 
-  const submitting = create.isPending || update.isPending;
+  const submitting = create.isPending || update.isPending || uploadAvatar.isPending;
   const tierConfig = TIER_OPTIONS.find((t) => t.value === form.tier) || TIER_OPTIONS[1];
 
   // ── Avatar upload ──────────────────────────────────────────────────────────
+  // Existing profiles upload immediately (POST /admin/profiles/:id/avatar); new
+  // profiles keep the file until the profile is created.
+  const avatarSrc = pendingPreview || form.avatar || undefined;
+  const hasAvatar = Boolean(pendingPreview || form.avatar);
+  const avatarBusy = uploadAvatar.isPending || removeAvatar.isPending;
+
+  const handleAvatarPick = async (file) => {
+    if (!file) return;
+    if (!AVATAR_TYPES.includes(file.type)) { toast.error('فقط تصاویر JPG، PNG یا WEBP مجاز است'); return; }
+    if (file.size > AVATAR_MAX_BYTES) { toast.error('حجم تصویر باید حداکثر ۲ مگابایت باشد'); return; }
+    if (!profile?.id) {
+      setPendingAvatar(file);
+      setPendingPreview(URL.createObjectURL(file));
+      return;
+    }
+    try {
+      const res = await uploadAvatar.mutateAsync({ id: profile.id, file });
+      set({ avatar: res?.avatar ?? '' });
+      toast.success('تصویر پروفایل به‌روزرسانی شد');
+    } catch (e) { toast.error(getErrorText(e, 'خطا در بارگذاری تصویر')); }
+  };
+
+  const handleAvatarRemove = async () => {
+    if (pendingAvatar) { setPendingAvatar(null); setPendingPreview(null); return; }
+    if (!profile?.id) { set({ avatar: '' }); return; }
+    try {
+      await removeAvatar.mutateAsync(profile.id);
+      set({ avatar: '' });
+      toast.success('تصویر پروفایل حذف شد');
+    } catch (e) { toast.error(getErrorText(e, 'خطا در حذف تصویر')); }
+  };
+
   const avatarUpload = (
-    <Box sx={{ position: 'relative', flexShrink: 0 }}>
-      <Avatar src={form.avatar} sx={{ width: 56, height: 56, bgcolor: form.primaryColor || 'primary.main', fontSize: 22, fontWeight: 700 }}>{form.name?.charAt(0)}</Avatar>
-      <Box component="label" htmlFor="avatar-upload" sx={{ position: 'absolute', inset: 0, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(0,0,0,0.45)', opacity: 0, cursor: 'pointer', transition: 'opacity 0.2s', '&:hover': { opacity: 1 } }}>
-        <Iconify icon="solar:camera-bold" width={20} sx={{ color: '#fff' }} />
+    <Stack spacing={1} alignItems="center" sx={{ flexShrink: 0, width: 104 }}>
+      <Box sx={{ position: 'relative' }}>
+        <Avatar src={avatarSrc} alt={form.name} sx={{ width: 88, height: 88, color: 'common.white', bgcolor: form.primaryColor || 'primary.main', fontSize: 32, fontWeight: 700 }}>{form.name?.charAt(0)}</Avatar>
+        <Box component="label" htmlFor="avatar-upload" sx={{ position: 'absolute', inset: 0, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(0,0,0,0.45)', opacity: avatarBusy ? 1 : 0, cursor: avatarBusy ? 'wait' : 'pointer', transition: 'opacity 0.2s', '&:hover': { opacity: 1 } }}>
+          {avatarBusy ? <CircularProgress size={22} sx={{ color: '#fff' }} /> : <Iconify icon="solar:camera-add-bold" width={24} sx={{ color: '#fff' }} />}
+        </Box>
+        <input id="avatar-upload" type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }} disabled={avatarBusy}
+          onChange={(e) => { handleAvatarPick(e.target.files?.[0]); e.target.value = ''; }}
+        />
       </Box>
-      <input id="avatar-upload" type="file" accept="image/*" style={{ display: 'none' }}
-        onChange={(e) => {
-          const file = e.target.files?.[0]; if (!file) return;
-          const reader = new FileReader();
-          reader.onload = (ev) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const MAX = 200; const ratio = Math.min(MAX / img.width, MAX / img.height, 1); canvas.width = img.width * ratio; canvas.height = img.height * ratio; canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); set({ avatar: canvas.toDataURL('image/jpeg', 0.85) }); }; img.src = ev.target.result; };
-          reader.readAsDataURL(file); e.target.value = '';
-        }}
-      />
-    </Box>
+      {hasAvatar && (
+        <Button size="small" color="error" variant="text" disabled={avatarBusy} onClick={handleAvatarRemove}
+          startIcon={<Iconify icon="solar:trash-bin-trash-bold" width={16} />} sx={{ fontSize: 12 }}>
+          حذف تصویر
+        </Button>
+      )}
+    </Stack>
   );
 
   // ── Identity section ───────────────────────────────────────────────────────
   const identitySection = (
     <Stack spacing={2}>
       {desktopMode && <Typography variant="subtitle2" fontWeight={800} sx={{ color: 'text.secondary', textTransform: 'uppercase', fontSize: 12, letterSpacing: 1 }}>هویت</Typography>}
-      <Stack direction="row" spacing={2} alignItems="flex-start">
+      <Stack direction="row" spacing={2} alignItems="center">
         {avatarUpload}
-        <TextField label="آدرس تصویر (URL)" value={form.avatar?.startsWith('data:') ? '' : (form.avatar ?? '')} onChange={(e) => set({ avatar: e.target.value })} fullWidth size="small" placeholder="https://..." helperText={form.avatar?.startsWith('data:') ? 'تصویر آپلود شده' : 'یا روی تصویر کلیک کنید'} />
+        <Stack spacing={2} sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            برای کیفیت بهتر، تصویر مربعی با عرض حداقل ۴۰۰ پیکسل بارگذاری کنید (JPG، PNG یا WEBP — حداکثر ۲ مگابایت).
+          </Typography>
+          <TextField label="یا آدرس تصویر (URL)" value={pendingPreview || form.avatar?.startsWith('data:') ? '' : (form.avatar ?? '')} onChange={(e) => set({ avatar: e.target.value })} fullWidth size="small" placeholder="https://..." disabled={Boolean(pendingPreview)} helperText={form.avatar?.startsWith('data:') ? 'تصویر قدیمی (کم‌کیفیت) — برای بهبود، تصویر جدید بارگذاری کنید' : undefined} />
+        </Stack>
       </Stack>
       <TextField label="نام" value={form.name} onChange={(e) => set({ name: e.target.value })} fullWidth required size="small" />
       {isAdminMode && <TextField label="نام خانوادگی (مرتب‌سازی)" value={form.sortName ?? ''} onChange={(e) => set({ sortName: e.target.value })} fullWidth size="small" placeholder="مثال: قالیباف" helperText="اگر خالی باشد آخرین کلمه نام استفاده می‌شود" />}
@@ -434,6 +509,25 @@ export function ProfileFormDialog({ open, onClose, profile, mode = 'admin' }) {
         <Box sx={{ width: 32, height: 32, borderRadius: 1, flexShrink: 0, bgcolor: form.primaryColor || 'transparent', border: '1px solid', borderColor: 'divider' }} />
       </Stack>
       {isAdminMode && <FormControlLabel control={<Switch checked={!!form.isActive} onChange={(e) => set({ isActive: e.target.checked })} size="small" />} label="فعال" />}
+      {isAdminMode && (
+        <FormControl size="small" fullWidth>
+          <InputLabel>اولویت</InputLabel>
+          <Select value={form.priority ?? 0} label="اولویت" onChange={(e) => set({ priority: Number(e.target.value) })}>
+            {PRIORITY_OPTIONS.map((o) => (
+              <MenuItem key={o.value} value={o.value}>
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Iconify icon={o.icon} width={16} sx={{ color: o.color }} />
+                  <Typography variant="body2" fontWeight={600}>{o.label}</Typography>
+                  <Typography variant="caption" color="text.disabled">{o.desc}</Typography>
+                </Stack>
+              </MenuItem>
+            ))}
+            {!PRIORITY_OPTIONS.some((o) => o.value === (form.priority ?? 0)) && (
+              <MenuItem value={form.priority}>سفارشی ({fNum(form.priority)})</MenuItem>
+            )}
+          </Select>
+        </FormControl>
+      )}
       {isAdminMode && (
         <Stack direction="row" spacing={2} alignItems="center">
           <FormControl size="small" sx={{ minWidth: 160 }}>

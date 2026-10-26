@@ -108,7 +108,7 @@ export function CrisisRadar({ loading: parentLoading }) {
       icon={crisis.icon}
       color={crisis.color}
       tooltip={WIDGET_TOOLTIPS.crisisRadar}
-      subheader="مقایسه ۷ روز اخیر با میانگین همیشگی · ۵۰ = عادی"
+      subheader="۷ روز اخیر در برابر ۴ هفته قبل · ۵۰ = عادی"
       loading={parentLoading || isLoading}
       empty={!dims.length}
       emptyText="داده کافی برای محاسبه رادار وجود ندارد."

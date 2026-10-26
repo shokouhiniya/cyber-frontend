@@ -7,9 +7,6 @@ import { fShort, toFaDigits } from 'src/utils/format-number-fa';
 
 const fmtNum = (n) => (n ? fShort(n) : '۰');
 
-// Marks sections whose data ignores the report period (backend has no `since` for them yet)
-const ALL_TIME = ' <span style="font-weight:400;color:#919EAB;">(کل دوره)</span>';
-
 const today = () => new Date().toLocaleDateString('fa-IR', { year: 'numeric', month: 'long', day: 'numeric' });
 
 const PERIOD_LABELS = { daily: '۲۴ ساعت گذشته', weekly: '۷ روز گذشته', monthly: '۳۰ روز گذشته', quarterly: '۹۰ روز گذشته' };
@@ -209,13 +206,13 @@ export function buildReportHtml(period, data) {
 
       ${kwHtml ? `<div class="sec"><div class="sec-t">ابر واژگان هوشمند</div><div class="kw-cloud">${kwHtml}</div></div>` : ''}
 
-      ${supporters.length > 0 ? `<div class="sec"><div class="sec-t">موافقان برتر${ALL_TIME}</div><table class="tbl"><tr><th style="width:20px;">#</th><th>حساب</th><th>پلتفرم</th><th>بازدید</th></tr>${supporters.map(infRow).join('')}</table></div>` : ''}
+      ${supporters.length > 0 ? `<div class="sec"><div class="sec-t">موافقان برتر</div><table class="tbl"><tr><th style="width:20px;">#</th><th>حساب</th><th>پلتفرم</th><th>بازدید</th></tr>${supporters.map(infRow).join('')}</table></div>` : ''}
 
-      ${critics.length > 0 ? `<div class="sec"><div class="sec-t">مخالفان برتر${ALL_TIME}</div><table class="tbl"><tr><th style="width:20px;">#</th><th>حساب</th><th>پلتفرم</th><th>بازدید</th></tr>${critics.map(infRow).join('')}</table></div>` : ''}
+      ${critics.length > 0 ? `<div class="sec"><div class="sec-t">مخالفان برتر</div><table class="tbl"><tr><th style="width:20px;">#</th><th>حساب</th><th>پلتفرم</th><th>بازدید</th></tr>${critics.map(infRow).join('')}</table></div>` : ''}
 
-      ${ud.total > 0 ? `<div class="sec"><div class="sec-t">تفکیک کاربران${ALL_TIME}</div><div style="display:flex;gap:8px;"><div class="st" style="flex:1;"><div class="v">${toFaDigits(ud.influencerPercent || 0)}٪</div><div class="l">تأثیرگذار</div></div><div class="st" style="flex:1;"><div class="v">${toFaDigits(ud.regularPercent || 0)}٪</div><div class="l">عادی</div></div><div class="st" style="flex:1;"><div class="v">${toFaDigits(ud.suspiciousPercent || 0)}٪</div><div class="l">مشکوک</div></div></div></div>` : ''}
+      ${ud.total > 0 ? `<div class="sec"><div class="sec-t">تفکیک کاربران</div><div style="display:flex;gap:8px;"><div class="st" style="flex:1;"><div class="v">${toFaDigits(ud.influencerPercent || 0)}٪</div><div class="l">تأثیرگذار</div></div><div class="st" style="flex:1;"><div class="v">${toFaDigits(ud.regularPercent || 0)}٪</div><div class="l">عادی</div></div><div class="st" style="flex:1;"><div class="v">${toFaDigits(ud.suspiciousPercent || 0)}٪</div><div class="l">مشکوک</div></div></div></div>` : ''}
 
-      ${promiseHtml ? `<div class="sec"><div class="sec-t">رصد وعده‌ها${ALL_TIME}</div>${promiseHtml}</div>` : ''}
+      ${promiseHtml ? `<div class="sec"><div class="sec-t">رصد وعده‌ها</div>${promiseHtml}</div>` : ''}
 
       ${period === 'daily' && gapHtml ? `<div class="sec"><div class="sec-t">تحلیل شکاف روایت</div>${gapHtml}</div>` : ''}
 

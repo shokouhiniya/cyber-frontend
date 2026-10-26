@@ -19,6 +19,7 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 
 import { fNum, fShort, toFaDigits, fRelativeFa } from 'src/utils/format-number-fa';
 
+import { CONFIG } from 'src/global-config';
 import { useProfile } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
@@ -109,10 +110,36 @@ const CUSTOM_SVG_ICONS = {
 
 const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://127.0.0.1:3000';
 
+// Social CDN links expire / refuse hot-linking, so they go through the backend
+// media cache (GET /api/media), which fetches each URL once and serves it from
+// disk. Must match MEDIA_HOST_ALLOWLIST in the backend media.service.ts.
+const CACHED_MEDIA_HOSTS = ['cdninstagram.com', 'fbcdn.net', 'twimg.com', 'telesco.pe', 'telegram.org', 'telegram-cdn.org', '8tag.ir'];
+const MEDIA_PROXY_PREFIX = `${CONFIG.serverUrl}/api/media?url=`;
+
+function isCachedMediaHost(url) {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return CACHED_MEDIA_HOSTS.some((d) => host === d || host.endsWith(`.${d}`));
+  } catch {
+    return false;
+  }
+}
+
 export function getMediaUrl(url) {
   if (!url) return null;
   if (url.startsWith('/static/')) return `${SERVER_URL}${url}`;
+  if (isCachedMediaHost(url)) return `${MEDIA_PROXY_PREFIX}${encodeURIComponent(url)}`;
   return url;
+}
+
+/** The original CDN URL behind a media-cache URL (for extension checks). */
+function sourceMediaUrl(url) {
+  if (!url?.startsWith(MEDIA_PROXY_PREFIX)) return url;
+  try {
+    return decodeURIComponent(url.slice(MEDIA_PROXY_PREFIX.length));
+  } catch {
+    return url;
+  }
 }
 
 /**
@@ -178,7 +205,7 @@ function useMediaFallback(src) {
   return [failed, onError];
 }
 
-const isVideoUrl = (url) => !!url && /\.(mp4|webm|mov)(\?|#|$)/i.test(url);
+const isVideoUrl = (url) => !!url && /\.(mp4|webm|mov)(\?|#|$)/i.test(sourceMediaUrl(url));
 
 function PostAvatar({ src, name, size = 36 }) {
   const theme = useTheme();

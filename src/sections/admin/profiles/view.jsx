@@ -60,6 +60,7 @@ const fDateTime = (dt) =>
 // ----------------------------------------------------------------------
 
 const SORT_OPTIONS = [
+  { value: 'priority',     label: 'اولویت (مهم‌ترها اول)' },
   { value: 'name_asc',     label: 'نام (الف تا ی)' },
   { value: 'name_desc',    label: 'نام (ی تا الف)' },
   { value: 'posts_desc',   label: 'بیشترین پست' },
@@ -75,6 +76,7 @@ function sortProfiles(profiles, sortKey) {
   const arr = [...profiles];
   const getSortKey = (p) => p.sortName || (p.name || '').split(/\s+/).pop() || '';
   switch (sortKey) {
+    case 'priority':      return arr.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0) || getSortKey(a).localeCompare(getSortKey(b), 'fa'));
     case 'name_asc':      return arr.sort((a, b) => getSortKey(a).localeCompare(getSortKey(b), 'fa'));
     case 'name_desc':     return arr.sort((a, b) => getSortKey(b).localeCompare(getSortKey(a), 'fa'));
     case 'posts_desc':    return arr.sort((a, b) => (b.postCount ?? 0) - (a.postCount ?? 0));
@@ -860,6 +862,22 @@ function RunButton({ isRunning, onClick, size = 'small' }) {
   );
 }
 
+// Matches the «اولویت» presets in profile-form-dialog (ویژه ≥ 100, بالا ≥ 50).
+function PriorityChip({ priority }) {
+  if (!priority || priority < 50) return null;
+  const special = priority >= 100;
+  return (
+    <Chip
+      icon={<Iconify icon="solar:star-bold" width={14} />}
+      label={special ? 'ویژه' : 'اولویت بالا'}
+      size="small"
+      color={special ? 'warning' : 'info'}
+      variant="soft"
+      sx={{ fontSize: 12, fontWeight: 700 }}
+    />
+  );
+}
+
 function TierChip({ tier }) {
   if (!tier) return null;
   return (
@@ -923,6 +941,7 @@ function ProfileCard({ p, onEdit, onArchive, onDelete }) {
             </Typography>
 
             <Stack direction="row" alignItems="center" sx={{ mt: 1, flexWrap: 'wrap', gap: 0.75 }}>
+              <PriorityChip priority={p.priority} />
               <TierChip tier={p.tier} />
               {!p.isActive && <Chip label="غیرفعال" size="small" variant="soft" sx={{ fontSize: 12 }} />}
               <IngestStatusChip runState={runState} />
@@ -1099,7 +1118,7 @@ export function AdminProfilesView() {
   const [editing, setEditing] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [batchImportOpen, setBatchImportOpen] = useState(false);
-  const [sortKey, setSortKey] = useState('name_asc');
+  const [sortKey, setSortKey] = useState('priority');
   const [search, setSearch] = useState('');
   const [filterTier, setFilterTier] = useState('');
   const [filterStatus, setFilterStatus] = useState('');

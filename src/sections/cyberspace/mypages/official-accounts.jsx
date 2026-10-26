@@ -11,7 +11,7 @@ import { alpha, useTheme } from '@mui/material/styles';
 
 import { fNum, fShort, fDateFa, fRelativeFa } from 'src/utils/format-number-fa';
 
-import { useProfile } from 'src/api/dashboard';
+import { useProfile, useOfficialStatus } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
 import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
@@ -49,21 +49,36 @@ function getMonitorStatus(channel, cfg) {
   return { label: 'در حال پایش', color: 'success', hint: 'پست‌های این صفحه در هر نوبت جمع‌آوری خوانده می‌شوند.' };
 }
 
-/** Latest publishedAt per channel, from the loaded official posts. */
-function useLastPostByChannel(channels, posts) {
+const ACTIVE_WINDOW_MS = 30 * 86_400_000;
+
+// Whether the page itself is active: it published something in the last 30 days.
+function getActivity(lastPost) {
+  if (lastPost && Date.now() - lastPost < ACTIVE_WINDOW_MS) {
+    return { label: 'فعال', active: true, hint: 'این صفحه در ۳۰ روز گذشته پست منتشر کرده است.' };
+  }
+  return { label: 'غیرفعال', active: false, hint: 'از این صفحه در ۳۰ روز گذشته پستی جمع‌آوری نشده است.' };
+}
+
+/**
+ * Latest publishedAt per channel: the server's per-channel MAX(published_at)
+ * (all stored official posts), merged with the loaded official posts.
+ */
+function useLastPostByChannel(channels, posts, statusRows) {
   return useMemo(() => {
     const latest = new Map(); // `${sourceType}:${handle}` → timestamp
     const latestBySource = new Map(); // sourceType → timestamp
-    for (const post of posts) {
-      if (!post.publishedAt) continue;
-      const t = new Date(post.publishedAt).getTime();
-      if (Number.isNaN(t)) continue;
-      const key = `${post.sourceType}:${normalizeHandle(post.screenName)}`;
+    const add = (sourceType, handle, publishedAt) => {
+      if (!publishedAt) return;
+      const t = new Date(publishedAt).getTime();
+      if (Number.isNaN(t)) return;
+      const key = `${sourceType}:${normalizeHandle(handle)}`;
       if (!latest.has(key) || latest.get(key) < t) latest.set(key, t);
-      if (!latestBySource.has(post.sourceType) || latestBySource.get(post.sourceType) < t) {
-        latestBySource.set(post.sourceType, t);
+      if (!latestBySource.has(sourceType) || latestBySource.get(sourceType) < t) {
+        latestBySource.set(sourceType, t);
       }
-    }
+    };
+    for (const post of posts) add(post.sourceType, post.screenName, post.publishedAt);
+    for (const row of statusRows) add(row.source, row.handle, row.lastPublishedAt);
 
     const perPlatformCount = channels.reduce((acc, ch) => {
       acc[ch.platform] = (acc[ch.platform] || 0) + 1;
@@ -79,7 +94,7 @@ function useLastPostByChannel(channels, posts) {
       // platform's latest post only when this is the platform's only channel.
       return perPlatformCount[ch.platform] === 1 ? latestBySource.get(sourceType) ?? null : null;
     });
-  }, [channels, posts]);
+  }, [channels, posts, statusRows]);
 }
 
 // ----------------------------------------------------------------------
@@ -89,7 +104,9 @@ export function OfficialAccounts({ posts = [], loading: postsLoading }) {
 
   const { data: profile, isLoading } = useProfile();
   const channels = useMemo(() => profile?.officialChannels ?? [], [profile]);
-  const lastPosts = useLastPostByChannel(channels, posts);
+  const { data: statusRows = [], isLoading: statusLoading } = useOfficialStatus();
+  const lastPosts = useLastPostByChannel(channels, posts, statusRows);
+  const activityLoading = postsLoading || statusLoading;
 
   const monitoredCount = channels.filter(
     (c) => c.active !== false && (platformById[c.platform] ?? FALLBACK_PLATFORM).ingested
@@ -134,6 +151,8 @@ export function OfficialAccounts({ posts = [], loading: postsLoading }) {
           const statusTone = isMonitored ? theme.palette.success.main : theme.palette.text.secondary;
           const href = getPlatformUrl(ch);
           const lastPost = lastPosts[idx];
+          const activity = isMonitored && !activityLoading ? getActivity(lastPost) : null;
+          const activityTone = activity?.active ? theme.palette.success.main : theme.palette.warning.main;
 
           return (
             <Box
@@ -195,27 +214,52 @@ export function OfficialAccounts({ posts = [], loading: postsLoading }) {
                   </Box>
                 </Stack>
 
-                {/* Monitoring status */}
-                <Tooltip title={status.hint} arrow placement="top">
-                  <Stack
-                    direction="row"
-                    alignItems="center"
-                    spacing={0.75}
-                    sx={{
-                      alignSelf: 'flex-start',
-                      px: 1,
-                      py: 0.25,
-                      borderRadius: 1,
-                      bgcolor: alpha(statusTone, 0.12),
-                      color: isMonitored ? 'success.main' : 'text.secondary',
-                    }}
-                  >
-                    <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'currentColor' }} />
-                    <Typography variant="caption" sx={{ fontWeight: 700, color: 'inherit' }}>
-                      {status.label}
-                    </Typography>
-                  </Stack>
-                </Tooltip>
+                {/* Monitoring status + page activity (posted in the last 30 days) */}
+                <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', rowGap: 0.75 }}>
+                  <Tooltip title={status.hint} arrow placement="top">
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      spacing={0.75}
+                      sx={{
+                        px: 1,
+                        py: 0.25,
+                        borderRadius: 1,
+                        bgcolor: alpha(statusTone, 0.12),
+                        color: isMonitored ? 'success.main' : 'text.secondary',
+                      }}
+                    >
+                      <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'currentColor' }} />
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: 'inherit' }}>
+                        {status.label}
+                      </Typography>
+                    </Stack>
+                  </Tooltip>
+                  {activity && (
+                    <Tooltip title={activity.hint} arrow placement="top">
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        spacing={0.75}
+                        sx={{
+                          px: 1,
+                          py: 0.25,
+                          borderRadius: 1,
+                          bgcolor: alpha(activityTone, 0.12),
+                          color: activity.active ? 'success.main' : 'warning.dark',
+                        }}
+                      >
+                        <Iconify
+                          icon={activity.active ? 'solar:check-circle-bold' : 'solar:clock-circle-linear'}
+                          width={14}
+                        />
+                        <Typography variant="caption" sx={{ fontWeight: 700, color: 'inherit' }}>
+                          {activity.label}
+                        </Typography>
+                      </Stack>
+                    </Tooltip>
+                  )}
+                </Stack>
 
                 {/* Stats */}
                 {(ch.followers != null || ch.posts != null) && (
@@ -244,7 +288,7 @@ export function OfficialAccounts({ posts = [], loading: postsLoading }) {
                 )}
 
                 {/* Last collected post — only for platforms whose posts are collected */}
-                {cfg.ingested && ch.active !== false && !postsLoading && (
+                {cfg.ingested && ch.active !== false && !activityLoading && (
                   <Stack direction="row" alignItems="center" spacing={0.75} sx={{ color: 'text.secondary' }}>
                     <Iconify icon="solar:clock-circle-linear" width={14} sx={{ flexShrink: 0 }} />
                     <Typography variant="caption" sx={{ color: 'inherit' }}>
@@ -252,7 +296,7 @@ export function OfficialAccounts({ posts = [], loading: postsLoading }) {
                         <>
                           آخرین پست: {fRelativeFa(lastPost)}
                           {/* fRelativeFa already falls back to the date after 30 days */}
-                          {Date.now() - lastPost < 30 * 86_400_000 && (
+                          {Date.now() - lastPost < ACTIVE_WINDOW_MS && (
                             <Box component="span" sx={{ color: 'text.disabled' }}>
                               {' '}
                               ({fDateFa(lastPost)})
