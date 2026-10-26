@@ -15,7 +15,6 @@ import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 
-import { WhatIfChat } from './whatif-chat';
 import { WidgetCard } from '../shared/widget-card';
 import { PageHeader } from '../shared/page-header';
 import { GridItem, WidgetGrid } from '../shared/widget-grid';
@@ -79,7 +78,8 @@ export function TabRecommendations({ loading }) {
       />
 
       <WidgetGrid sx={{ pb: { xs: 10, lg: 4 } }}>
-        <GridItem span={{ lg: 7 }}>
+        {/* The what-if scenario chat (whatif-chat.jsx) is held back for the next phase */}
+        <GridItem>
           <WidgetCard
             title="پیشنهادهای امروز"
             icon="solar:lightbulb-bolt-bold-duotone"
@@ -98,12 +98,6 @@ export function TabRecommendations({ loading }) {
               ))}
             </Stack>
           </WidgetCard>
-        </GridItem>
-
-        <GridItem span={{ lg: 5 }}>
-          <Box sx={{ position: { lg: 'sticky' }, top: { lg: 88 } }}>
-            <WhatIfChat />
-          </Box>
         </GridItem>
       </WidgetGrid>
     </>
