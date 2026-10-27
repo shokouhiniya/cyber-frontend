@@ -29,6 +29,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { fNum } from 'src/utils/format-number-fa';
+import { tierSuggestionText, tierSuggestionBasis } from 'src/utils/tier-criteria';
 
 import { useAdminDesktopMode } from 'src/contexts/admin-desktop-mode';
 import {
@@ -43,7 +44,7 @@ import {
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 
-import { getErrorText } from '../shared/admin-ui';
+import { getErrorText, JalaliDateField } from '../shared/admin-ui';
 import { ChannelsEditor, ChannelsGridEditor } from './channels-editor';
 
 // ----------------------------------------------------------------------
@@ -94,6 +95,12 @@ const TIER_OPTIONS = [
   { value: 'heavy',  label: 'سنگین (Heavy)',  desc: '>۱۰k پست/روز — ۴ بار در روز', color: '#E03131' },
   { value: 'medium', label: 'متوسط (Medium)', desc: '۵۰۰–۱۰k پست/روز — روزانه',    color: '#F08C00' },
   { value: 'light',  label: 'سبک (Light)',    desc: '<۵۰۰ پست/روز — هر ۳ روز',     color: '#2F9E44' },
+];
+
+const PROMISE_STATUS_OPTIONS = [
+  { value: 'pending', label: 'در انتظار تحقق' },
+  { value: 'fulfilled', label: 'محقق‌شده' },
+  { value: 'broken', label: 'محقق‌نشده' },
 ];
 
 // ----------------------------------------------------------------------
@@ -431,6 +438,8 @@ export function ProfileFormDialog({ open, onClose, profile, mode = 'admin' }) {
 
   const submitting = create.isPending || update.isPending || uploadAvatar.isPending;
   const tierConfig = TIER_OPTIONS.find((t) => t.value === form.tier) || TIER_OPTIONS[1];
+  // Admin list rows carry `tierSuggestion`; the client profile endpoint carries `tierInfo` (same fields)
+  const tierSuggestion = form.tierSuggestion ?? form.tierInfo ?? null;
 
   // ── Avatar upload ──────────────────────────────────────────────────────────
   // Existing profiles upload immediately (POST /admin/profiles/:id/avatar); new
@@ -543,9 +552,20 @@ export function ProfileFormDialog({ open, onClose, profile, mode = 'admin' }) {
               ))}
             </Select>
           </FormControl>
-          <Box sx={{ flex: 1, p: 1, borderRadius: 1.5, bgcolor: alpha(tierConfig.color, 0.06), border: `1px solid ${alpha(tierConfig.color, 0.2)}` }}>
+          <Box sx={{ flex: 1, minWidth: 0, p: 1, borderRadius: 1.5, bgcolor: alpha(tierConfig.color, 0.06), border: `1px solid ${alpha(tierConfig.color, 0.2)}` }}>
             <Typography variant="caption" sx={{ color: tierConfig.color, fontWeight: 700, fontSize: 12, display: 'block' }}>{tierConfig.desc}</Typography>
-            {form.dailyAvgPosts != null && <Typography variant="caption" color="text.disabled" sx={{ fontSize: 12 }}>میانگین: {Math.round(form.dailyAvgPosts).toLocaleString('fa-IR')} پست/روز</Typography>}
+            {/* Suggestion from the 8tag mention volume — shown only, never applied automatically */}
+            <Typography variant="caption" sx={{ fontSize: 12, display: 'block', color: tierSuggestion?.suggested && tierSuggestion.suggested !== form.tier ? 'warning.main' : 'text.secondary' }}>
+              {tierSuggestionText(tierSuggestion)}
+            </Typography>
+            {tierSuggestion?.basis && (
+              <Typography variant="caption" color="text.disabled" sx={{ fontSize: 11, display: 'block' }}>{tierSuggestionBasis(tierSuggestion)}</Typography>
+            )}
+            {tierSuggestion?.suggested && tierSuggestion.suggested !== form.tier && (
+              <Button size="small" onClick={() => set({ tier: tierSuggestion.suggested })} sx={{ fontSize: 12, height: 24, px: 1, mt: 0.5 }}>
+                انتخاب سطح پیشنهادی
+              </Button>
+            )}
           </Box>
         </Stack>
       )}
@@ -606,18 +626,37 @@ export function ProfileFormDialog({ open, onClose, profile, mode = 'admin' }) {
       <Box>
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
           <Typography variant="subtitle2" fontWeight={700}>وعده‌های عمومی</Typography>
-          <Button size="small" variant="outlined" startIcon={<Iconify icon="solar:add-circle-bold" width={14} />} onClick={() => set({ promises: [...(form.promises || []), { text: '', addedAt: new Date().toISOString() }] })} sx={{ fontSize: 12, height: 26 }}>افزودن</Button>
+          <Button size="small" variant="outlined" startIcon={<Iconify icon="solar:add-circle-bold" width={14} />} onClick={() => set({ promises: [...(form.promises || []), { text: '', status: 'pending', addedAt: new Date().toISOString() }] })} sx={{ fontSize: 12, height: 26 }}>افزودن</Button>
         </Stack>
         {(form.promises || []).length === 0 ? (
           <Typography variant="caption" color="text.disabled" sx={{ fontSize: 12 }}>وعده‌ای ثبت نشده است.</Typography>
         ) : (
           <Stack spacing={1}>
-            {(form.promises || []).map((p, idx) => (
-              <Stack key={idx} direction="row" spacing={1} alignItems="flex-start">
-                <TextField value={p.text} onChange={(e) => { const updated = [...(form.promises || [])]; updated[idx] = { ...updated[idx], text: e.target.value }; set({ promises: updated }); }} fullWidth size="small" multiline maxRows={3} placeholder="متن وعده..." sx={{ '& .MuiInputBase-root': { fontSize: 12 } }} />
-                <IconButton size="small" color="error" onClick={() => set({ promises: (form.promises || []).filter((_, i) => i !== idx) })} sx={{ mt: 0.5, flexShrink: 0 }}><Iconify icon="solar:trash-bin-2-bold" width={16} /></IconButton>
-              </Stack>
-            ))}
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: 12 }}>
+              دوره مسئولیت اختیاری است: واکنش‌ها فقط از پست‌های منتشرشده در این دوره محاسبه می‌شود. «تا» را خالی بگذارید اگر هنوز در این سمت است.
+            </Typography>
+            {(form.promises || []).map((p, idx) => {
+              const patch = (fields) => { const updated = [...(form.promises || [])]; updated[idx] = { ...updated[idx], ...fields }; set({ promises: updated }); };
+              return (
+                <Box key={idx} sx={{ p: 1.25, borderRadius: 1.5, border: `1px solid ${theme.vars.palette.divider}` }}>
+                  <Stack direction="row" spacing={1} alignItems="flex-start">
+                    <TextField value={p.text} onChange={(e) => patch({ text: e.target.value })} fullWidth size="small" multiline maxRows={3} placeholder="متن وعده..." sx={{ '& .MuiInputBase-root': { fontSize: 12 } }} />
+                    <IconButton size="small" color="error" onClick={() => set({ promises: (form.promises || []).filter((_, i) => i !== idx) })} sx={{ mt: 0.5, flexShrink: 0 }}><Iconify icon="solar:trash-bin-2-bold" width={16} /></IconButton>
+                  </Stack>
+                  <Box sx={{ mt: 1, display: 'grid', gap: 1, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' } }}>
+                    <TextField label="سمت هنگام وعده" value={p.position || ''} onChange={(e) => patch({ position: e.target.value })} size="small" placeholder="مثلاً رئیس مجلس" />
+                    <FormControl size="small">
+                      <InputLabel>وضعیت</InputLabel>
+                      <Select value={p.status || 'pending'} label="وضعیت" onChange={(e) => patch({ status: e.target.value })}>
+                        {PROMISE_STATUS_OPTIONS.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
+                      </Select>
+                    </FormControl>
+                    <JalaliDateField label="از تاریخ" value={p.validFrom || ''} onChange={(v) => patch({ validFrom: v || undefined })} />
+                    <JalaliDateField label="تا تاریخ" value={p.validUntil || ''} onChange={(v) => patch({ validUntil: v || undefined })} helperText="خالی = تاکنون" />
+                  </Box>
+                </Box>
+              );
+            })}
           </Stack>
         )}
       </Box>

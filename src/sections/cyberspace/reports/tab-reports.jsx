@@ -112,7 +112,7 @@ async function fetchReportData(reportId) {
     axios.get(`/api/stats/promise-perception${sinceQuery}`),
     axios.get('/api/admin/ingest/macro-context'),
     isDaily ? axios.get('/api/ai-content/generate?section=recommendations') : Promise.resolve(null),
-    axios.get(`/api/stats/user-distribution${sinceQuery}`),
+    axios.get(`/api/stats/bot-analysis${sinceQuery}`),
     isDaily ? axios.get('/api/ai-content/generate?section=political_spectrum') : Promise.resolve(null),
     isDaily ? axios.get('/api/ai-content/generate?section=narrative_gap') : Promise.resolve(null),
   ];
@@ -120,7 +120,7 @@ async function fetchReportData(reportId) {
   const [
     statsRes, emotionsRes, topPostsRes, topCommentedRes, topForwardedRes,
     influencersRes, sourcesRes, aiRes, crisisRes, hashtagsRes,
-    promisesRes, macroRes, recsRes, userDistRes, spectrumRes, gapRes,
+    promisesRes, macroRes, recsRes, botRes, spectrumRes, gapRes,
   ] = await Promise.allSettled(requests);
 
   const extractAi = (res) => {
@@ -146,7 +146,7 @@ async function fetchReportData(reportId) {
     promises: promisesRes.status === 'fulfilled' ? promisesRes.value.data : [],
     macroContext: macroRes.status === 'fulfilled' ? macroRes.value.data?.today : null,
     recommendations: extractAi(recsRes),
-    userDistribution: userDistRes.status === 'fulfilled' ? userDistRes.value.data : {},
+    botAnalysis: botRes.status === 'fulfilled' ? botRes.value.data : {},
     politicalSpectrum: extractAi(spectrumRes),
     narrativeGap: extractAi(gapRes),
   };

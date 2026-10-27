@@ -53,7 +53,7 @@ export function buildReportHtml(period, data) {
     profileName, stats, emotions, topPosts, topCommented, topForwarded,
     influencers, sourceTotals, aiSummary, crisisMetrics, hashtags,
     officialPosts, promises, macroContext, recommendations,
-    userDistribution, politicalSpectrum, narrativeGap,
+    botAnalysis, politicalSpectrum, narrativeGap,
   } = data;
 
   const periodLabel = PERIOD_LABELS[period] || period;
@@ -103,7 +103,8 @@ export function buildReportHtml(period, data) {
   const promiseHtml = (promises || []).slice(0, 5).map(p => {
     const scoreLabel = p.score >= 65 ? 'مثبت' : p.score >= 40 ? 'خنثی' : p.score !== null ? 'منفی' : '—';
     const scoreColor = p.score >= 65 ? '#2B8A3E' : p.score >= 40 ? '#E67700' : p.score !== null ? '#C92A2A' : '#868E96';
-    return `<div style="padding:3px 0;border-bottom:1px solid #F4F6F8;display:flex;justify-content:space-between;"><span style="flex:1;">${(p.text || '').slice(0, 60)}</span><span class="badge" style="background:${scoreColor}15;color:${scoreColor};">${scoreLabel}</span></div>`;
+    const term = p.expired ? ' <span style="color:#868E96;">(خارج از دوره مسئولیت)</span>' : '';
+    return `<div style="padding:3px 0;border-bottom:1px solid #F4F6F8;display:flex;justify-content:space-between;"><span style="flex:1;">${(p.text || '').slice(0, 60)}${term}</span><span class="badge" style="background:${scoreColor}15;color:${scoreColor};">${scoreLabel}</span></div>`;
   }).join('');
 
   // Macro context
@@ -120,8 +121,12 @@ export function buildReportHtml(period, data) {
   // Recommendations
   const recsHtml = (recommendations || []).slice(0, 3).map(r => `<div style="padding:4px 0;border-bottom:1px solid #F4F6F8;"><strong>${r.title || ''}</strong><br/><span style="color:#637381;">${(r.description || '').slice(0, 80)}</span></div>`).join('');
 
-  // User distribution
-  const ud = userDistribution || {};
+  // Bot analysis: share of accounts per class (avg LLM bot probability per account)
+  const bot = botAnalysis || {};
+  const botStat = (key, label) => {
+    const c = (bot.classes || []).find((x) => x.key === key);
+    return `<div class="st" style="flex:1;"><div class="v">${toFaDigits(Math.round(c?.accountPercent || 0))}٪</div><div class="l">${label}</div></div>`;
+  };
 
   // Political spectrum
   let spectrumHtml = '';
@@ -210,7 +215,7 @@ export function buildReportHtml(period, data) {
 
       ${critics.length > 0 ? `<div class="sec"><div class="sec-t">مخالفان برتر</div><table class="tbl"><tr><th style="width:20px;">#</th><th>حساب</th><th>پلتفرم</th><th>بازدید</th></tr>${critics.map(infRow).join('')}</table></div>` : ''}
 
-      ${ud.total > 0 ? `<div class="sec"><div class="sec-t">تفکیک کاربران</div><div style="display:flex;gap:8px;"><div class="st" style="flex:1;"><div class="v">${toFaDigits(ud.influencerPercent || 0)}٪</div><div class="l">تأثیرگذار</div></div><div class="st" style="flex:1;"><div class="v">${toFaDigits(ud.regularPercent || 0)}٪</div><div class="l">عادی</div></div><div class="st" style="flex:1;"><div class="v">${toFaDigits(ud.suspiciousPercent || 0)}٪</div><div class="l">مشکوک</div></div></div></div>` : ''}
+      ${bot.totalAccounts > 0 ? `<div class="sec"><div class="sec-t">حساب‌های ربات و انسانی (${toFaDigits(bot.totalAccounts)} حساب)</div><div style="display:flex;gap:8px;">${botStat('bot', 'احتمالاً ربات')}${botStat('suspicious', 'مشکوک')}${botStat('human', 'انسانی')}${botStat('unscored', 'تحلیل‌نشده')}</div><div style="font-size:8px;color:#637381;margin-top:4px;">معیار: میانگین احتمال ربات‌بودن پست‌های هر حساب — ۶۰ و بیشتر ربات، ۳۰ تا ۵۹ مشکوک، زیر ۳۰ انسانی.</div></div>` : ''}
 
       ${promiseHtml ? `<div class="sec"><div class="sec-t">رصد وعده‌ها</div>${promiseHtml}</div>` : ''}
 

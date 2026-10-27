@@ -5,8 +5,11 @@ import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { alpha, useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 
 import { fNum, fShort, fDateFa, fPercent, fRelativeFa } from 'src/utils/format-number-fa';
+
+import { useOfficialWeekly } from 'src/api/dashboard';
 
 import { Iconify } from 'src/components/iconify';
 import { SvgColor } from 'src/components/svg-color';
@@ -31,42 +34,14 @@ const METRIC_OPTIONS = [
   { value: 'views', label: 'بازدید' },
 ];
 
-const MAX_WEEKS = 12;
-const WEEK_MS = 7 * 86_400_000;
+const WEEKS = 12;
 const SHORT_DATE = { day: 'numeric', month: 'short' };
 
 const engagementScore = (p) => (p.viewCount || 0) + (p.likeCount || 0) * 3 + (p.retweetCount || 0) * 2;
 
-/**
- * Rolling 7-day buckets ending now, oldest first. Every week in the window
- * gets a bucket (zero when nothing was published), so the axis is continuous.
- */
-function buildWeeklyBuckets(posts, weeks) {
-  const now = Date.now();
-  const buckets = Array.from({ length: weeks }, (_, i) => {
-    const start = now - (weeks - i) * WEEK_MS;
-    const end = start + WEEK_MS - 1;
-    return {
-      label: fDateFa(start, SHORT_DATE),
-      range: `${fDateFa(start, SHORT_DATE)} تا ${fDateFa(end, SHORT_DATE)}`,
-      count: 0,
-      views: 0,
-    };
-  });
-
-  for (const post of posts) {
-    if (!post.publishedAt) continue;
-    const t = new Date(post.publishedAt).getTime();
-    if (Number.isNaN(t)) continue;
-    const weekIdx = Math.floor((now - t) / WEEK_MS);
-    const bucketIdx = weeks - 1 - weekIdx;
-    if (bucketIdx >= 0 && bucketIdx < weeks) {
-      buckets[bucketIdx].count += 1;
-      buckets[bucketIdx].views += post.viewCount || 0;
-    }
-  }
-  return buckets;
-}
+// weekStart / weekEnd are Tehran calendar days (YYYY-MM-DD); read them at
+// noon UTC so the browser's time zone can't shift the day.
+const dayOf = (ymd) => new Date(`${ymd}T12:00:00Z`);
 
 // ----------------------------------------------------------------------
 
@@ -92,12 +67,30 @@ function SectionLabel({ children, sx }) {
 export function ContentAnalysis({ loading, posts = [], total = 0 }) {
   const theme = useTheme();
   const [metric, setMetric] = useState('count'); // 'count' | 'views'
+  const isNarrow = useMediaQuery(theme.breakpoints.down('sm'));
 
   const officialPosts = useMemo(
     () => posts.filter((p) => p.selectionReason?.startsWith('official_page_')),
     [posts]
   );
   const sampleSize = officialPosts.length;
+
+  // Weekly chart + totals come from the server over the full 12 weeks
+  // (Saturday–Friday, Tehran), not from the loaded sample.
+  const { data: weeklyData, isLoading: weeklyLoading } = useOfficialWeekly(WEEKS);
+  const weeks = useMemo(
+    () =>
+      (weeklyData || []).map((w) => ({
+        ...w,
+        count: w.posts,
+        label: fDateFa(dayOf(w.weekStart), SHORT_DATE),
+        range: `${fDateFa(dayOf(w.weekStart), SHORT_DATE)} تا ${fDateFa(dayOf(w.weekEnd), SHORT_DATE)}`,
+      })),
+    [weeklyData]
+  );
+  const sum = (key) => weeks.reduce((s, w) => s + (Number(w[key]) || 0), 0);
+  const periodPosts = sum('posts');
+  const periodViews = sum('views');
 
   // Per-source aggregates
   const bySource = useMemo(() => {
@@ -110,28 +103,8 @@ export function ContentAnalysis({ loading, posts = [], total = 0 }) {
     return Object.values(map).sort((a, b) => b.count - a.count);
   }, [officialPosts]);
 
-  // How far back the loaded sample reaches. When the API has more posts than
-  // were loaded, weeks older than the oldest loaded post have no data (not
-  // zero posts), so the chart only goes back as far as the sample does.
-  const oldestTs = useMemo(() => {
-    const times = officialPosts
-      .map((p) => new Date(p.publishedAt).getTime())
-      .filter((t) => !Number.isNaN(t));
-    return times.length ? Math.min(...times) : null;
-  }, [officialPosts]);
-  const isTruncated = total > sampleSize;
-  const weekCount =
-    isTruncated && oldestTs
-      ? Math.min(MAX_WEEKS, Math.max(1, Math.ceil((Date.now() - oldestTs) / WEEK_MS)))
-      : MAX_WEEKS;
-
-  const weeks = useMemo(() => buildWeeklyBuckets(officialPosts, weekCount), [officialPosts, weekCount]);
-
-  // Summary stats
-  const totalViews = officialPosts.reduce((s, p) => s + (p.viewCount || 0), 0);
-  const totalLikes = officialPosts.reduce((s, p) => s + (p.likeCount || 0), 0);
-  const totalFwd = officialPosts.reduce((s, p) => s + (p.retweetCount || 0), 0);
-  const avgViews = sampleSize ? totalViews / sampleSize : 0;
+  // Summary stats over the same 12 weeks as the chart
+  const avgViews = periodPosts ? periodViews / periodPosts : 0;
 
   // Top post by engagement
   const topPost = useMemo(
@@ -145,9 +118,9 @@ export function ContentAnalysis({ loading, posts = [], total = 0 }) {
   const chartOptions = useChart({
     colors: [chartColor],
     xaxis: {
-      categories: weeks.map((w) => w.label),
+      // On phones 12 date labels overlap: label every other week, counting back from the current one
+      categories: weeks.map((w, i) => (isNarrow && (weeks.length - 1 - i) % 2 ? '' : w.label)),
       labels: { rotate: 0, hideOverlappingLabels: true, trim: false },
-      tickAmount: Math.min(weeks.length, 6),
     },
     yaxis: {
       min: 0,
@@ -167,14 +140,15 @@ export function ContentAnalysis({ loading, posts = [], total = 0 }) {
 
   const series = [{ name: METRIC_OPTIONS.find((m) => m.value === metric).label, data: weeks.map((w) => w[metric]) }];
 
-  const subheader = isTruncated
-    ? `بر اساس ${fNum(sampleSize)} پست اخیر صفحات رسمی (از ${fNum(total)} پست ثبت‌شده)`
-    : `بر اساس ${fNum(sampleSize)} پست صفحات رسمی`;
+  const subheader = `${fNum(periodPosts)} پست صفحات رسمی در ${fNum(WEEKS)} هفته اخیر`;
+  // Source split and top post use the latest loaded posts (the page loads a capped list)
+  const isTruncated = total > sampleSize;
+  const sampleNote = isTruncated ? ` · در ${fNum(sampleSize)} پست اخیر` : '';
 
   const stats = [
-    { icon: 'solar:eye-bold', label: 'بازدید', value: fShort(totalViews), color: theme.palette.info.main },
-    { icon: 'solar:like-bold', label: 'لایک', value: fShort(totalLikes), color: theme.palette.success.main },
-    { icon: 'solar:share-bold', label: 'بازنشر', value: fShort(totalFwd), color: theme.palette.warning.main },
+    { icon: 'solar:eye-bold', label: 'بازدید', value: fShort(periodViews), color: theme.palette.info.main },
+    { icon: 'solar:like-bold', label: 'لایک', value: fShort(sum('likes')), color: theme.palette.success.main },
+    { icon: 'solar:share-bold', label: 'بازنشر', value: fShort(sum('shares')), color: theme.palette.warning.main },
     { icon: 'solar:chart-2-bold', label: 'میانگین بازدید هر پست', value: fShort(Math.round(avgViews)), color: theme.palette.primary.main },
   ];
 
@@ -184,13 +158,13 @@ export function ContentAnalysis({ loading, posts = [], total = 0 }) {
       icon="solar:chart-square-bold-duotone"
       color="warning"
       tooltip={WIDGET_TOOLTIPS.contentAnalysis}
-      subheader={sampleSize ? subheader : 'الگوهای انتشار صفحات رسمی'}
-      loading={loading}
+      subheader={periodPosts || sampleSize ? subheader : 'الگوهای انتشار صفحات رسمی'}
+      loading={loading || weeklyLoading}
       loadingHeight={260}
-      empty={!sampleSize}
+      empty={!sampleSize && !periodPosts}
       emptyText="هنوز پستی از صفحات رسمی جمع‌آوری نشده است. پس از اتصال صفحات رسمی، آمار انتشار اینجا نمایش داده می‌شود."
     >
-      {/* Summary stats — the post count lives in the subheader, so it is not repeated here */}
+      {/* Summary stats (same 12 weeks as the chart) — the post count lives in the subheader */}
       <Box
         sx={{
           display: 'grid',
@@ -226,12 +200,10 @@ export function ContentAnalysis({ loading, posts = [], total = 0 }) {
       <Box sx={{ mb: 3 }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1} sx={{ mb: 1 }}>
           <Box>
-            <SectionLabel sx={{ mb: 0 }}>فعالیت هفتگی · {fNum(weekCount)} هفته اخیر</SectionLabel>
-            {isTruncated && weekCount < MAX_WEEKS && (
-              <Typography variant="caption" component="div" sx={{ color: 'text.secondary' }}>
-                این نمونه فقط تا {fDateFa(oldestTs)} را پوشش می‌دهد.
-              </Typography>
-            )}
+            <SectionLabel sx={{ mb: 0 }}>فعالیت هفتگی · {fNum(WEEKS)} هفته اخیر</SectionLabel>
+            <Typography variant="caption" component="div" sx={{ color: 'text.secondary' }}>
+              هفته‌ها از شنبه تا جمعه
+            </Typography>
           </Box>
           <WidgetToggle value={metric} onChange={setMetric} options={METRIC_OPTIONS} />
         </Stack>
@@ -241,7 +213,14 @@ export function ContentAnalysis({ loading, posts = [], total = 0 }) {
       {/* Per-source breakdown */}
       {bySource.length > 1 && (
         <Box sx={{ mb: 3 }}>
-          <SectionLabel>توزیع بسترها</SectionLabel>
+          <SectionLabel>
+            توزیع بسترها
+            {sampleNote && (
+              <Typography component="span" variant="caption" sx={{ color: 'text.secondary', fontWeight: 400 }}>
+                {sampleNote}
+              </Typography>
+            )}
+          </SectionLabel>
           <Stack spacing={1}>
             {bySource.map((src) => {
               const meta = SOURCE_META[src.source] || { label: src.source, color: theme.palette.grey[500] };
@@ -280,7 +259,14 @@ export function ContentAnalysis({ loading, posts = [], total = 0 }) {
       {/* Top post */}
       {topPost && (
         <Box>
-          <SectionLabel>پربازدیدترین پست</SectionLabel>
+          <SectionLabel>
+            پربازدیدترین پست
+            {sampleNote && (
+              <Typography component="span" variant="caption" sx={{ color: 'text.secondary', fontWeight: 400 }}>
+                {sampleNote}
+              </Typography>
+            )}
+          </SectionLabel>
           <Box
             sx={{
               p: 2,

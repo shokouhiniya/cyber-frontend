@@ -1,147 +1,177 @@
+import { useState } from 'react';
+
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
-import { useTheme } from '@mui/material/styles';
+import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
+import { alpha, useTheme } from '@mui/material/styles';
 
 import { fNum, fPercent } from 'src/utils/format-number-fa';
 
-import { useUserDistribution } from 'src/api/dashboard';
+import { useBotAnalysis } from 'src/api/dashboard';
 
-import { Chart, useChart } from 'src/components/chart';
 import { WIDGET_TOOLTIPS } from 'src/components/info-tooltip/widget-tooltips';
 
-import { WidgetCard } from '../shared/widget-card';
+import { WidgetCard, WidgetToggle } from '../shared/widget-card';
 
 // ----------------------------------------------------------------------
 
+const TIME_FILTERS = [
+  { value: '7d', label: '۷ روز' },
+  { value: '30d', label: '۳۰ روز' },
+  { value: 'all', label: 'همه' },
+];
+
+const TIMEFRAME_LABEL = {
+  '7d': '۷ روز گذشته',
+  '30d': '۳۰ روز گذشته',
+  all: 'همه پست‌های ذخیره‌شده',
+};
+
+const PLATFORM_LABELS = {
+  twitter: 'ایکس',
+  telegram: 'تلگرام',
+  instagram: 'اینستاگرام',
+  news: 'خبرگزاری',
+  newspaper: 'روزنامه',
+  media: 'صدا و سیما',
+  bale: 'بله',
+  rubika: 'روبیکا',
+  eitaa: 'ایتا',
+  aparat: 'آپارات',
+  forum: 'فروم',
+};
+
+const TOP_SHOWN = 5;
+
 /**
- * Splits stored posts by how many views they got. The backend buckets are
- * view-count thresholds, not bot detection: «کم‌بازدید» is ≤ ۱٬۰۰۰ views,
- * which only hints at automated / low-reach activity.
+ * Account-level bot analysis. The LLM scores every post's bot probability
+ * (0–100); posts are grouped by account (handle + platform) and each account
+ * is classified by its average: ≥ ۶۰ «احتمالاً ربات»، ۳۰–۵۹ «مشکوک»،
+ * < ۳۰ «انسانی»؛ accounts with no scored post are «تحلیل‌نشده».
  */
 export function BotVsHuman() {
   const theme = useTheme();
-  const { data, isLoading } = useUserDistribution();
+  const [timeframe, setTimeframe] = useState('all');
+  const { data, isLoading } = useBotAnalysis(timeframe);
 
-  const influencers = Number(data?.influencers) || 0;
-  const regular = Number(data?.regular) || 0;
-  const lowReach = Number(data?.suspicious) || 0;
-  const classified = influencers + regular + lowReach;
-  const total = Math.max(Number(data?.total) || 0, classified);
-  // Posts with no view count (e.g. platforms that don't report views) fall in no bucket.
-  const unknown = total - classified;
+  const botMin = data?.criterion?.botMin ?? 60;
+  const suspiciousMin = data?.criterion?.suspiciousMin ?? 30;
 
-  const pct = (n) => (total ? (n / total) * 100 : 0);
+  const META = {
+    bot: { color: theme.palette.error.main, hint: `میانگین ${fPercent(botMin)} و بیشتر` },
+    suspicious: { color: theme.palette.warning.main, hint: `میانگین ${fNum(suspiciousMin)} تا ${fPercent(botMin - 1)}` },
+    human: { color: theme.palette.success.main, hint: `میانگین کمتر از ${fPercent(suspiciousMin)}` },
+    unscored: { color: theme.palette.grey[500], hint: 'هنوز پستی از این حساب امتیاز نگرفته' },
+  };
 
-  const segments = [
-    {
-      key: 'influencers',
-      label: 'پربازدید (اینفلوئنسر)',
-      hint: 'بیش از ۱۰۰ هزار بازدید',
-      count: influencers,
-      color: theme.palette.primary.main,
-    },
-    {
-      key: 'regular',
-      label: 'کاربران عادی',
-      hint: '۱ تا ۱۰۰ هزار بازدید',
-      count: regular,
-      color: theme.palette.info.main,
-    },
-    {
-      key: 'low',
-      label: 'کم‌بازدید / احتمال ربات',
-      hint: '۱٬۰۰۰ بازدید یا کمتر',
-      count: lowReach,
-      color: theme.palette.warning.main,
-    },
-    ...(unknown > 0
-      ? [
-          {
-            key: 'unknown',
-            label: 'بدون آمار بازدید',
-            hint: 'پلتفرم تعداد بازدید را گزارش نمی‌کند',
-            count: unknown,
-            color: theme.palette.grey[500],
-          },
-        ]
-      : []),
-  ].map((s) => ({ ...s, percent: pct(s.count) }));
+  const totalAccounts = Number(data?.totalAccounts) || 0;
+  const totalPosts = Number(data?.totalPosts) || 0;
+  const classes = (data?.classes || []).map((c) => ({ ...c, ...(META[c.key] || META.unscored) }));
+  const top = (data?.topSuspicious || []).slice(0, TOP_SHOWN);
+  const unattributed = Number(data?.unattributedPosts) || 0;
 
-  const options = useChart({
-    colors: segments.map((s) => s.color),
-    plotOptions: {
-      bar: { horizontal: true, distributed: true, barHeight: '56%', borderRadius: 4 },
-    },
-    legend: { show: false },
-    dataLabels: {
-      enabled: true,
-      textAnchor: 'start',
-      offsetX: 6,
-      formatter: (v) => fPercent(pct(v), { decimals: 1 }),
-      style: { fontSize: '12px', fontWeight: 700, colors: [theme.palette.text.primary] },
-      background: { enabled: false },
-      dropShadow: { enabled: false },
-    },
-    xaxis: {
-      categories: segments.map((s) => s.label),
-      labels: { formatter: (v) => fNum(v) },
-    },
-    yaxis: { labels: { formatter: (v) => v, style: { fontSize: '12px', fontWeight: 600 }, maxWidth: 160 } },
-    grid: { xaxis: { lines: { show: true } }, yaxis: { lines: { show: false } }, padding: { right: 40 } },
-    tooltip: {
-      y: {
-        title: { formatter: () => '' },
-        formatter: (v) => `${fNum(v)} پست (${fPercent(pct(v), { decimals: 1 })})`,
-      },
-    },
-  });
+  const toggle = <WidgetToggle value={timeframe} onChange={setTimeframe} options={TIME_FILTERS} />;
 
   return (
     <WidgetCard
-      title="تفکیک پست‌ها بر اساس بازدید"
+      title="حساب‌های ربات و انسانی"
       icon="solar:shield-user-bold-duotone"
       color="info"
       tooltip={WIDGET_TOOLTIPS.botVsHuman}
-      subheader="معیار فقط تعداد بازدید است؛ «کم‌بازدید» یعنی ۱٬۰۰۰ بازدید یا کمتر و به معنی تشخیص قطعی ربات نیست."
-      loading={isLoading}
-      empty={!total}
-      emptyText="هنوز پستی برای این تفکیک ثبت نشده است."
+      subheader={`معیار: میانگین احتمال ربات‌بودنِ پست‌های هر حساب (امتیاز هوش مصنوعی) · ${TIMEFRAME_LABEL[timeframe]}`}
+      action={<Box sx={{ display: { xs: 'none', sm: 'block' } }}>{toggle}</Box>}
+      contentSx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
     >
-      <Chart type="bar" series={[{ name: 'پست', data: segments.map((s) => s.count) }]} options={options} height={segments.length * 52 + 50} />
+      <Box sx={{ display: { xs: 'flex', sm: 'none' }, justifyContent: 'center' }}>{toggle}</Box>
 
-      <Box
-        sx={{
-          mt: 2,
-          display: 'grid',
-          gap: 1.5,
-          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-        }}
+      <WidgetCard
+        // Inner, header-less card only for the shared loading / empty states.
+        sx={{ border: 0, boxShadow: 'none', bgcolor: 'transparent', borderRadius: 0 }}
+        contentSx={{ p: 0 }}
+        loading={isLoading}
+        empty={!totalAccounts}
+        emptyIcon="solar:shield-user-bold-duotone"
+        emptyText="در این بازه پستی با حساب مشخص ثبت نشده است."
       >
-        {segments.map((s) => (
-          <Stack key={s.key} spacing={0.25} sx={{ minWidth: 0 }}>
-            <Stack direction="row" alignItems="center" spacing={0.75}>
-              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: s.color, flexShrink: 0 }} />
-              <Typography variant="caption" sx={{ fontSize: 12, color: 'text.secondary' }} noWrap>
-                {s.label}
+        {/* Share of accounts per class */}
+        <Box sx={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden', mb: 2 }}>
+          {classes
+            .filter((c) => c.accounts > 0)
+            .map((c) => (
+              <Tooltip key={c.key} title={`${c.label}: ${fNum(c.accounts)} حساب (${fPercent(c.accountPercent, { decimals: 1 })})`} arrow>
+                <Box sx={{ width: `${c.accountPercent}%`, minWidth: 4, bgcolor: c.color }} />
+              </Tooltip>
+            ))}
+        </Box>
+
+        <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+          {classes.map((c) => (
+            <Stack key={c.key} spacing={0.25} sx={{ minWidth: 0 }}>
+              <Stack direction="row" alignItems="center" spacing={0.75}>
+                <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: c.color, flexShrink: 0 }} />
+                <Typography variant="caption" sx={{ fontSize: 12, color: 'text.secondary' }} noWrap>
+                  {c.label}
+                </Typography>
+              </Stack>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                {fNum(c.accounts)}
+                <Typography component="span" variant="caption" sx={{ color: 'text.secondary', fontSize: 12, mx: 0.5 }}>
+                  حساب ({fPercent(c.accountPercent, { decimals: 1 })})
+                </Typography>
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 12 }}>
+                {fNum(c.posts)} پست ({fPercent(c.postPercent, { decimals: 1 })})
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: 11 }}>
+                {c.hint}
               </Typography>
             </Stack>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-              {fNum(s.count)}
-              <Typography component="span" variant="caption" sx={{ color: 'text.secondary', fontSize: 12, mx: 0.5 }}>
-                ({fPercent(s.percent, { decimals: 1 })})
-              </Typography>
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: 11 }}>
-              {s.hint}
-            </Typography>
-          </Stack>
-        ))}
-      </Box>
+          ))}
+        </Box>
 
-      <Typography variant="caption" component="div" sx={{ mt: 2, color: 'text.secondary', fontSize: 12 }}>
-        مجموع: {fNum(total)} پست
-      </Typography>
+        {top.length > 0 && (
+          <Box sx={{ mt: 2.5 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+              مشکوک‌ترین حساب‌ها
+            </Typography>
+            <Stack spacing={0.75}>
+              {top.map((a) => {
+                const color = a.avgProbability >= botMin ? theme.palette.error.main : theme.palette.warning.main;
+                return (
+                  <Stack
+                    key={`${a.platform}-${a.handle}`}
+                    direction="row"
+                    alignItems="center"
+                    spacing={1}
+                    sx={{ px: 1.25, py: 0.75, borderRadius: 1, bgcolor: alpha(color, 0.06) }}
+                  >
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      {/* dir attribute (not sx direction) so the RTL style plugin can't flip it; «end» = right in LTR */}
+                      <Typography variant="body2" noWrap dir="ltr" sx={{ fontWeight: 600, textAlign: 'end' }}>
+                        @{a.handle}
+                      </Typography>
+                      <Typography variant="caption" noWrap component="div" sx={{ color: 'text.secondary' }}>
+                        {PLATFORM_LABELS[a.platform] || a.platform} · {fNum(a.postCount)} پست
+                      </Typography>
+                    </Box>
+                    <Tooltip title="میانگین احتمال ربات‌بودن پست‌های این حساب" arrow>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color, flexShrink: 0 }}>
+                        {fPercent(a.avgProbability)}
+                      </Typography>
+                    </Tooltip>
+                  </Stack>
+                );
+              })}
+            </Stack>
+          </Box>
+        )}
+
+        <Typography variant="caption" component="div" sx={{ mt: 2, color: 'text.secondary', fontSize: 12 }}>
+          مجموع: {fNum(totalAccounts)} حساب · {fNum(totalPosts)} پست
+          {unattributed > 0 && ` · ${fNum(unattributed)} پست بدون حساب مشخص در شمارش نیست`}
+        </Typography>
+      </WidgetCard>
     </WidgetCard>
   );
 }

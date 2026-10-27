@@ -1,6 +1,7 @@
 'use client';
 
 import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Tooltip from '@mui/material/Tooltip';
 import Skeleton from '@mui/material/Skeleton';
@@ -35,17 +36,45 @@ function getPromiseDate(promise) {
   return promise?.addedAt || promise?.date || promise?.createdAt || null;
 }
 
+const STATUS_LABELS = {
+  pending: { label: 'در انتظار تحقق', color: 'default' },
+  fulfilled: { label: 'محقق‌شده', color: 'success' },
+  broken: { label: 'محقق‌نشده', color: 'error' },
+};
+
+// validFrom / validUntil are Tehran calendar days (YYYY-MM-DD); read them at
+// noon UTC so the browser's time zone can't shift the day.
+const dayOf = (ymd) => new Date(`${ymd}T12:00:00Z`);
+const tehranToday = () =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tehran', year: 'numeric', month: '2-digit', day: '2-digit' }).format(
+    new Date()
+  );
+
+/** «از … تا …» / «از … تاکنون» / «تا …»; null when the promise has no window. */
+function formatPeriod({ validFrom, validUntil }) {
+  if (validFrom && validUntil) return `از ${fDateFa(dayOf(validFrom))} تا ${fDateFa(dayOf(validUntil))}`;
+  if (validFrom) return `از ${fDateFa(dayOf(validFrom))} تاکنون`;
+  if (validUntil) return `تا ${fDateFa(dayOf(validUntil))}`;
+  return null;
+}
+
 export function PromiseTracker() {
   const theme = useTheme();
   const { data: profile, isLoading: profileLoading } = useProfile();
   const { data: perceptions = [], isLoading: perceptionLoading } = usePromisePerception();
 
-  const promises = (profile?.promises || []).filter((p) => p?.text?.trim());
+  // Keep each promise's stored index: perception rows are keyed by it.
+  // Promises whose term has ended («خارج از دوره مسئولیت») go after the active ones.
+  const today = tehranToday();
+  const promises = (profile?.promises || [])
+    .map((p, index) => ({ ...p, index, expired: Boolean(p?.validUntil && p.validUntil < today) }))
+    .filter((p) => p?.text?.trim())
+    .sort((a, b) => Number(a.expired) - Number(b.expired) || a.index - b.index);
 
-  // Map from promise text to perception data
+  // Perception per promise index (older API responses without `index` match by text)
   const perceptionMap = {};
   for (const p of perceptions) {
-    perceptionMap[p.text] = p;
+    perceptionMap[p.index ?? p.text] = p;
   }
 
   // Overall perception across promises that have data
@@ -100,7 +129,7 @@ export function PromiseTracker() {
       }
     >
       <Typography variant="caption" component="p" sx={{ color: 'text.secondary', mb: 2, mt: -0.5 }}>
-        واکنش‌ها از همه پست‌های مرتبطی که تاکنون جمع‌آوری شده محاسبه می‌شود و به بازه زمانی خاصی محدود نیست.
+        واکنش‌ها فقط از پست‌هایی محاسبه می‌شود که در دوره مسئولیتِ مربوط به هر وعده منتشر شده‌اند؛ وعده‌های بدون دوره همه پست‌های مرتبط را در نظر می‌گیرند.
       </Typography>
 
       <Box
@@ -110,11 +139,16 @@ export function PromiseTracker() {
           gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
         }}
       >
-        {promises.map((promise, idx) => {
-          const perc = perceptionMap[promise.text];
+        {promises.map((promise) => {
+          const perc = perceptionMap[promise.index] ?? perceptionMap[promise.text];
+          const { expired } = promise;
           const perception = getPerception(perc?.score, theme);
+          // Expired promises keep their (in-term) perception but get a muted card
+          const tone = expired ? theme.palette.grey[500] : perception.tone;
           const hasData = perc && perc.postCount > 0 && perc.breakdown;
           const addedAt = getPromiseDate(promise);
+          const period = formatPeriod(promise);
+          const status = STATUS_LABELS[promise.status] || STATUS_LABELS.pending;
 
           let perceptionBody;
           if (perceptionLoading) {
@@ -135,7 +169,7 @@ export function PromiseTracker() {
                 </Tooltip>
                 <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mt: 0.75 }}>
                   <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                    {fNum(perc.postCount)} پست مرتبط
+                    {fNum(perc.postCount)} پست مرتبط{period ? ' در دوره' : ''}
                   </Typography>
                   <Typography variant="caption" sx={{ fontWeight: 700, color: perception.color }}>
                     {perception.label}
@@ -146,19 +180,19 @@ export function PromiseTracker() {
           } else {
             perceptionBody = (
               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                هنوز پست مرتبطی برای تحلیل جمع‌آوری نشده است.
+                {period ? 'در دوره این وعده پست مرتبطی جمع‌آوری نشده است.' : 'هنوز پست مرتبطی برای تحلیل جمع‌آوری نشده است.'}
               </Typography>
             );
           }
 
           return (
             <Box
-              key={`${idx}-${promise.text}`}
+              key={`${promise.index}-${promise.text}`}
               sx={{
                 p: 2,
                 borderRadius: 1.5,
-                bgcolor: alpha(perception.tone, 0.05),
-                border: `1px solid ${alpha(perception.tone, 0.18)}`,
+                bgcolor: alpha(tone, 0.05),
+                border: `1px ${expired ? 'dashed' : 'solid'} ${alpha(tone, expired ? 0.4 : 0.18)}`,
                 display: 'flex',
                 flexDirection: 'column',
               }}
@@ -167,20 +201,46 @@ export function PromiseTracker() {
                 <Iconify
                   icon="solar:checklist-minimalistic-bold"
                   width={18}
-                  sx={{ color: perception.color, flexShrink: 0, mt: 0.25 }}
+                  sx={{ color: expired ? 'text.disabled' : perception.color, flexShrink: 0, mt: 0.25 }}
                 />
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="body2" sx={{ lineHeight: 1.8, wordBreak: 'break-word' }}>
+                  <Typography
+                    variant="body2"
+                    sx={{ lineHeight: 1.8, wordBreak: 'break-word', color: expired ? 'text.secondary' : 'text.primary' }}
+                  >
                     {promise.text}
                   </Typography>
-                  {addedAt && (
-                    <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mt: 0.5, color: 'text.secondary' }}>
-                      <Iconify icon="solar:calendar-linear" width={14} />
+                  <Stack direction="row" alignItems="center" flexWrap="wrap" gap={0.75} sx={{ mt: 0.75 }}>
+                    {expired && (
+                      <Chip label="خارج از دوره مسئولیت" size="small" variant="soft" sx={{ fontSize: 11, height: 22 }} />
+                    )}
+                    {promise.position && (
+                      <Chip
+                        icon={<Iconify icon="solar:case-minimalistic-bold" width={14} />}
+                        label={promise.position}
+                        size="small"
+                        variant="soft"
+                        color="info"
+                        sx={{ fontSize: 11, height: 22 }}
+                      />
+                    )}
+                    <Chip label={status.label} size="small" variant="soft" color={status.color} sx={{ fontSize: 11, height: 22 }} />
+                  </Stack>
+                  <Stack direction="row" flexWrap="wrap" columnGap={1.5} rowGap={0.25} sx={{ mt: 0.75, color: 'text.secondary' }}>
+                    {period && (
+                      <Stack direction="row" alignItems="center" spacing={0.5}>
+                        <Iconify icon="solar:calendar-linear" width={14} />
+                        <Typography variant="caption" sx={{ color: 'inherit' }}>
+                          دوره: {period}
+                        </Typography>
+                      </Stack>
+                    )}
+                    {addedAt && (
                       <Typography variant="caption" sx={{ color: 'inherit' }}>
                         ثبت: {fDateFa(addedAt)}
                       </Typography>
-                    </Stack>
-                  )}
+                    )}
+                  </Stack>
                 </Box>
               </Stack>
               <Box sx={{ mt: 'auto' }}>{perceptionBody}</Box>

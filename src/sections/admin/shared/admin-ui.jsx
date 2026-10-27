@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import Card from '@mui/material/Card';
 import Menu from '@mui/material/Menu';
@@ -10,11 +10,66 @@ import Tooltip from '@mui/material/Tooltip';
 import { alpha } from '@mui/material/styles';
 import MenuItem from '@mui/material/MenuItem';
 import Skeleton from '@mui/material/Skeleton';
+import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import TableContainer from '@mui/material/TableContainer';
 
+import { toFaDigits } from 'src/utils/format-number-fa';
+import { gregorianToJalali, jalaliToGregorian } from 'src/utils/jalali-date';
+
 import { Iconify } from 'src/components/iconify';
+
+// ----------------------------------------------------------------------
+
+/**
+ * Date input typed and shown as Jalali (۱۴۰۵/۰۸/۰۵, Persian or Latin digits);
+ * `value` / `onChange` use a Gregorian 'YYYY-MM-DD' string ('' when cleared).
+ * The value is committed once the text is a complete, real Jalali day.
+ */
+export function JalaliDateField({ value, onChange, label, helperText, size = 'small', ...other }) {
+  const [text, setText] = useState(() => toFaDigits(gregorianToJalali(value)));
+  const [invalid, setInvalid] = useState(false);
+
+  // Follow outside changes, but don't clobber what the admin is typing
+  useEffect(() => {
+    if ((jalaliToGregorian(text) || '') !== (value || '')) {
+      setText(toFaDigits(gregorianToJalali(value)));
+      setInvalid(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  const handleChange = (e) => {
+    const next = e.target.value;
+    setText(next);
+    if (!next.trim()) {
+      setInvalid(false);
+      onChange('');
+      return;
+    }
+    const g = jalaliToGregorian(next);
+    if (g) {
+      setInvalid(false);
+      onChange(g);
+    }
+  };
+
+  return (
+    <TextField
+      label={label}
+      value={text}
+      onChange={handleChange}
+      onBlur={() => setInvalid(Boolean(text.trim()) && !jalaliToGregorian(text))}
+      size={size}
+      placeholder="۱۴۰۵/۰۸/۰۵"
+      error={invalid}
+      helperText={invalid ? 'تاریخ شمسی معتبر نیست (نمونه: ۱۴۰۳/۰۵/۱۲)' : helperText}
+      slotProps={{ htmlInput: { dir: 'ltr', inputMode: 'numeric' } }}
+      {...other}
+    />
+  );
+}
 
 // ----------------------------------------------------------------------
 

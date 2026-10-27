@@ -35,6 +35,7 @@ import LinearProgress from '@mui/material/LinearProgress';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { fNum, toFaDigits } from 'src/utils/format-number-fa';
+import { TIER_META, tierSuggestionText, tierSuggestionBasis } from 'src/utils/tier-criteria';
 
 import { CONFIG } from 'src/global-config';
 import axios, { endpoints } from 'src/lib/axios';
@@ -891,6 +892,24 @@ function TierChip({ tier }) {
   );
 }
 
+/** «پیشنهاد سامانه: متوسط — میانگین ۲٬۴۰۰ پست در روز»; highlighted when it differs from the chosen tier. */
+function TierSuggestionHint({ tier, suggestion }) {
+  if (!suggestion) return null;
+  const differs = suggestion.suggested && suggestion.suggested !== tier;
+  const criterion = suggestion.suggested ? `معیار ${TIER_META[suggestion.suggested]?.label}: ${TIER_META[suggestion.suggested]?.criterion}` : '';
+  return (
+    <Tooltip title={[criterion, tierSuggestionBasis(suggestion)].filter(Boolean).join(' · ') || 'سطح را مدیر تعیین می‌کند'}>
+      <Typography
+        variant="caption"
+        component="div"
+        sx={{ fontSize: 11.5, mt: 0.5, color: differs ? 'warning.main' : 'text.secondary', fontWeight: differs ? 600 : 400 }}
+      >
+        {tierSuggestionText(suggestion)}
+      </Typography>
+    </Tooltip>
+  );
+}
+
 function MetaItem({ icon, title, children, color = 'text.secondary' }) {
   return (
     <Tooltip title={title}>
@@ -946,6 +965,7 @@ function ProfileCard({ p, onEdit, onArchive, onDelete }) {
               {!p.isActive && <Chip label="غیرفعال" size="small" variant="soft" sx={{ fontSize: 12 }} />}
               <IngestStatusChip runState={runState} />
             </Stack>
+            <TierSuggestionHint tier={p.tier} suggestion={p.tierSuggestion} />
 
             {/* Compact stats row */}
             <Stack direction="row" alignItems="center" sx={{ mt: 1, flexWrap: 'wrap', columnGap: 2, rowGap: 0.5 }}>
@@ -1065,6 +1085,7 @@ function ProfileTableRow({ p, onEdit, onArchive, onDelete }) {
           />
           <IngestStatusChip runState={runState} />
         </Stack>
+        <TierSuggestionHint tier={p.tier} suggestion={p.tierSuggestion} />
       </TableCell>
 
       {/* Stats */}

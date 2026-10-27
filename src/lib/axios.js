@@ -118,7 +118,7 @@ export const endpoints = {
   topPosts: '/api/stats/top-posts',
   hashtags: '/api/stats/hashtags',
   sources: '/api/stats/sources',
-  userDistribution: '/api/stats/user-distribution',
+  botAnalysis: '/api/stats/bot-analysis',
   emotions: '/api/emotions',
   posts: '/api/posts',
   categories: '/api/posts/categories',

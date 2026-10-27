@@ -14,6 +14,7 @@ import Typography from '@mui/material/Typography';
 import { alpha, useTheme } from '@mui/material/styles';
 
 import { fNum, toFaDigits } from 'src/utils/format-number-fa';
+import { TIER_META, tierSuggestionBasis } from 'src/utils/tier-criteria';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -43,12 +44,6 @@ const PLATFORM_ICONS = {
   web:       { icon: 'solar:global-bold-duotone',              color: null,      label: 'وب' },
 };
 
-const TIER_LABELS = {
-  heavy: { label: 'سنگین', color: 'error' },
-  light: { label: 'سبک', color: 'success' },
-  medium: { label: 'متوسط', color: 'warning' },
-};
-
 // ----------------------------------------------------------------------
 
 export function PageProfile({ profileData, rawProfile, loading }) {
@@ -60,7 +55,9 @@ export function PageProfile({ profileData, rawProfile, loading }) {
 
   const channels = profileData?.officialChannels || [];
   const keywords = profileData?.keywords || [];
-  const tier = TIER_LABELS[profileData?.tier] || (profileData?.tier ? TIER_LABELS.medium : null);
+  const tier = TIER_META[profileData?.tier] || (profileData?.tier ? TIER_META.medium : null);
+  const tierInfo = rawProfile?.tierInfo;
+  const suggested = TIER_META[tierInfo?.suggested];
 
   return (
     <>
@@ -123,9 +120,31 @@ export function PageProfile({ profileData, rawProfile, loading }) {
           >
             <Stack spacing={1.5} divider={<Divider flexItem sx={{ borderStyle: 'dashed' }} />}>
               {tier && (
-                <InfoRow label="سطح پروفایل">
-                  <Chip label={tier.label} size="small" color={tier.color} variant="soft" sx={{ fontWeight: 700 }} />
-                </InfoRow>
+                <Box>
+                  <InfoRow label="سطح پروفایل">
+                    <Chip label={tier.label} size="small" color={tier.color} variant="soft" sx={{ fontWeight: 700 }} />
+                  </InfoRow>
+                  {/* Criterion + actual collection schedule, in plain words */}
+                  <Typography variant="caption" component="p" sx={{ mt: 1, color: 'text.secondary', lineHeight: 1.8 }}>
+                    {tier.label}: {tier.criterion}
+                    {tierInfo?.schedule && ` — جمع‌آوری خودکار: ${tierInfo.schedule}`}
+                    {tierInfo?.automaticCollectionEnabled === false && ' (جمع‌آوری خودکار در حال حاضر متوقف است)'}
+                  </Typography>
+                </Box>
+              )}
+              {tierInfo?.avgDailyMentions != null && (
+                <Box>
+                  <InfoRow label="حجم انتشار">
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {fNum(tierInfo.avgDailyMentions)} پست در روز
+                    </Typography>
+                  </InfoRow>
+                  <Typography variant="caption" component="p" sx={{ mt: 0.5, color: 'text.secondary', lineHeight: 1.8 }}>
+                    {tierSuggestionBasis(tierInfo)}
+                    {suggested && ` · سطح پیشنهادی سامانه: ${suggested.label}`}
+                    {suggested && tierInfo.suggested !== profileData?.tier && ' (سطح را مدیر سامانه تعیین می‌کند)'}
+                  </Typography>
+                </Box>
               )}
               {profileData?.lastUpdate && (
                 <InfoRow label="آخرین به‌روزرسانی">

@@ -243,14 +243,19 @@ export function useSourceStats(timeframe) {
 
 // ----------------------------------------------------------------------
 
-export function useUserDistribution(timeframe = 'all') {
+/**
+ * Account-level bot analysis: { criterion, totalAccounts, totalPosts,
+ * classes[{ key, label, accounts, posts, accountPercent, postPercent }],
+ * topSuspicious[{ handle, displayName, platform, avgProbability, postCount }], unattributedPosts }
+ */
+export function useBotAnalysis(timeframe = 'all') {
   const profileId = useActiveProfileId();
   return useQuery({
-    queryKey: ['user-distribution', profileId, timeframe],
+    queryKey: ['bot-analysis', profileId, timeframe],
     placeholderData: keepSameProfileData,
     queryFn: async () => {
       const since = timeframeToSince(timeframe);
-      const res = await axios.get(endpoints.userDistribution, { params: since ? { since } : undefined });
+      const res = await axios.get(endpoints.botAnalysis, { params: since ? { since } : undefined });
       return res.data;
     },
   });
@@ -358,6 +363,24 @@ export function usePromisePerception(timeframe = 'all') {
 }
 
 // ----------------------------------------------------------------------
+
+/**
+ * Weekly totals of the official pages over the last `weeks` weeks
+ * (Saturday–Friday, Tehran), oldest first:
+ * [{ weekStart, weekEnd, posts, views, likes, shares }]
+ */
+export function useOfficialWeekly(weeks = 12) {
+  const profileId = useActiveProfileId();
+  return useQuery({
+    queryKey: ['official-weekly', profileId, weeks],
+    placeholderData: keepSameProfileData,
+    queryFn: async () => {
+      const res = await axios.get('/api/posts/official/weekly', { params: { weeks } });
+      return res.data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
 
 /** Latest post date per official channel: [{ source, handle, lastPublishedAt, postCount }] */
 export function useOfficialStatus() {
