@@ -33,6 +33,8 @@ export const metadata = {
       rel: 'icon',
       url: `${CONFIG.assetsDir}/favicon.ico`,
     },
+    { rel: 'icon', type: 'image/svg+xml', url: `${CONFIG.assetsDir}/logo/payesh-mark.svg` },
+    { rel: 'apple-touch-icon', url: `${CONFIG.assetsDir}/logo/apple-touch-icon.png` },
   ],
 };
 

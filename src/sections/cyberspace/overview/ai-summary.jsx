@@ -46,6 +46,8 @@ export function AISummary({ loading, onActionClick }) {
       emptyText="خلاصه هنوز آماده نیست. پس از جمع‌آوری بعدی ساخته می‌شود."
       sx={{
         background: `linear-gradient(160deg, ${alpha(theme.palette.info.main, 0.06)} 0%, transparent 55%)`,
+        // Opaque base under the tint so the page pattern doesn't show through
+        bgcolor: 'background.paper',
       }}
       contentSx={{ display: 'flex', flexDirection: 'column' }}
     >

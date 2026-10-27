@@ -78,7 +78,7 @@ function ScreenSize({ children }) {
               bgcolor: 'background.default',
             }
           : {
-              bgcolor: 'background.default',
+              // No fill here: body paints background.default plus the brand pattern (global.css)
               minHeight: '100vh',
             }
       }

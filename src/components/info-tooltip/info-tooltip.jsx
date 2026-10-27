@@ -101,9 +101,10 @@ export function InfoTooltip({ title, sx }) {
           icon="solar:info-circle-linear"
           width={16}
           sx={{
-            color: 'text.disabled',
+            // Amber info icon, as in the organisation's UI kit
+            color: 'secondary.main',
             transition: 'color 0.15s',
-            'span:hover > &, span:focus-visible > &': { color: 'text.secondary' },
+            'span:hover > &, span:focus-visible > &': { color: 'secondary.dark' },
           }}
         />
       </span>

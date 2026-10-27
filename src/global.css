@@ -77,6 +77,25 @@ body,
   min-height: 100%;
   flex-direction: column;
 }
+/* Brand background pattern (مرکز پایش و فراداده), drawn faintly behind the page */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: rgba(var(--palette-grey-500Channel) / 0.1);
+  -webkit-mask: url('/assets/background/brand-pattern.svg') center / cover no-repeat;
+  mask: url('/assets/background/brand-pattern.svg') center / cover no-repeat;
+}
+[data-color-scheme='dark'] body::before {
+  background-color: rgba(var(--palette-grey-500Channel) / 0.05);
+}
+@media print {
+  body::before {
+    display: none;
+  }
+}
 img {
   max-width: 100%;
   vertical-align: middle;

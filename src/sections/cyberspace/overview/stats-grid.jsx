@@ -107,6 +107,7 @@ export function StatsGrid({ stats, loading }) {
             boxShadow: theme.shadows[4],
             border: `1px solid ${alpha(config.color, 0.12)}`,
             background: `linear-gradient(135deg, ${alpha(config.color, 0.08)} 0%, ${alpha(config.color, 0.02)} 100%)`,
+            bgcolor: 'background.paper',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             '&:hover': {
               transform: 'translateY(-2px)',

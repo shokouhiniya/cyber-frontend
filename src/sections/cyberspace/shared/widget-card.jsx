@@ -56,7 +56,24 @@ export function WidgetCard({
         alignItems="flex-start"
         justifyContent="space-between"
         spacing={1.5}
-        sx={{ px: 2.5, pt: 2.5, pb: disablePadding ? 2 : 0 }}
+        sx={{
+          position: 'relative',
+          px: 2.5,
+          py: 2,
+          borderBottom: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
+          // Brand accent bar at the start edge of the title, as in the organisation's UI kit
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            insetInlineStart: 0,
+            top: 20,
+            width: 4,
+            height: 28,
+            borderStartEndRadius: 4,
+            borderEndEndRadius: 4,
+            bgcolor: 'primary.main',
+          },
+        }}
       >
         <Stack direction="row" alignItems="center" spacing={1.5} sx={{ minWidth: 0 }}>
           {icon && (

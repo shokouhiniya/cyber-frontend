@@ -19,14 +19,24 @@ export function PageHeader({ title, description, actions, showProfile = true, sx
       alignItems={{ xs: 'flex-start', md: 'flex-end' }}
       justifyContent="space-between"
       spacing={2}
-      sx={[{ mb: { xs: 2.5, md: 3.5 } }, ...(Array.isArray(sx) ? sx : [sx])]}
+      sx={[
+        { mb: { xs: 2.5, md: 3 }, pb: { xs: 2, md: 2.5 }, borderBottom: 1, borderColor: 'divider' },
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
     >
       <Box sx={{ minWidth: 0 }}>
         {showProfile && profile?.name && (
           <Typography
             variant="overline"
             component="div"
-            sx={{ color: 'primary.main', letterSpacing: 0, fontSize: 12, fontWeight: 700, mb: 0.5 }}
+            sx={(theme) => ({
+              color: 'primary.main',
+              letterSpacing: 0,
+              fontSize: 12,
+              fontWeight: 700,
+              mb: 0.5,
+              ...theme.applyStyles('dark', { color: 'primary.light' }),
+            })}
           >
             {profile.name}
           </Typography>
