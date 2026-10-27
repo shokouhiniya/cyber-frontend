@@ -15,7 +15,7 @@ const styles = `
 * { box-sizing: border-box; margin: 0; padding: 0; }
 @page { size: A4; margin: 15mm 20mm; } /* Defines physical PDF page margins */
 body { margin: 0; padding: 0; }
-.rpt { width: 100%; max-width: 100%; padding: 10px; background: #fff; font-family: 'Vazirmatn','IRANSans',Tahoma,sans-serif; direction: rtl; color: #212B36; font-size: 10px; line-height: 1.6; overflow: hidden; }
+.rpt { width: 100%; max-width: 100%; padding: 10px; background: #fff; font-family: 'Yekan Bakh','Vazirmatn','IRANSans',Tahoma,sans-serif; direction: rtl; color: #212B36; font-size: 10px; line-height: 1.6; overflow: hidden; }
 .hdr { text-align: center; padding-bottom: 14px; margin-bottom: 16px; border-bottom: 3px solid #1e6091; }
 .hdr h1 { font-size: 18px; color: #1e6091; }
 .hdr .sub { font-size: 11px; color: #637381; margin-top: 2px; }

@@ -7,15 +7,15 @@ import { fNum } from 'src/utils/format-number-fa';
 
 // ----------------------------------------------------------------------
 
-/** Sentiment colors used by every chart, so «مثبت» is always the same green. */
+/** Sentiment colors (brand palette) used by every chart, so «مثبت» is always the same green. */
 export const SENTIMENT_COLORS = {
-  positive: '#22C55E',
-  neutral: '#919EAB',
-  negative: '#FF5630',
+  positive: '#00A651',
+  neutral: '#A7A9AC',
+  negative: '#ED1C24',
 };
 
 /**
- * Base ApexCharts options for the dashboard: Vazirmatn, Persian digits on
+ * Base ApexCharts options for the dashboard: the theme font, Persian digits on
  * axes and tooltips, theme-aware grid/label colors (light and dark), no
  * toolbar, and calm animations. Pass chart-specific options to override.
  */

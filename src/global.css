@@ -24,6 +24,45 @@
 @import './components/scrollbar/styles.css';
 
 /** **************************************
+* Fonts: Yekan Bakh (brand font, self-hosted, Persian digits)
+*************************************** */
+@font-face {
+  font-family: 'Yekan Bakh';
+  src: url('/fonts/yekan-bakh/yekan-bakh-light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Yekan Bakh';
+  src: url('/fonts/yekan-bakh/yekan-bakh-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Yekan Bakh';
+  src: url('/fonts/yekan-bakh/yekan-bakh-medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Yekan Bakh';
+  src: url('/fonts/yekan-bakh/yekan-bakh-bold.woff2') format('woff2');
+  font-weight: 600 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Yekan Bakh';
+  src: url('/fonts/yekan-bakh/yekan-bakh-heavy.woff2') format('woff2');
+  font-weight: 800 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/** **************************************
 * Baseline
 *************************************** */
 html {

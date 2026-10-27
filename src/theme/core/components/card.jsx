@@ -8,7 +8,8 @@ const MuiCard = {
     root: ({ theme }) => ({
       position: 'relative',
       boxShadow: theme.vars.customShadows.card,
-      borderRadius: theme.shape.borderRadius * 2,
+      // HeroUI-like "large" radius (14px) instead of Minimal's 16px+
+      borderRadius: theme.shape.borderRadius * 1.75,
       zIndex: 0, // Fix Safari overflow: hidden with border radius
     }),
   },

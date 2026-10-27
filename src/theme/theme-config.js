@@ -12,29 +12,31 @@ export const themeConfig = {
    * Typography
    *************************************** */
   fontFamily: {
-    primary: 'Vazirmatn Variable',
-    // Headings use Vazirmatn too, so Persian titles and digits match the body text
-    secondary: 'Vazirmatn Variable',
+    // Brand font (self-hosted in public/fonts, see global.css); FaNum build, so digits are Persian
+    primary: 'Yekan Bakh',
+    secondary: 'Yekan Bakh',
   },
   /** **************************************
    * Palette
    *************************************** */
   palette: {
+    // Brand palette (FRDD-DSGN-14040819-CLRPLT): org colour 1 (teal) and its tints/shades
     primary: {
-      lighter: '#C8FAD6',
-      light: '#5BE49B',
-      main: '#00A76F',
-      dark: '#007867',
-      darker: '#004B50',
+      lighter: '#D9E7E6',
+      light: '#8CB6B1',
+      main: '#146A61',
+      dark: '#0D403A',
+      darker: '#082B27',
       contrastText: '#FFFFFF',
     },
+    // Org colour 2 (amber)
     secondary: {
-      lighter: '#EFD6FF',
-      light: '#C684FF',
-      main: '#8E33FF',
-      dark: '#5119B7',
-      darker: '#27097A',
-      contrastText: '#FFFFFF',
+      lighter: '#FDDBA3',
+      light: '#FBC15E',
+      main: '#FAA61A',
+      dark: '#C88515',
+      darker: '#7D530D',
+      contrastText: '#322105',
     },
     info: {
       lighter: '#CAFDF5',
@@ -45,11 +47,11 @@ export const themeConfig = {
       contrastText: '#FFFFFF',
     },
     success: {
-      lighter: '#D3FCD2',
-      light: '#77ED8B',
-      main: '#22C55E',
-      dark: '#118D57',
-      darker: '#065E49',
+      lighter: '#E6F7EE',
+      light: '#66CA97',
+      main: '#00A651',
+      dark: '#007A3C',
+      darker: '#004D26',
       contrastText: '#ffffff',
     },
     warning: {
@@ -61,24 +63,25 @@ export const themeConfig = {
       contrastText: '#1C252E',
     },
     error: {
-      lighter: '#FFE9D5',
-      light: '#FFAC82',
-      main: '#FF5630',
-      dark: '#B71D18',
-      darker: '#7A0916',
+      lighter: '#FEE9EA',
+      light: '#F4777C',
+      main: '#ED1C24',
+      dark: '#B0141A',
+      darker: '#6E0D10',
       contrastText: '#FFFFFF',
     },
+    // Neutral scale built around the brand's text (#58595B, #A7A9AC) and border (#F1F2F2) greys
     grey: {
-      50: '#FCFDFD',
-      100: '#F9FAFB',
-      200: '#F4F6F8',
-      300: '#DFE3E8',
-      400: '#C4CDD5',
-      500: '#919EAB',
-      600: '#637381',
-      700: '#454F5B',
-      800: '#1C252E',
-      900: '#141A21',
+      50: '#FCFCFC',
+      100: '#F8F9F9',
+      200: '#F1F2F2',
+      300: '#E2E3E4',
+      400: '#C9CBCD',
+      500: '#A7A9AC',
+      600: '#7D7F82',
+      700: '#58595B',
+      800: '#2B2C2E',
+      900: '#1A1B1C',
     },
     common: { black: '#000000', white: '#FFFFFF' },
   },

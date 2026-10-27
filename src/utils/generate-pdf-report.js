@@ -18,7 +18,7 @@ export async function generatePdfFromHtml(htmlContent, filename = 'report') {
     width: ${RENDER_WIDTH}px;
     padding: 0;
     background: white;
-    font-family: 'Vazirmatn', 'IRANSans', Tahoma, sans-serif;
+    font-family: 'Yekan Bakh', 'Vazirmatn', 'IRANSans', Tahoma, sans-serif;
     direction: rtl;
     overflow: visible;
   `;

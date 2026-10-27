@@ -124,7 +124,7 @@ export function WidgetCard({
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          borderRadius: 2,
+          borderRadius: 1.75,
           overflow: 'hidden',
           border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
           boxShadow: theme.vars?.customShadows?.card ?? theme.shadows[1],

@@ -31,7 +31,7 @@ export const grey = createPaletteChannel(themeConfig.palette.grey);
 // Text color
 export const text = {
   light: createPaletteChannel({
-    primary: grey[800],
+    primary: grey[700],
     secondary: grey[600],
     disabled: grey[500],
   }),
@@ -46,7 +46,8 @@ export const text = {
 export const background = {
   light: createPaletteChannel({
     paper: '#FFFFFF',
-    default: '#FFFFFF',
+    // Soft page tint so white cards stand out (HeroUI-style layered surfaces)
+    default: grey[100],
     neutral: grey[200],
   }),
   dark: createPaletteChannel({
